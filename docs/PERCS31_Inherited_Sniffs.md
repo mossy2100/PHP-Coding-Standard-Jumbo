@@ -359,7 +359,8 @@ Requires `final` before the visibility on a constant, as in `final public const 
 
 ## Universal.ControlStructures.DisallowAlternativeSyntax
 
-Disallows the alternative syntax, e.g. `if ($a): ... endif;`, as a structure's body must be in braces.
+Disallows the alternative syntax, e.g. `if ($a): ... endif;`, as a structure's body must be in braces. See
+[The Alternative Syntax](PER-CS_3.1_Judgement_Calls.md#the-alternative-syntax).
 
 **PER Coding Style 3.1:** [Section 5](https://www.php-fig.org/per/coding-style/#5-control-structures).
 

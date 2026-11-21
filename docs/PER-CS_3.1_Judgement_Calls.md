@@ -1920,6 +1920,19 @@ too.
 
 ## 5. Control Structures
 
+### The Alternative Syntax
+
+**Issue:** [Section 5](https://www.php-fig.org/per/coding-style/#5-control-structures) says "The body of each structure MUST be enclosed by braces", but never mentions the alternative
+syntax, as in `if ($a): ... endif;`. [Section 3](https://www.php-fig.org/per/coding-style/#3-declare-statements-namespace-and-import-statements) expects files that mix HTML and PHP, where it's common.
+
+**Decision:** the alternative syntax is an error, in every control structure, including `declare()`, and in files with
+markup too. The fix converts it to braces.
+
+**Why:** a body between `:` and `endif;` isn't enclosed by braces, and the rule makes no exception for templates or for
+`declare()`.
+
+---
+
 ### An Empty Body, or No Body
 
 **Issue:** [Section 5](https://www.php-fig.org/per/coding-style/#5-control-structures) says "The body of each structure MUST be enclosed by braces", and "The body MUST be on the next
