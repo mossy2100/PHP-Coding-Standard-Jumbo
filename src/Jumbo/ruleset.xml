@@ -293,8 +293,9 @@
     <rule ref="SlevomatCodingStandard.PHP.DisallowDirectMagicInvokeCall"/>
 
     <!-- A warning for an unused parameter, except in a class that extends a class or implements an interface, where a
-         parent or the interface may fix the signature -->
+         parent or the interface may fix the signature, and before a used parameter, where it can't be dropped -->
     <rule ref="Generic.CodeAnalysis.UnusedFunctionParameter">
+        <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.FoundBeforeLastUsed"/>
         <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClass"/>
         <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassBeforeLastUsed"/>
         <exclude name="Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed"/>

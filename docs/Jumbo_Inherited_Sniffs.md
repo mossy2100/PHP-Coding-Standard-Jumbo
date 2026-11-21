@@ -109,9 +109,12 @@ Warns about assignments in conditions. See [Yoda-style Comparisons](../README.md
 
 ## Generic.CodeAnalysis.UnusedFunctionParameter
 
-A warning for a function or method parameter that the body never uses. A class that extends a class or implements an
-interface is skipped, as a parent or the interface may fix the signature: Jumbo excludes the six `FoundInExtendedClass`
-and `FoundInImplementedInterface` codes.
+A warning for a function or method parameter that the body never uses. Jumbo excludes these codes:
+
+- The six `FoundInExtendedClass` and `FoundInImplementedInterface` codes: a class that extends a class or implements an
+  interface is skipped, as a parent or the interface may fix the signature.
+- `FoundBeforeLastUsed`: an unused parameter before a used one is allowed, as it can't be dropped without moving the
+  used one, which a callback's caller may not allow, as in `fn($value, $key) => $key > 0`.
 
 **Auto-fixable:** no.
 

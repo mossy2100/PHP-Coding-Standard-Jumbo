@@ -1110,6 +1110,30 @@ class RulesetUnitTest extends TestCase
     }
 
     /**
+     * Test that Jumbo allows an unused parameter before a used one, as it can't be dropped without moving the used one,
+     * which a callback's caller may not allow.
+     */
+    public function testUnusedParameterBeforeUsedOneIsAllowed(): void
+    {
+        $file = $this->copyToTempFile(null, <<<'PHP'
+            <?php
+
+            $filtered = array_filter($items, static fn($value, $key) => $key > 0, ARRAY_FILTER_USE_BOTH);
+            PHP);
+
+        try {
+            $result = $this->runTool(
+                'phpcs',
+                ['-s', '--standard=Jumbo', '--sniffs=Generic.CodeAnalysis.UnusedFunctionParameter', $file],
+            );
+        } finally {
+            unlink($file);
+        }
+
+        $this->assertSame(0, $result['exitCode'], $result['output']);
+    }
+
+    /**
      * Test that Jumbo requires self, not static, in a final class, except as a return type. On PHP 8.4, self can't
      * replace a static return type that a parent declares.
      */
