@@ -1,0 +1,9 @@
+<?php declare(strict_types=1) ?>
+<?php
+
+declare(ticks=1);
+
+echo 1;
+?>
+<html>
+</html>

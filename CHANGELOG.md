@@ -555,6 +555,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
+- **`Jumbo.TypeHints.DeclareStrictTypes` no longer extends Slevomat's sniff (breaking).** It accepts `strict_types=1` in
+  any declare statement at the top of the file, in any case, as in `declare(ticks=1);` then `declare(strict_types=1);`,
+  and checks a template with only `<?=` tags. Its fix adds `declare(strict_types=1);` as a statement of its own, before
+  any other declare statements or after the file docblock, never as a directive in another statement. The
+  `IncorrectWhitespaceBeforeDeclare`, `IncorrectWhitespaceAfterDeclare` and `IncorrectStrictTypesFormat` codes are gone,
+  as `PERCS31.Files.FileHeader` and `PERCS31.Files.DeclareStatement` report the same problems. `strict_types=0` is now
+  reported as `DeclareStrictTypesDisabled`.
+
 - **One constant per statement, for class constants only, in PERCS31 (breaking).** `const A = 1, B = 2;` at file
   scope now passes in PERCS31, as section 4.3 is about classes. Jumbo still reports it. The check moves from
   `SlevomatCodingStandard.Classes.DisallowMultiConstantDefinition` in the ruleset into
@@ -760,6 +768,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   `&&` or `||` however long the line.
 
 ### Fixed
+
+- **A comment in `<?php declare(strict_types=1) ?>`.** `PERCS31.Files.FileHeader` reported
+  `<?php /* Why. */ declare(strict_types=1) ?>` on the first line of a file with markup as not on the first line.
+- **`strict_types` after another declare statement, in a file with markup (breaking).** `PERCS31.Files.FileHeader` only
+  read the first declare statement, so it missed `declare(ticks=1);` then `declare(strict_types=1);`.
+- **A block declare in the alternative syntax.** `PERCS31.Files.DeclareStatement` reported the `:` of
+  `declare(ticks=1):` as a space before the semicolon.
 
 - **A comment at the end of a file header line.** `PERCS31.Files.FileHeader` reported `use A; // Why.`, or a comment
   after a `declare` or `namespace` statement, as missing the blank line after its block, even with one there. Its fix

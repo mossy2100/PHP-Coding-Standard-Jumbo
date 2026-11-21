@@ -11,6 +11,8 @@
  *
  * It isn't a subclass, as the changes are inside process(), which has no smaller method to override. The changes:
  * - Each directive is checked in turn, with any value.
+ * - A block declare in the alternative syntax, `declare(ticks=1):`, is skipped after its directives. The original
+ *   reported its colon as a space before the semicolon.
  * - The fix for the space before a block declare's `{` removes whatever is between them, then adds one. The original's
  *   loop never ended on `){`, with no space at all.
  * - The check that the closing brace is on a new line is removed, as PERCS31.WhiteSpace.ScopeClosingBrace makes it,
@@ -111,6 +113,10 @@ class DeclareStatementSniff implements Sniff
             if ($tokens[$token]['type'] === 'T_OPEN_CURLY_BRACKET') {
                 // Block declaration.
                 $curlyBracket = $token;
+            // PERCS31: a block declare in the alternative syntax has no semicolon or brace to check.
+            } elseif ($tokens[$token]['type'] === 'T_COLON') {
+                return;
+            // PERCS31: end of change.
             } elseif ($tokens[$token]['type'] === 'T_SEMICOLON') {
                 $error = 'Expected no space between the closing parenthesis and the semicolon in a declare statement';
                 $fix   = $phpcsFile->addFixableError($error, $parenthesis, 'SpaceFoundBeforeSemicolon');

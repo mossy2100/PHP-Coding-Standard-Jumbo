@@ -31,6 +31,11 @@ class FileHeaderUnitTest extends AbstractSniffTestCase
             return [3 => 1];
         }
 
+        if ($testFile === 'FileHeaderUnitTest.33.inc') {
+            // The same, in a declare statement after another one. The fix keeps the blank line after the other one.
+            return [4 => 1];
+        }
+
         if ($testFile === 'FileHeaderUnitTest.19.inc' || $testFile === 'FileHeaderUnitTest.20.inc') {
             // The same, after a shebang line. File 21 has the declaration on the second line, and file 22 has a
             // shebang line and no markup, so nothing is reported.
@@ -93,10 +98,10 @@ class FileHeaderUnitTest extends AbstractSniffTestCase
         }
 
         if ($testFile !== 'FileHeaderUnitTest.1.inc') {
-            // The other files use a declare statement between PHP tags on the first line, which is allowed, several
-            // imports in one use statement, or markup with no declare statement, or start with markup, so have no
-            // file header. Files 16 and 17 are templates whose only PHP tag shares the first line with a statement
-            // or a docblock, which section 3 allows in a file with markup.
+            // The other files use a declare statement between PHP tags on the first line, which is allowed, with a
+            // comment in file 34, several imports in one use statement, or markup with no declare statement, or start
+            // with markup, so have no file header. Files 16 and 17 are templates whose only PHP tag shares the first
+            // line with a statement or a docblock, which section 3 allows in a file with markup.
             return [];
         }
 

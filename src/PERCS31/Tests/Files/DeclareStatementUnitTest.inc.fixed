@@ -46,3 +46,11 @@ declare(ticks=1) {
     $b = 2;
 
 }
+
+// A block declare in the alternative syntax.
+declare(ticks=1):
+    $a = 1;
+enddeclare;
+
+// Directives not in lowercase.
+declare(ticks=1,encoding='UTF-8');

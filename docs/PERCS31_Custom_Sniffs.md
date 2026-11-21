@@ -1228,6 +1228,9 @@ With that check gone, the original's fix for the closing brace's alignment could
 excludes that code, `CloseBracketNotAligned`, as [`PERCS31.WhiteSpace.ScopeIndent`](#percs31whitespacescopeindent)
 reports the same brace.
 
+The original reads the `:` of a block declare in the alternative syntax, as in `declare(ticks=1):`, as a misplaced `;`.
+The fork skips it. `Universal.ControlStructures.DisallowAlternativeSyntax` reports the syntax itself.
+
 **Auto-fixable:** yes.
 
 **Good:**
@@ -1269,10 +1272,13 @@ header, and requires a blank line after the tag and after the declaration, so it
 skips such a file, as the parent skips other files that mix PHP and markup. The `;` before the `?>` may be included or
 left out.
 
+A comment on that line is allowed, as in `<?php /* Why. */ declare(strict_types=1) ?>`.
+
 In a file with markup, a `strict_types` declaration anywhere else is reported, as `StrictTypesNotOnFirstLine`, whether
-it sets `strict_types` to 1 or 0. If it's all that's in its PHP block, the fix collapses the block onto the first line.
-Otherwise, it adds the declaration between its own PHP tags as the first line, and removes the statement and the blank
-line after it. PHP skips a shebang line, so in a file starting with one, the second line counts as the first.
+it sets `strict_types` to 1 or 0, and whether or not other declare statements come before it. If it's all that's in its
+PHP block, the fix collapses the block onto the first line. Otherwise, it adds the declaration between its own PHP tags
+as the first line, and removes the statement and the blank line after it, or after another declare statement, the line
+break before it. PHP skips a shebang line, so in a file starting with one, the second line counts as the first.
 
 Section 3 also lists "One or more declare statements" as one block, with no blank line in it. The parent ends the header
 at a block declare, and wants a blank line before one. This sniff counts one as a declare statement, so there's no blank

@@ -71,7 +71,6 @@ sections link to it.
 | `SlevomatCodingStandard.PHP.UselessSemicolon`                                            | No useless semicolons                                          | Yes     |
 | `SlevomatCodingStandard.Strings.DisallowVariableParsing`                                 | No variables parsed in strings                                 | No      |
 | `SlevomatCodingStandard.TypeHints.ClassConstantTypeHint`                                 | Type hints on class constants                                  | Partly  |
-| `SlevomatCodingStandard.TypeHints.DeclareStrictTypes`                                    | `declare(strict_types=1)`, through a Jumbo sniff               | Yes     |
 | `SlevomatCodingStandard.TypeHints.DisallowArrayTypeHintSyntax`                           | `array<int>`, not `int[]`, in a doc comment                    | Yes     |
 | `SlevomatCodingStandard.TypeHints.LongTypeHints`                                         | `int` and `bool`, not `integer` and `boolean`                  | Yes     |
 | `SlevomatCodingStandard.TypeHints.NullableTypeForNullDefaultValue`                       | A nullable type on a parameter that defaults to `null`         | Yes     |
@@ -607,15 +606,6 @@ Disallows variable parsing in strings.
 Requires class constant type hints.
 
 **Auto-fixable:** partly. Some of its codes can't be fixed.
-
----
-
-## SlevomatCodingStandard.TypeHints.DeclareStrictTypes
-
-Requires `declare(strict_types=1)`. Used through [`Jumbo.TypeHints.DeclareStrictTypes`](Jumbo_Custom_Sniffs.md#jumbotypehintsdeclarestricttypes), which allows
-`<?php declare(strict_types=1) ?>` on the first line of a file with markup.
-
-**Auto-fixable:** yes.
 
 ---
 

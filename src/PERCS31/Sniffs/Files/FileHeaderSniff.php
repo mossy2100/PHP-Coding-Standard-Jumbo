@@ -393,18 +393,15 @@ class FileHeaderSniff extends Psr12Sniff
     private function checkStrictTypesOnFirstLine(File $phpcsFile, int $stackPtr): bool
     {
         $tokens = $phpcsFile->getTokens();
-        $declare = FileHeaderHelper::findStrictTypesDeclare($phpcsFile);
-        if (
-            $declare === null || $stackPtr !== FileHeaderHelper::findFirstLineTag($phpcsFile)
-            || !FileHeaderHelper::hasMarkup($phpcsFile)
-        ) {
+        if ($stackPtr !== FileHeaderHelper::findFirstLineTag($phpcsFile) || !FileHeaderHelper::hasMarkup($phpcsFile)) {
             return false;
         }
 
-        // PHP requires strict_types in the first statement, so anything else isn't valid code.
-        $first = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($stackPtr + 1), null, true);
-        $closer = $tokens[$declare]['parenthesis_closer'] ?? null;
-        if ($first !== $declare || !is_int($closer)) {
+        // PHP requires strict_types in the first statement, which may follow other declare statements.
+        $directive = FileHeaderHelper::findStrictTypesDirective($phpcsFile, $stackPtr);
+        $declare = $directive === null ? false : $phpcsFile->findPrevious(T_DECLARE, $directive);
+        $closer = $declare === false ? null : ($tokens[$declare]['parenthesis_closer'] ?? null);
+        if ($declare === false || !is_int($closer)) {
             return false;
         }
 
@@ -442,8 +439,19 @@ class FileHeaderSniff extends Psr12Sniff
             }
         } else {
             $phpcsFile->fixer->addContentBefore($stackPtr, "<?php {$statement} ?>{$phpcsFile->eolChar}");
+
+            // After another declare statement, the line break before it goes instead of the blank line after it,
+            // which then follows the other declare statements.
+            $first = $declare;
             $last = $next === false ? $phpcsFile->numTokens : $next;
-            for ($i = $declare; $i < $last; $i++) {
+            $before = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($declare - 1), null, true);
+            $isAfterStatement = $before !== false && $tokens[$before]['code'] === T_SEMICOLON;
+            if ($isAfterStatement && $tokens[($declare - 1)]['code'] === T_WHITESPACE) {
+                $first = $declare - 1;
+                $last = $end + 1;
+            }
+
+            for ($i = $first; $i < $last; $i++) {
                 $phpcsFile->fixer->replaceToken($i, '');
             }
         }

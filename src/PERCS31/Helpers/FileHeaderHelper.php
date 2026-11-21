@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PERCS31\Helpers;
 
 use PHP_CodeSniffer\Files\File;
+use PHP_CodeSniffer\Util\Tokens;
 use PHPCSUtils\Utils\FileInfo;
 
 /**
@@ -34,7 +35,7 @@ class FileHeaderHelper
      * line after a shebang line.
      *
      * PER Coding Style 3.1, section 3, says a file containing markup outside PHP tags declares strict types this way,
-     * e.g. `<?php declare(strict_types=1) ?>`, with or without a semicolon.
+     * e.g. `<?php declare(strict_types=1) ?>`, with or without a semicolon. A comment on the line is allowed.
      *
      * @param File $phpcsFile The file being scanned.
      * @return bool True if the line is an opening tag, a declare statement and a closing tag.
@@ -48,7 +49,7 @@ class FileHeaderHelper
         }
 
         $line = $tokens[$tag]['line'];
-        $declare = $phpcsFile->findNext(T_WHITESPACE, ($tag + 1), null, true);
+        $declare = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($tag + 1), null, true);
         if ($declare === false || $tokens[$declare]['code'] !== T_DECLARE || $tokens[$declare]['line'] !== $line) {
             return false;
         }
@@ -58,9 +59,9 @@ class FileHeaderHelper
             return false;
         }
 
-        $next = $phpcsFile->findNext(T_WHITESPACE, ($closer + 1), null, true);
+        $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($closer + 1), null, true);
         if ($next !== false && $tokens[$next]['code'] === T_SEMICOLON) {
-            $next = $phpcsFile->findNext(T_WHITESPACE, ($next + 1), null, true);
+            $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($next + 1), null, true);
         }
 
         return $next !== false && $tokens[$next]['code'] === T_CLOSE_TAG && $tokens[$next]['line'] === $line;
@@ -106,26 +107,42 @@ class FileHeaderHelper
     }
 
     /**
-     * Find the file's first declare statement, if it sets strict_types.
+     * Find the strict_types directive in the declare statements that start a PHP block, whatever its case or value.
+     *
+     * PHP only allows strict_types in a file's first statement, but other declare statements may come before it, as in
+     * `declare(ticks=1); declare(strict_types=1);`.
      *
      * @param File $phpcsFile The file being scanned.
-     * @param bool $onOnly True to only find a statement that sets strict_types to 1, and not one that sets it to 0.
-     * @return int|null The position of `declare`, or null if the first declare statement doesn't set strict_types.
+     * @param int $tagPtr The position of the block's opening tag.
+     * @return int|null The position of the directive's name, or null if there isn't one.
      */
-    public static function findStrictTypesDeclare(File $phpcsFile, bool $onOnly = false): ?int
+    public static function findStrictTypesDirective(File $phpcsFile, int $tagPtr): ?int
     {
         $tokens = $phpcsFile->getTokens();
-        $declare = $phpcsFile->findNext(T_DECLARE, 0);
-        $closer = $declare === false ? null : ($tokens[$declare]['parenthesis_closer'] ?? null);
-        if ($declare === false || !is_int($closer)) {
-            return null;
+        $declare = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($tagPtr + 1), null, true);
+        while ($declare !== false && $tokens[$declare]['code'] === T_DECLARE) {
+            $closer = $tokens[$declare]['parenthesis_closer'] ?? null;
+            if (!is_int($closer)) {
+                return null;
+            }
+
+            for ($i = ($declare + 1); $i < $closer; $i++) {
+                if ($tokens[$i]['code'] === T_STRING && strtolower($tokens[$i]['content']) === 'strict_types') {
+                    return $i;
+                }
+            }
+
+            // Nothing can declare strict types after a block declare, or after the block's closing tag.
+            $semicolon = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($closer + 1), null, true);
+            $isBlock = isset($tokens[$declare]['scope_opener']);
+            if ($isBlock || $semicolon === false || $tokens[$semicolon]['code'] !== T_SEMICOLON) {
+                return null;
+            }
+
+            $declare = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($semicolon + 1), null, true);
         }
 
-        $content = $phpcsFile->getTokensAsString($declare, ($closer - $declare + 1));
-
-        $pattern = $onOnly ? '/strict_types\s*=\s*1\b/' : '/strict_types\s*=\s*[01]\b/';
-
-        return preg_match($pattern, $content) === 1 ? $declare : null;
+        return null;
     }
 
     /**

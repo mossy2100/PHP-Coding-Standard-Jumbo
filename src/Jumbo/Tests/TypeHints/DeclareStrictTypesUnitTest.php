@@ -19,63 +19,43 @@ class DeclareStrictTypesUnitTest extends AbstractSniffTestCase
      */
     protected function getErrorList(string $testFile = ''): array
     {
-        if ($testFile === 'DeclareStrictTypesUnitTest.3.inc' || $testFile === 'DeclareStrictTypesUnitTest.6.inc') {
-            // A block declare: the fix adds a separate statement above it.
-            return [1 => 1];
-        }
-
-        // A block declare after a shebang line, which isn't fixable, then a file with markup before its opening tag,
-        // where the fix adds the declare between its own PHP tags on the first line.
-        $markupBefore = [
-            'DeclareStrictTypesUnitTest.7.inc',
+        return match ($testFile) {
+            // strict_types=0, between PHP tags on the first line of a file with markup.
+            'DeclareStrictTypesUnitTest.2.inc' => [1 => 1],
+            // A block declare, then an alternative syntax one: the fix adds a separate statement above it.
+            'DeclareStrictTypesUnitTest.3.inc', 'DeclareStrictTypesUnitTest.6.inc' => [1 => 1],
+            // Another declare statement: the fix adds a separate statement above it, not a directive to it.
+            'DeclareStrictTypesUnitTest.4.inc' => [1 => 1],
+            // A block declare after a shebang line: the fix adds a separate statement above it.
+            'DeclareStrictTypesUnitTest.7.inc' => [2 => 1],
+            // Markup before the opening tag, with a block declare, with no declare, and with another declare: the fix
+            // adds the declaration between its own PHP tags on the first line.
             'DeclareStrictTypesUnitTest.8.inc',
             'DeclareStrictTypesUnitTest.9.inc',
             'DeclareStrictTypesUnitTest.10.inc',
-        ];
-        if (in_array($testFile, $markupBefore, true)) {
-            return [2 => 1];
-        }
-
-        if ($testFile === 'DeclareStrictTypesUnitTest.14.inc') {
-            // A file with markup after its PHP: the fix adds the declare on the first line too.
-            return [1 => 1];
-        }
-
-        if ($testFile === 'DeclareStrictTypesUnitTest.15.inc' || $testFile === 'DeclareStrictTypesUnitTest.16.inc') {
-            // A shebang line, with markup before or after the PHP: the fix adds the declare on the second line. File
-            // 17 has it there already, so nothing is reported.
-            return $testFile === 'DeclareStrictTypesUnitTest.15.inc' ? [3 => 1] : [2 => 1];
-        }
-
-        if ($testFile === 'DeclareStrictTypesUnitTest.13.inc') {
-            // A blank line between two declare statements.
-            return [3 => 1];
-        }
-
-        if ($testFile === 'DeclareStrictTypesUnitTest.11.inc' || $testFile === 'DeclareStrictTypesUnitTest.12.inc') {
-            // Two declare statements with no blank line, as PER requires.
-            return [];
-        }
-
-        if ($testFile === 'DeclareStrictTypesUnitTest.4.inc') {
-            // No strict_types: the fix adds it with no spaces, as PER requires.
-            return [3 => 1];
-        }
-
-        if ($testFile === 'DeclareStrictTypesUnitTest.5.inc') {
-            // Spaces around the =.
-            return [3 => 1];
-        }
-
-        if ($testFile !== 'DeclareStrictTypesUnitTest.2.inc') {
-            // The other files use a declare statement between PHP tags on the first line, which is allowed.
-            return [];
-        }
-
-        return [
-            // strict_types=0, which the parent still reports.
-            1 => 1,
-        ];
+                => [2 => 1],
+            // Markup after the PHP: the fix adds the declaration on the first line too.
+            'DeclareStrictTypesUnitTest.14.inc' => [1 => 1],
+            // A shebang line, with markup before the PHP, then after it: the fix adds the declaration on the second
+            // line.
+            'DeclareStrictTypesUnitTest.15.inc' => [3 => 1],
+            'DeclareStrictTypesUnitTest.16.inc' => [2 => 1],
+            // A template with only <?= tags: the fix adds the declaration on the first line.
+            'DeclareStrictTypesUnitTest.19.inc' => [1 => 1],
+            // No declare statement: the fix adds one after the file docblock, before a namespace, and before code on
+            // the opening tag's line.
+            'DeclareStrictTypesUnitTest.21.inc',
+            'DeclareStrictTypesUnitTest.22.inc',
+            'DeclareStrictTypesUnitTest.23.inc',
+                => [1 => 1],
+            // strict_types=0, after another directive.
+            'DeclareStrictTypesUnitTest.24.inc' => [3 => 1],
+            // The declaration between PHP tags on the first line of a file with markup, with and without the `;`, and
+            // with a comment, and after a shebang line (17). Then strict_types=1 with another declare statement after
+            // it (11, 12), and before it (13), with spaces around the = (5), and as STRICT_TYPES (18), which
+            // PERCS31.Files.DeclareStatement reports.
+            default => [],
+        };
     }
 
     /**

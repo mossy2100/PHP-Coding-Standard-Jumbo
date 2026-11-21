@@ -781,20 +781,31 @@ $a = "Hi $name, you're $user->age, ID $row[id].";
 ## Jumbo.TypeHints.DeclareStrictTypes
 
 Requires `declare(strict_types=1)` at the top of each file. This replaces
-`SlevomatCodingStandard.TypeHints.DeclareStrictTypes`, and allows the declaration between its own PHP tags on the first
-line of a file with markup.
+`SlevomatCodingStandard.TypeHints.DeclareStrictTypes`.
 
-**Why:** [PER Coding Style 3.1, Section 3](https://www.php-fig.org/per/coding-style/#3-declare-statements-namespace-and-import-statements) says that in a file containing markup outside PHP tags, the declaration MUST be
-on the first line, e.g. `<?php declare(strict_types=1) ?>`. The parent requires a blank line before and after it. This
-sniff accepts that form, with or without the `;`, if it sets `strict_types` to 1. See [`PERCS31.Files.FileHeader`](PERCS31_Custom_Sniffs.md#percs31filesfileheader).
-Section 3 also forbids spaces inside the parentheses, so it requires `strict_types=1`, where the parent's default is
-`strict_types = 1`. And it lists declare statements as one block with no blank line in it, where the parent always wants
-a blank line after `strict_types`, so this sniff wants none if another declare statement follows.
+**Why:** the Slevomat sniff only reads the first declare statement, and its fix adds `strict_types` to it, which in a
+block `declare` is a fatal error. Its other checks are already made by PERCS31's sniffs. This sniff:
 
-**Auto-fixable:** yes, as the parent. PHP doesn't allow `strict_types` in a block `declare`, so for a file starting with
-one, the fix adds `declare(strict_types=1);` on the line above. In a file with markup, the fix adds
-`<?php declare(strict_types=1) ?>` as the first line, as PER requires. PHP skips a shebang line, so in a file starting
-with one, the fix adds it as the second line.
+- Accepts `strict_types=1` in any of the declare statements at the top of the file, in any case, as PHP does, as in
+  `declare(ticks=1);` then `declare(strict_types=1);`.
+- Checks a template with only `<?=` tags too.
+- Leaves the rest to PERCS31. [`PERCS31.Files.DeclareStatement`](PERCS31_Custom_Sniffs.md#percs31filesdeclarestatement)
+  reports spaces inside the parentheses, and a directive that isn't in lower case.
+  [`PERCS31.Files.FileHeader`](PERCS31_Custom_Sniffs.md#percs31filesfileheader) checks the blank lines around the
+  declare statements, and that in a file with markup, the declaration is on the first line, as in
+  `<?php declare(strict_types=1) ?>`. [PER Coding Style 3.1, Section 3](https://www.php-fig.org/per/coding-style/#3-declare-statements-namespace-and-import-statements) says that in a file containing markup
+  outside PHP tags, the declaration "MUST be on the first line".
+
+`strict_types=0` is reported as `DeclareStrictTypesDisabled`, and a missing declaration as `DeclareStrictTypesMissing`.
+
+**Auto-fixable:** yes. The fix for `strict_types=0` sets it to 1. The fix for a missing declaration adds
+`declare(strict_types=1);` as a statement of its own:
+
+- Before any other declare statements, never as a directive in one.
+- Otherwise after the file docblock, as the header's order is the opening tag, the file docblock, then the declare
+  statements.
+- In a file with markup, or a template with only `<?=` tags, as `<?php declare(strict_types=1) ?>` on the first line.
+  PHP skips a shebang line, so in a file starting with one, on the second line.
 
 ---
 
