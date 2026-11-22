@@ -306,6 +306,15 @@
     <!-- A warning for blocks nested more than 5 deep in a function, and an error for more than 10 -->
     <rule ref="Generic.Metrics.NestingLevel"/>
 
+    <!-- No call to a native function that PHP marks deprecated, going by the PHP that runs phpcs -->
+    <rule ref="Generic.PHP.DeprecatedFunctions"/>
+
+    <!-- A warning for eval() -->
+    <rule ref="Squiz.PHP.Eval"/>
+
+    <!-- No function alias, such as sizeof() or join() -->
+    <rule ref="PhpCollective.PHP.RemoveFunctionAlias"/>
+
     <!-- ====== CONTROL STRUCTURES (5) ====== -->
 
     <!-- Every empty body as {}, as an error, including a control structure's. PERCS31 warns for a class or function,
@@ -326,6 +335,11 @@
     </rule>
 
     <rule ref="Generic.CodeAnalysis.AssignmentInCondition"/>
+
+    <!-- A warning for a for loop with only a condition, which can be a while loop, and for goto -->
+    <rule ref="Generic.CodeAnalysis.ForLoopShouldBeWhileLoop"/>
+    <rule ref="Generic.PHP.DiscourageGoto"/>
+
     <rule ref="SlevomatCodingStandard.ControlStructures.DisallowContinueWithoutIntegerOperandInSwitch"/>
     <!-- One space after a language construct such as return, echo or throw, with no line break. The Jumbo version of
          Generic.WhiteSpace.LanguageConstructSpacing, which leaves out new, as PER puts it on its own line before an
@@ -384,6 +398,20 @@
 
     <rule ref="SlevomatCodingStandard.Operators.RequireCombinedAssignmentOperator"/>
     <rule ref="SlevomatCodingStandard.Operators.RequireOnlyStandaloneIncrementAndDecrementOperators"/>
+
+    <!-- An increment or decrement operator, not $i += 1 or $i -= 1. NotAllowed and NoBrackets are left out, as
+         SlevomatCodingStandard.Operators.RequireOnlyStandaloneIncrementAndDecrementOperators reports those lines. -->
+    <rule ref="Squiz.Operators.IncrementDecrementUsage">
+        <exclude name="Squiz.Operators.IncrementDecrementUsage.NotAllowed"/>
+        <exclude name="Squiz.Operators.IncrementDecrementUsage.NoBrackets"/>
+    </rule>
+
+    <!-- No $a = $b = 1: an assignment comes first on its line. FoundInControlStructure is left out, as an assignment in
+         a condition is a warning, from Generic.CodeAnalysis.AssignmentInCondition. -->
+    <rule ref="Squiz.PHP.DisallowMultipleAssignments">
+        <exclude name="Squiz.PHP.DisallowMultipleAssignments.FoundInControlStructure"/>
+    </rule>
+
     <rule ref="SlevomatCodingStandard.ControlStructures.RequireNullCoalesceEqualOperator"/>
     <rule ref="SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator"/>
     <rule ref="SlevomatCodingStandard.ControlStructures.RequireNullSafeObjectOperator"/>
@@ -525,6 +553,10 @@
 
     <rule ref="SlevomatCodingStandard.Commenting.DeprecatedAnnotationDeclaration"/>
     <rule ref="SlevomatCodingStandard.Commenting.EmptyComment"/>
+
+    <!-- A docblock's stars lined up, with one space after each -->
+    <rule ref="Squiz.Commenting.DocCommentAlignment"/>
+
     <rule ref="SlevomatCodingStandard.Commenting.RequireOneLinePropertyDocComment"/>
     <rule ref="SlevomatCodingStandard.Commenting.UselessInheritDocComment"/>
 
@@ -537,6 +569,9 @@
 
     <!-- Braces around every variable in a string, as in "Hi {$name}". -->
     <rule ref="Jumbo.Strings.RequireBracedVariables"/>
+
+    <!-- No space between <<< and a heredoc's or nowdoc's identifier -->
+    <rule ref="Generic.WhiteSpace.HereNowdocIdentifierSpacing"/>
 
     <!-- ====== VARIABLES (NOT IN PER) ====== -->
 
@@ -552,5 +587,8 @@
 
     <rule ref="SlevomatCodingStandard.Variables.DisallowVariableVariable"/>
     <rule ref="SlevomatCodingStandard.Variables.DuplicateAssignmentToVariable"/>
+
+    <!-- No $_REQUEST, whose contents depend on the request_order and variables_order ini settings -->
+    <rule ref="Generic.PHP.DisallowRequestSuperglobal"/>
 
 </ruleset>

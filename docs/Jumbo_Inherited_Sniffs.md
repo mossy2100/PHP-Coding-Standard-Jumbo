@@ -11,9 +11,15 @@ sections link to it.
 | Sniff                                                                                    | Checks                                                         | Fixable |
 |------------------------------------------------------------------------------------------|----------------------------------------------------------------|---------|
 | `Generic.CodeAnalysis.AssignmentInCondition`                                             | A warning for an assignment in a condition                     | No      |
+| `Generic.CodeAnalysis.ForLoopShouldBeWhileLoop`                                          | A warning for a `for` loop with only a condition               | No      |
 | `Generic.CodeAnalysis.UnusedFunctionParameter`                                           | A warning for an unused parameter                              | No      |
 | `Generic.Metrics.NestingLevel`                                                           | Blocks nested no more than 5 deep                              | No      |
+| `Generic.PHP.DeprecatedFunctions`                                                        | No deprecated native functions                                 | No      |
+| `Generic.PHP.DisallowRequestSuperglobal`                                                 | No `$_REQUEST`                                                 | No      |
+| `Generic.PHP.DiscourageGoto`                                                             | A warning for `goto`                                           | No      |
 | `Generic.WhiteSpace.ArbitraryParenthesesSpacing`                                         | No space inside grouping parentheses                           | Yes     |
+| `Generic.WhiteSpace.HereNowdocIdentifierSpacing`                                         | No space in `<<< END`                                          | Yes     |
+| `PhpCollective.PHP.RemoveFunctionAlias`                                                  | No function aliases, such as `sizeof()`                        | Yes     |
 | `PhpCollective.WhiteSpace.EmptyLines`                                                    | No more than one blank line in a row                           | Yes     |
 | `SlevomatCodingStandard.Arrays.ArrayAccess`                                              | No white space around an array access's brackets               | Partly  |
 | `SlevomatCodingStandard.Arrays.DisallowImplicitArrayCreation`                            | No array created by assigning to an undefined variable         | No      |
@@ -84,9 +90,13 @@ sections link to it.
 | `SlevomatCodingStandard.Whitespaces.DuplicateSpaces`                                     | No run of spaces in code                                       | Yes     |
 | `Squiz.Arrays.ArrayDeclaration`                                                          | No mix of keyed and unkeyed values in an array                 | No      |
 | `Squiz.Classes.ClassFileName`                                                            | A file named after its class                                   | No      |
+| `Squiz.Commenting.DocCommentAlignment`                                                   | A docblock's stars lined up, with one space after each         | Yes     |
 | `Squiz.Commenting.InlineComment`                                                         | One space after `//`                                           | Yes     |
 | `Squiz.NamingConventions.ValidVariableName`                                              | `$camelCase` variable, parameter and property names            | No      |
+| `Squiz.Operators.IncrementDecrementUsage`                                                | `$i++`, not `$i += 1`                                          | No      |
 | `Squiz.Operators.ValidLogicalOperators`                                                  | `&&` and `\|\|`, not `and` and `or`                            | No      |
+| `Squiz.PHP.DisallowMultipleAssignments`                                                  | No `$a = $b = 1`                                               | No      |
+| `Squiz.PHP.Eval`                                                                         | A warning for `eval()`                                         | No      |
 | `Squiz.Strings.DoubleQuoteUsage.NotRequired`                                             | Single quotes, unless double quotes are needed                 | Yes     |
 | `Squiz.WhiteSpace.FunctionOpeningBraceSpace.SpacingAfter`                                | No blank line after a function's opening brace                 | Yes     |
 | `Squiz.WhiteSpace.OperatorSpacing`                                                       | Exactly one space around operators                             | Yes     |
@@ -100,6 +110,15 @@ sections link to it.
 ## Generic.CodeAnalysis.AssignmentInCondition
 
 Warns about assignments in conditions. See [Yoda-style Comparisons](../README.md#yoda-style-comparisons).
+
+**Auto-fixable:** no.
+
+---
+
+## Generic.CodeAnalysis.ForLoopShouldBeWhileLoop
+
+A warning for a `for` loop with only a condition, such as `for (; $i < 10;)`, which can be a `while` loop.
+`for (;;)` isn't reported.
 
 **Auto-fixable:** no.
 
@@ -126,12 +145,55 @@ A warning for a function with blocks nested more than 5 deep, and an error for m
 
 ---
 
+## Generic.PHP.DeprecatedFunctions
+
+Disallows a call to a native function that PHP marks deprecated, such as `strftime()`. The list comes from the PHP
+that runs phpcs, so it grows with each PHP version.
+
+**Auto-fixable:** no.
+
+---
+
+## Generic.PHP.DisallowRequestSuperglobal
+
+Disallows `$_REQUEST`. Which of `$_GET`, `$_POST` and `$_COOKIE` it holds, and which wins, depends on the
+`request_order` and `variables_order` ini settings.
+
+**Auto-fixable:** no.
+
+---
+
+## Generic.PHP.DiscourageGoto
+
+A warning for `goto`, and for its labels.
+
+**Auto-fixable:** no.
+
+---
+
 ## Generic.WhiteSpace.ArbitraryParenthesesSpacing
 
 Disallows a space just inside grouping parentheses, as in `( $a + $b ) * 2`. A line break inside them is allowed
 (`ignoreNewlines`), as the layout of a split expression is left to
 [`Jumbo.Formatting.ExpressionFormat`](Jumbo_Custom_Sniffs.md#jumboformattingexpressionformat) and
 `PERCS31.Operators.OperatorPlacement`.
+
+**Auto-fixable:** yes.
+
+---
+
+## Generic.WhiteSpace.HereNowdocIdentifierSpacing
+
+Disallows a space between `<<<` and a heredoc's or nowdoc's identifier, as in `<<< 'EOT'`.
+
+**Auto-fixable:** yes.
+
+---
+
+## PhpCollective.PHP.RemoveFunctionAlias
+
+Disallows a function alias, such as `sizeof()`, `join()` or `is_integer()`, and replaces it with the main function:
+`count()`, `implode()` or `is_int()`.
 
 **Auto-fixable:** yes.
 
@@ -722,6 +784,15 @@ checks the file name only, not the directory or the namespace.
 
 ---
 
+## Squiz.Commenting.DocCommentAlignment
+
+Requires a docblock's stars to line up under the first `*` of `/**`, with one space after each star that has text after
+it. Only a docblock before a declaration, or at the top of a file, is checked, so an inline `/** @var */` isn't.
+
+**Auto-fixable:** yes.
+
+---
+
 ## Squiz.Commenting.InlineComment
 
 Requires one space after `//`, as in `// Text`. Only its `NoSpaceBefore`, `SpacingBefore` and `TabBefore` codes are
@@ -740,11 +811,43 @@ excluded, as one requires it on private properties. See [Variable and Property N
 
 ---
 
+## Squiz.Operators.IncrementDecrementUsage
+
+Requires an increment or decrement operator in place of `$i += 1`, `$i -= 1` or `$i = $i + 1`, as `Found`. Its message
+suggests `++$i`, but `$i++` is fine too, as nothing checks which is used.
+
+Jumbo excludes the `NotAllowed` and `NoBrackets` codes, as
+`SlevomatCodingStandard.Operators.RequireOnlyStandaloneIncrementAndDecrementOperators` reports the same lines.
+
+**Auto-fixable:** no.
+
+---
+
 ## Squiz.Operators.ValidLogicalOperators
 
 Requires `&&` and `||` instead of `and` and `or`, which bind more loosely than `=`, so `$ok = $a and $b;` assigns `$a`.
 
 **Auto-fixable:** no, as the fix would change precedence.
+
+---
+
+## Squiz.PHP.DisallowMultipleAssignments
+
+Requires an assignment to be the first thing on its line, so `$a = $b = 1` is reported. An assignment in a `for`
+header, a `while` condition or a default value is allowed.
+
+Jumbo excludes the `FoundInControlStructure` code, for an assignment in an `if`, `elseif`, `switch` or `match`
+condition, as `Generic.CodeAnalysis.AssignmentInCondition` warns about it instead.
+
+**Auto-fixable:** no.
+
+---
+
+## Squiz.PHP.Eval
+
+A warning for `eval()`.
+
+**Auto-fixable:** no.
 
 ---
 
