@@ -764,8 +764,9 @@ Sets the layout of a multi-line PHP block in a file with markup. This is a fork 
 - With nothing but an indent before `<?php`, the code directly inside is level with the tag.
 - With markup before `<?php`, the code is indented one level past that line.
 - `?>` is level with the line `<?php` is on. Markup may follow it.
-- A tag on one line is exempt, such as `<?php foo(); ?>` or `<?php declare(strict_types=1) ?>`, and so is a last block
-  with no `?>`.
+- A tag on one line is exempt, such as `<?php foo(); ?>` or `<?php declare(strict_types=1) ?>`, unless it's empty, as
+  in `<?php ?>`. A last block with no `?>` is exempt too.
+- An empty block is removed, whether it's on one line or several.
 - A short echo tag must be on one line.
 - A blank line just inside the tags is allowed.
 

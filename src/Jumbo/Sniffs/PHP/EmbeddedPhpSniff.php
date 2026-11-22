@@ -6,7 +6,7 @@
  * subclass can't reach it. PER Coding Style 3.1 doesn't set this layout, so it's an extra rule, in Jumbo only. Each
  * change from upstream is marked with a "Jumbo:" comment:
  * - A file's first opening tag is only skipped if nothing comes before it, so a file with one block is checked.
- * - A tag on one line isn't checked at all, as PER's own <?php declare(strict_types=1) ?> has no semicolon.
+ * - A tag on one line is only checked for being empty, as PER's own <?php declare(strict_types=1) ?> has no semicolon.
  * - A short echo tag over several lines is reported, with no fix.
  * - A blank line just inside the tags is allowed.
  * - Every statement directly in the block is checked for too much indent, not just the first.
@@ -69,9 +69,11 @@ class EmbeddedPhpSniff implements Sniff
             return;
         }
 
-        // Jumbo: a tag on one line isn't checked.
+        // Jumbo: a tag on one line is only checked for being empty.
         if ($closeTag === false || $tokens[$stackPtr]['line'] !== $tokens[$closeTag]['line']) {
             $this->validateMultilineEmbeddedPhp($phpcsFile, $stackPtr, $closeTag);
+        } elseif ($phpcsFile->findNext(T_WHITESPACE, ($stackPtr + 1), $closeTag, true) === false) {
+            $this->reportEmptyTagSet($phpcsFile, $stackPtr, $closeTag);
         }
     }
 

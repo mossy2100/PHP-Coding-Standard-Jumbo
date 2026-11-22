@@ -76,3 +76,9 @@ foo();
     foo();
         ?>
 </div>
+<!-- An empty tag on one line: alone on its line, between markup, and with extra spaces. -->
+<div>
+    <?php ?>
+    <p>a<?php ?>b</p>
+    <?php  ?>
+</div>

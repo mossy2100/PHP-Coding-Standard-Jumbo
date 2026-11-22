@@ -790,6 +790,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
+- **An empty PHP tag on one line, in Jumbo.** `Jumbo.PHP.EmbeddedPhp` now reports `<?php ?>` on one line in a
+  file with markup, as `Empty`, as it already did for an empty block over several lines. Auto-fixable, by removing it.
 - **A comment in `<?php declare(strict_types=1) ?>`.** `PERCS31.Files.FileHeader` reported
   `<?php /* Why. */ declare(strict_types=1) ?>` on the first line of a file with markup as not on the first line.
 - **`strict_types` after another declare statement, in a file with markup (breaking).** `PERCS31.Files.FileHeader` only
