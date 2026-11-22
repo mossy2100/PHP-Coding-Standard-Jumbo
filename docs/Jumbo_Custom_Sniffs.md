@@ -15,6 +15,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.Classes.RequireSingleLineClassHeader`               | A split class, interface or enum header fits on a line          | Yes     |
 | `Jumbo.Classes.RequireSingleLineMethodSignature`           | A short signature on one line, skipping a promoted hook         | Yes     |
 | `Jumbo.Commenting.BlockComment`                            | A block comment's indents, and the spaces around one on a line  | Yes     |
+| `Jumbo.Commenting.NormalizePhpDocTags`                     | Docblock tag names in their usual case, with no aliases         | Yes     |
 | `Jumbo.Commenting.TrailingComment`                         | One space between code and a `//` comment after it              | Yes     |
 | `Jumbo.ControlStructures.HeaderLayout`                     | A header on one line if it fits, else split with its condition  | Yes     |
 | `Jumbo.ControlStructures.LanguageConstructWithParentheses` | No `echo('x')`, allowing `exit()` and `die()`                   | Yes     |
@@ -204,6 +205,74 @@ if ($ready) {
         */
     $speed =   /*metres per second*/   $engine->start();
 }
+```
+
+---
+
+## Jumbo.Commenting.NormalizePhpDocTags
+
+Normalizes docblock tag names, and the format of inline tags.
+
+| Code           | Reported when                                                                   |
+| -------------- | ------------------------------------------------------------------------------- |
+| `Casing`       | A known tag name is in the wrong case, such as `@Return` or `@inheritdoc`       |
+| `Alias`        | A tag is an alias, in any case: see the table below                             |
+| `InlineFormat` | An inline tag isn't written `{@name description}`, such as `@{see Foo}`         |
+
+| Alias          | Replaced by   |
+| -------------- | ------------- |
+| `@inheritDocs` | `@inheritDoc` |
+| `@returns`     | `@return`     |
+| `@type`        | `@var`        |
+| `@const`       | `@var`        |
+| `@link`        | `@see`        |
+
+- **Casing:** the known names are the ones `SlevomatCodingStandard.Commenting.AnnotationName` knows: phpDocumentor's
+  tags, PHPUnit's, and the static analysis tags, with their `phpstan-` and `psalm-` forms. So `@inheritDoc` is in camel
+  case.
+- **Inline format:** checked for `example`, `id`, `inheritDoc`, `internal`, `link`, `see`, `source`, `toc` and
+  `tutorial`, the tags that can be inline. The `@` goes inside a single brace at each end, with no space after the
+  opening brace or before the closing one.
+- **Block and inline tags:** both are checked, so `{@inheritdoc}` is fixed to `{@inheritDoc}`, and `{@link url}` to
+  `{@see url}`.
+- **Left alone:**
+  - a block tag that a `use` statement imports, such as a Doctrine or JMS annotation
+  - a name followed by `(` or `\`, as in `@Type("string")` or `@ORM\Column`
+  - an unknown tag, such as `@static`
+  - `@property-read` and `@property-write`, which aren't really aliases: PHPStan reports a write to a `@property-read`
+  - text that only looks like a tag, in the middle of a sentence
+  - an inline tag split over two lines
+
+**Why:** PER Coding Style 3.1 has no rule for docblocks, so this is an extra rule. It replaces
+`SlevomatCodingStandard.Commenting.AnnotationName`, whose block tag check skips every tag in a file with a `namespace`
+statement, so it hardly ever ran. The tag names are from that sniff, the aliases from PHP-CS-Fixer's
+`phpdoc_no_alias_tag` and `general_phpdoc_tag_rename`, and the inline format check is adapted from its
+`phpdoc_inline_tag_normalizer`.
+
+**Auto-fixable:** yes.
+
+**Good:**
+
+```php
+/**
+ * {@inheritDoc}
+ *
+ * @param int $count The number of items.
+ * @return int The total.
+ * @see Basket::total()
+ */
+```
+
+**Bad:**
+
+```php
+/**
+ * { @inheritdoc }
+ *
+ * @Param int $count The number of items.
+ * @returns int The total.
+ * @link Basket::total()
+ */
 ```
 
 ---

@@ -33,7 +33,6 @@ sections link to it.
 | `SlevomatCodingStandard.Classes.RequireMultiLineMethodSignature`                         | A long method signature split over lines                       | Yes     |
 | `SlevomatCodingStandard.Classes.RequireSelfReference`                                    | `self::`, not the class's own name                             | Yes     |
 | `SlevomatCodingStandard.Classes.RequireSingleLineMethodSignature`                        | A short method signature on one line, through a Jumbo sniff    | Yes     |
-| `SlevomatCodingStandard.Commenting.AnnotationName`                                       | Annotation names in the correct case                           | Yes     |
 | `SlevomatCodingStandard.Commenting.DeprecatedAnnotationDeclaration`                      | The `@deprecated` annotation format                            | No      |
 | `SlevomatCodingStandard.Commenting.EmptyComment`                                         | No empty comments                                              | Yes     |
 | `SlevomatCodingStandard.Commenting.RequireOneLinePropertyDocComment`                     | A short property doc comment on one line                       | Yes     |
@@ -296,14 +295,6 @@ Requires `self::` instead of `ClassName::` for self-references.
 
 Requires single-line format for short method signatures. Used through [`Jumbo.Classes.RequireSingleLineMethodSignature`](Jumbo_Custom_Sniffs.md#jumboclassesrequiresinglelinemethodsignature),
 which skips a method with a hook on a promoted parameter.
-
-**Auto-fixable:** yes.
-
----
-
-## SlevomatCodingStandard.Commenting.AnnotationName
-
-Enforces correct annotation names.
 
 **Auto-fixable:** yes.
 

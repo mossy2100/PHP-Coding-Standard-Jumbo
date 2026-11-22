@@ -552,6 +552,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - `Squiz.Operators.ValidLogicalOperators`: `&&` and `||`, not `and` and `or`.
   - `Squiz.WhiteSpace.SemicolonSpacing`: no white space before a semicolon. Auto-fixable.
   - `Universal.CodeAnalysis.StaticInFinalClass`: `self`, not `static`, in a final class. Auto-fixable.
+- **Docblock tag names, in Jumbo (breaking).** The new `Jumbo.Commenting.NormalizePhpDocTags` reports a known tag name
+  in the wrong case, such as `@Return` or `@inheritdoc`, as `Casing`, and an alias, such as `@returns`, `@inheritDocs`,
+  `@type` or `@link`, as `Alias`. It also reports an inline tag that isn't written `{@name description}`, such as
+  `@{see Foo}` or `{ @see Foo }`, as `InlineFormat`. Both block and inline tags are checked. All are auto-fixable.
+  PERCS31 is unchanged, as PER Coding Style 3.1 has no rule for docblocks.
 
 ### Changed
 
@@ -714,6 +719,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 
+- **`SlevomatCodingStandard.Commenting.AnnotationName`, from Jumbo.** `Jumbo.Commenting.NormalizePhpDocTags` replaces
+  it, as its block tag check skipped every tag in a namespaced file. A `phpcs:ignore` for its `AnnotationNameIncorrect`
+  code can be removed.
 - **`Squiz.PHP.NonExecutableCode`, from Jumbo.** It doesn't understand property hooks: a `return` in a long-form `get`
   hook made it warn that everything after it in the class "cannot be executed", including later properties and
   methods. Jumbo no longer warns about unreachable code.

@@ -519,7 +519,10 @@
          single line -->
     <rule ref="Jumbo.Commenting.BlockComment"/>
 
-    <rule ref="SlevomatCodingStandard.Commenting.AnnotationName"/>
+    <!-- Docblock tag names in their usual case, with no aliases, and inline tags as {@name description}. Replaces
+         SlevomatCodingStandard.Commenting.AnnotationName, which skips block tags in a namespaced file -->
+    <rule ref="Jumbo.Commenting.NormalizePhpDocTags"/>
+
     <rule ref="SlevomatCodingStandard.Commenting.DeprecatedAnnotationDeclaration"/>
     <rule ref="SlevomatCodingStandard.Commenting.EmptyComment"/>
     <rule ref="SlevomatCodingStandard.Commenting.RequireOneLinePropertyDocComment"/>
