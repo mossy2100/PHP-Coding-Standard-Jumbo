@@ -732,7 +732,8 @@
          the other hooks protected. -->
     <rule ref="Jumbo.PhpUnit.TestClass"/>
 
-    <!-- assertNull(), assertTrue() and assertFalse(), not assertSame() with null, true or false -->
-    <rule ref="PhpCollective.Testing.AssertPrimitives"/>
+    <!-- PHPUnit's dedicated assertions: assertNull(), not assertSame(null, ...), and assertIsInt(), not
+         assertTrue(is_int(...)) -->
+    <rule ref="Jumbo.PhpUnit.RequireDedicatedAssertions"/>
 
 </ruleset>

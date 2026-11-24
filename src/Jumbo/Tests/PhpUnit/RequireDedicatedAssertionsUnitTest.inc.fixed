@@ -1,0 +1,39 @@
+<?php
+
+namespace Vendor\Tests;
+
+use PHPUnit\Framework\TestCase;
+
+class CalculatorTest extends TestCase
+{
+    public function testValid(): void
+    {
+        $this->assertIsInt($a);
+        $this->assertTrue(is_int($a) && $b);
+        $this->assertTrue(!is_int($a));
+        $this->assertFalse(is_nan($a));
+        $this->assertTrue(is_file($a));
+        $this->assertTrue($object->is_int($a));
+        $other->assertTrue(is_int($a));
+    }
+
+    public function testInvalid(): void
+    {
+        $this->assertNull($a);
+        $this->assertIsInt($a);
+        $this->assertIsNotString($a, 'Not a string.');
+        self::assertNull($a);
+        static::assertFileDoesNotExist($path);
+        $this->assertArrayHasKey('key', $array);
+        $this->assertDirectoryExists($path);
+        $this->assertNan($a);
+    }
+}
+
+class NotATest
+{
+    public function run(): void
+    {
+        $this->assertTrue(is_int($a));
+    }
+}

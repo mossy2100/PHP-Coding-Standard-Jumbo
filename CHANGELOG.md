@@ -599,6 +599,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   or a bidirectional control, as `InvisibleCharacter`. In a string it's fixed to an escape, such as `\u{00A0}`, and in
   code or a comment to a space, or removed if it has no width. In a name or inline HTML it's reported only. Set
   `allowTabs` to allow a tab outside a string.
+- **PHPUnit's dedicated assertions, in Jumbo (breaking).** The new `Jumbo.PhpUnit.RequireDedicatedAssertions` reports
+  `assertSame()` with `null`, `true` or `false`, as `InvalidAssert`, and `assertTrue()` or `assertFalse()` of a check
+  with its own assertion, such as `is_int()` for `assertIsInt()` or `array_key_exists()` for `assertArrayHasKey()`, as
+  `DedicatedAssertion`. Both are fixed. It checks any class that extends `PHPUnit\Framework\TestCase`.
 - **Function calls with a better form, in Jumbo (breaking).** The new `Jumbo.PHP.FunctionCalls` reports, each with its
   own code, and fixes where the fix keeps what the code does: `intval()` and the like, for a cast (`CastFunction`),
   `settype()` as a statement (`SetType`), a function's alias, such as `sizeof()` (`FunctionAlias`), `die`
@@ -620,7 +624,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **`#` comments, in Jumbo (breaking).** The new `Jumbo.Commenting.DisallowHashComments` reports a `#` comment as
   `HashComment`, and fixes it to `//`. `#region` and `#endregion` are allowed; set its `exceptions` property to change
   the list. PERCS31 is unchanged, as PER Coding Style 3.1 has no rule for comments.
-- **40 more extra rules in Jumbo (breaking).** Jumbo now includes:
+- **39 more extra rules in Jumbo (breaking).** Jumbo now includes:
   - Bugs and dead code: `Generic.Classes.DuplicateClassName` (a warning), `Generic.CodeAnalysis.UnconditionalIfStatement`
     (a warning), `Generic.CodeAnalysis.UnnecessaryFinalModifier` (a warning),
     `Generic.CodeAnalysis.UselessOverridingMethod` (a warning), `Generic.VersionControl.GitMergeConflict`,
@@ -634,8 +638,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     `Universal.FunctionDeclarations.NoLongClosures` (a warning over 10 lines of code, an error over 20) and
     `Universal.PHP.OneStatementInShortEchoTag`.
   - Simpler forms, all auto-fixable: `Modernize.FunctionCalls.Dirname`, `PhpCollective.ControlStructures.UnneededElse`,
-    `PhpCollective.PHP.NoIsNull`, `PhpCollective.PHP.NotEqual`, `PhpCollective.Testing.AssertPrimitives`, `SlevomatCodingStandard.ControlStructures.UselessTernaryOperator`
-    (partly), `SlevomatCodingStandard.Functions.RequireArrowFunction`, `Universal.CodeAnalysis.NoDoubleNegative`,
+    `PhpCollective.PHP.NoIsNull`, `PhpCollective.PHP.NotEqual`,
+    `SlevomatCodingStandard.ControlStructures.UselessTernaryOperator` (partly),
+    `SlevomatCodingStandard.Functions.RequireArrowFunction`, `Universal.CodeAnalysis.NoDoubleNegative`,
     `Universal.CodeAnalysis.NoEchoSprintf` and `Universal.PHP.NoFQNTrueFalseNull`.
   - Order: `SlevomatCodingStandard.Classes.TraitUseOrder` and `Universal.OOStructures.AlphabeticExtendsImplements`, both
     auto-fixable.

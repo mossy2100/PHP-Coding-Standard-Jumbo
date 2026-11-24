@@ -37,7 +37,6 @@ sections link to it.
 | `PhpCollective.ControlStructures.UnneededElse`                                           | No `else` after branches that all exit early                   | Yes     |
 | `PhpCollective.PHP.NoIsNull`                                                             | `$x === null`, not `is_null($x)`                               | Yes     |
 | `PhpCollective.PHP.NotEqual`                                                             | `!=`, not `<>`                                                 | Yes     |
-| `PhpCollective.Testing.AssertPrimitives`                                                 | `assertNull()`, not `assertSame(null, ...)`                    | Yes     |
 | `PhpCollective.WhiteSpace.EmptyLines`                                                    | No more than one blank line in a row                           | Yes     |
 | `SlevomatCodingStandard.Arrays.ArrayAccess`                                              | No white space around an array access's brackets               | Partly  |
 | `SlevomatCodingStandard.Arrays.DisallowImplicitArrayCreation`                            | No array created by assigning to an undefined variable         | No      |
@@ -385,15 +384,6 @@ Requires `$x === null`, not `is_null($x)`.
 ## PhpCollective.PHP.NotEqual
 
 Requires `!=`, not `<>`.
-
-**Auto-fixable:** yes.
-
----
-
-## PhpCollective.Testing.AssertPrimitives
-
-Requires `assertNull()`, `assertTrue()` or `assertFalse()`, not `assertSame()` with `null`, `true` or `false`. Only
-checks `$this->assert...()` calls in files named `*Test.php`.
 
 **Auto-fixable:** yes.
 

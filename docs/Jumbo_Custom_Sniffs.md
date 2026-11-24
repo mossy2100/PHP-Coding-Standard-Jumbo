@@ -31,6 +31,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.PHP.DisallowInvisibleCharacters`                    | No invisible characters, such as a tab or zero-width space      | Mostly  |
 | `Jumbo.PHP.EmbeddedPhp`                                    | A block's tags on their own lines, level with its code          | Mostly  |
 | `Jumbo.PHP.FunctionCalls`                                  | Calls with a better form, such as a cast for `intval()`         | Mostly  |
+| `Jumbo.PhpUnit.RequireDedicatedAssertions`                 | PHPUnit's dedicated assertions, such as `assertIsInt($a)`       | Yes     |
 | `Jumbo.PhpUnit.TestClass`                                  | No PHPUnit annotations, and the `setUp()` hooks `protected`     | Yes     |
 | `Jumbo.Strings.RequireBracedVariables`                     | Braces around every variable in a string, as in `"{$name}"`     | Yes     |
 | `Jumbo.TypeHints.DeclareStrictTypes`                       | `strict_types=1` required, allowing `<?php declare(...) ?>`     | Yes     |
@@ -1041,6 +1042,49 @@ $count = intval($input);
 if (strpos($name, ' ') !== false) {
     array_push($parts, $name);
 }
+```
+
+---
+
+## Jumbo.PhpUnit.RequireDedicatedAssertions
+
+Requires PHPUnit's dedicated assertions, in a test class:
+
+- `assertNull($a)`, `assertTrue($a)` or `assertFalse($a)`, not `assertSame()` with `null`, `true` or `false`, as
+  `InvalidAssert`.
+- An assertion of its own, not `assertTrue()` or `assertFalse()` of a check, as `DedicatedAssertion`:
+  `assertIsInt($a)` or `assertIsNotInt($a)` for `is_int()`, and the same for the other `is_*()` type checks,
+  `assertNull()` for `is_null()`, `assertNan()`, `assertFinite()` and `assertInfinite()`, `assertFileExists()` for
+  `file_exists()`, `assertDirectoryExists()` for `is_dir()`, `assertIsReadable()` and `assertIsWritable()`, and
+  `assertArrayHasKey($k, $a)` for `array_key_exists($k, $a)`.
+
+Only exact equivalents are fixed: `is_nan()` and the like have no negative assertion, `is_resource()` differs on a
+closed resource, `is_file()` isn't `assertFileExists()`, and `empty()` (which differs on an undefined variable) and
+`in_array()` (loose, where `assertContains()` is strict) aren't checked. The check must be the assertion's whole first
+argument, so `assertTrue(!is_int($a))` and `assertTrue(is_int($a) && $b)` are left alone.
+
+A test class is one that extends `PHPUnit\Framework\TestCase`. The `DedicatedAssertion` check covers `$this->`,
+`self::` and `static::` calls.
+
+**Why:** PER Coding Style 3.1 has no rules for tests, so this is an extra rule. A dedicated assertion fails with a
+clearer message: "Failed asserting that 'abc' is of type int", not "Failed asserting that false is true". It extends
+`PhpCollective.Testing.AssertPrimitives`, which it replaces in Jumbo, and adds php-cs-fixer's
+`php_unit_dedicate_assert`. The parent only checks files named `*Test.php`.
+
+**Auto-fixable:** yes.
+
+**Good:**
+
+```php
+$this->assertNull($result);
+$this->assertIsInt($count);
+```
+
+**Bad:**
+
+```php
+$this->assertSame(null, $result);
+$this->assertTrue(is_int($count));
 ```
 
 ---
