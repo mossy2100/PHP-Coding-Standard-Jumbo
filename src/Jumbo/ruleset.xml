@@ -679,8 +679,9 @@
     <!-- /** and */, not /*** or **/, and nothing after the /** of a multi-line doc comment -->
     <rule ref="PhpCollective.Commenting.DocBlockStructure"/>
 
-    <!-- No blank line between a doc comment and its class, interface, trait or function -->
-    <rule ref="PhpCollective.WhiteSpace.DocBlockSpacing"/>
+    <!-- No blank line between a doc comment and its declaration: a class, interface, trait, enum, function, property,
+         constant or enum case -->
+    <rule ref="Jumbo.WhiteSpace.DocBlockSpacing"/>
 
     <!-- One space after each comma in a generic doc type, as in array<string, int>, and none inside the brackets -->
     <rule ref="PhpCollective.Commenting.DocBlockTagIterable"/>

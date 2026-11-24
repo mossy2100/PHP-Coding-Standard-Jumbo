@@ -40,7 +40,6 @@ sections link to it.
 | `PhpCollective.PHP.PreferCastOverFunction`                                               | A cast, not `intval()` and similar                             | Yes     |
 | `PhpCollective.PHP.RemoveFunctionAlias`                                                  | No function aliases, such as `sizeof()`                        | Yes     |
 | `PhpCollective.Testing.AssertPrimitives`                                                 | `assertNull()`, not `assertSame(null, ...)`                    | Yes     |
-| `PhpCollective.WhiteSpace.DocBlockSpacing`                                               | No blank line after a doc comment                              | Yes     |
 | `PhpCollective.WhiteSpace.EmptyLines`                                                    | No more than one blank line in a row                           | Yes     |
 | `SlevomatCodingStandard.Arrays.ArrayAccess`                                              | No white space around an array access's brackets               | Partly  |
 | `SlevomatCodingStandard.Arrays.DisallowImplicitArrayCreation`                            | No array created by assigning to an undefined variable         | No      |
@@ -416,14 +415,6 @@ Disallows a function alias, such as `sizeof()`, `join()` or `is_integer()`, and 
 
 Requires `assertNull()`, `assertTrue()` or `assertFalse()`, not `assertSame()` with `null`, `true` or `false`. Only
 checks `$this->assert...()` calls in files named `*Test.php`.
-
-**Auto-fixable:** yes.
-
----
-
-## PhpCollective.WhiteSpace.DocBlockSpacing
-
-Disallows a blank line between a doc comment and its class, interface, trait or function.
 
 **Auto-fixable:** yes.
 

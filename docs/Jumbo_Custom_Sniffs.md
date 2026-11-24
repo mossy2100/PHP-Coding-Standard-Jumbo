@@ -36,6 +36,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.TypeHints.ParameterTypeHint`                        | Parameter type hints, skipping a promoted hook                  | Yes     |
 | `Jumbo.TypeHints.ParameterTypeHintSpacing`                 | Parameter type hint spacing, skipping a promoted hook           | Yes     |
 | `Jumbo.WhiteSpace.BlockBlankLines`                         | No blank line at either end of a block `declare` or a hook      | Yes     |
+| `Jumbo.WhiteSpace.DocBlockSpacing`                         | No blank line after a doc comment, before any declaration       | Yes     |
 | `Jumbo.WhiteSpace.LanguageConstructSpacing`                | One space after `return`, `echo` and others, with no line break | Yes     |
 
 ## Jumbo.Arrays.ArrayDeclaration
@@ -1166,6 +1167,35 @@ public string $name {
     }
 
 }
+```
+
+---
+
+## Jumbo.WhiteSpace.DocBlockSpacing
+
+Disallows a blank line between a doc comment and the declaration it's for: a class, interface, trait, enum, function,
+method, property, constant or enum case. The fix removes it. A local variable's inline `@var` isn't checked.
+
+**Why:** PER Coding Style 3.1 has no rule for doc comments, so this is an extra rule. It extends
+`PhpCollective.WhiteSpace.DocBlockSpacing`, which only checks a class, interface, trait or function. Its tokens are set
+in code, which a ruleset can't change, so this only adds the others. With an attribute between the doc comment and the
+declaration, the attribute's line is the one checked.
+
+**Auto-fixable:** yes.
+
+**Good:**
+
+```php
+/** The largest batch. */
+public const int LIMIT = 100;
+```
+
+**Bad:**
+
+```php
+/** The largest batch. */
+
+public const int LIMIT = 100;
 ```
 
 ---

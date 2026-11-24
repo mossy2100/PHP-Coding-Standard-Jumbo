@@ -600,6 +600,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   or a bidirectional control, as `InvisibleCharacter`. In a string it's fixed to an escape, such as `\u{00A0}`, and in
   code or a comment to a space, or removed if it has no width. In a name or inline HTML it's reported only. Set
   `allowTabs` to allow a tab outside a string.
+- **No blank line after any doc comment, in Jumbo (breaking).** The new `Jumbo.WhiteSpace.DocBlockSpacing` replaces
+  `PhpCollective.WhiteSpace.DocBlockSpacing`, and also reports a blank line between a doc comment and a property, a
+  constant, an enum or an enum case, as `InvalidSpacing`. Auto-fixable.
 - **PHPUnit test classes, in Jumbo (breaking).** The new `Jumbo.PhpUnit.TestClass` reports a PHPUnit annotation,
   which PHPUnit 12 ignores, and fixes it to its attribute, or `@test` to a `test` prefix on the method's name, as
   `Annotation` and `TestAnnotation`. It also reports `setUp()`, `tearDown()`, `setUpBeforeClass()` and
@@ -608,7 +611,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **`#` comments, in Jumbo (breaking).** The new `Jumbo.Commenting.DisallowHashComments` reports a `#` comment as
   `HashComment`, and fixes it to `//`. `#region` and `#endregion` are allowed; set its `exceptions` property to change
   the list. PERCS31 is unchanged, as PER Coding Style 3.1 has no rule for comments.
-- **43 more extra rules in Jumbo (breaking).** Jumbo now includes:
+- **41 more extra rules in Jumbo (breaking).** Jumbo now includes:
   - Bugs and dead code: `Generic.Classes.DuplicateClassName` (a warning), `Generic.CodeAnalysis.UnconditionalIfStatement`
     (a warning), `Generic.CodeAnalysis.UnnecessaryFinalModifier` (a warning),
     `Generic.CodeAnalysis.UselessOverridingMethod` (a warning), `Generic.VersionControl.GitMergeConflict`,
@@ -633,8 +636,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Doc comments: nine `Generic.Commenting.DocComment` codes (capitals, blank lines, and `@param` tags first and
     together), `PhpCollective.Commenting.DocBlockReturnSelf` (`@return $this`, as `SelfVsThis` and `ClassVsThis`),
     `PhpCollective.Commenting.DocBlockReturnTag`, `PhpCollective.Commenting.DocBlockStructure`,
-    `PhpCollective.Commenting.DocBlockTagIterable`, `PhpCollective.Commenting.InlineDocBlock`,
-    `PhpCollective.WhiteSpace.DocBlockSpacing`, `SlevomatCodingStandard.Commenting.RequireOneDocComment` and
+    `PhpCollective.Commenting.DocBlockTagIterable`, `SlevomatCodingStandard.Commenting.RequireOneDocComment` and
     `SlevomatCodingStandard.PHP.RequireExplicitAssertion` (an `assert()`, not an inline `@var`). Most are
     auto-fixable.
 
