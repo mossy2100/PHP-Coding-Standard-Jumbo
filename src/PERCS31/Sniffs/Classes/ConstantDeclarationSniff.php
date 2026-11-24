@@ -90,7 +90,7 @@ class ConstantDeclarationSniff implements Sniff
         }
 
         $isClassConstant = Scopes::isOOConstant($phpcsFile, $stackPtr);
-        if (!$isClassConstant && (!$this->checkGlobalConstants || $this->isInUseStatement($phpcsFile, $stackPtr))) {
+        if (!$isClassConstant && (!$this->checkGlobalConstants || self::isInUseStatement($phpcsFile, $stackPtr))) {
             return;
         }
 
@@ -133,7 +133,7 @@ class ConstantDeclarationSniff implements Sniff
      * @param int $stackPtr The position of the `const` keyword.
      * @return bool True if the statement it's in starts with `use`.
      */
-    private function isInUseStatement(File $phpcsFile, int $stackPtr): bool
+    private static function isInUseStatement(File $phpcsFile, int $stackPtr): bool
     {
         $start = $phpcsFile->findStartOfStatement($stackPtr);
 

@@ -96,7 +96,7 @@ class UnaryOperatorSpacingSniff implements Sniff
         }
 
         $operand = $phpcsFile->findNext(T_WHITESPACE, ($stackPtr + 1), null, true);
-        if ($operand !== false && $this->wouldJoin($tokens[$stackPtr]['code'], $tokens[$operand]['code'])) {
+        if ($operand !== false && self::wouldJoin($tokens[$stackPtr]['code'], $tokens[$operand]['code'])) {
             return;
         }
 
@@ -153,7 +153,7 @@ class UnaryOperatorSpacingSniff implements Sniff
      * @param int|string $operandCode The token code of what follows the whitespace.
      * @return bool True if removing the whitespace would join the two into another operator.
      */
-    private function wouldJoin(int|string $operatorCode, int|string $operandCode): bool
+    private static function wouldJoin(int|string $operatorCode, int|string $operandCode): bool
     {
         return ($operatorCode === T_MINUS && in_array($operandCode, [T_MINUS, T_DEC], true))
             || ($operatorCode === T_PLUS && in_array($operandCode, [T_PLUS, T_INC], true));

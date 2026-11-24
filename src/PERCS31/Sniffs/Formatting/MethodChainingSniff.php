@@ -71,15 +71,15 @@ class MethodChainingSniff implements Sniff
      */
     public function process(File $phpcsFile, int $stackPtr): void
     {
-        $this->checkEndOfLine($phpcsFile, $stackPtr);
-        $chain = $this->findChain($phpcsFile, $stackPtr);
+        self::checkEndOfLine($phpcsFile, $stackPtr);
+        $chain = self::findChain($phpcsFile, $stackPtr);
 
         // Check each chain once, from its first operator.
-        if ($chain[0] !== $stackPtr || !$this->isSplit($phpcsFile, $chain)) {
+        if ($chain[0] !== $stackPtr || !self::isSplit($phpcsFile, $chain)) {
             return;
         }
 
-        $this->checkIndents($phpcsFile, $chain);
+        self::checkIndents($phpcsFile, $chain);
         $tokens = $phpcsFile->getTokens();
         foreach ($chain as $operator) {
             $name = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($operator + 1), null, true);
@@ -96,9 +96,9 @@ class MethodChainingSniff implements Sniff
             // An operator at the end of its line has its own error, whose fix puts the method on the next line.
             $endsLine = $tokens[$name]['line'] !== $tokens[$operator]['line'];
             if (!$endsLine && !LayoutHelper::startsLine($phpcsFile, $operator)) {
-                $this->report($phpcsFile, $operator);
+                self::report($phpcsFile, $operator);
             } elseif (!$endsLine) {
-                $this->checkBlankLineBefore($phpcsFile, $operator);
+                self::checkBlankLineBefore($phpcsFile, $operator);
             }
 
             return;
@@ -111,7 +111,7 @@ class MethodChainingSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $operator The position of the first method's object operator.
      */
-    private function checkBlankLineBefore(File $phpcsFile, int $operator): void
+    private static function checkBlankLineBefore(File $phpcsFile, int $operator): void
     {
         $blankLines = LayoutHelper::findBlankLinesBefore($phpcsFile, $operator);
         if ($blankLines === []) {
@@ -131,7 +131,7 @@ class MethodChainingSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $operator The position of the object operator.
      */
-    private function checkEndOfLine(File $phpcsFile, int $operator): void
+    private static function checkEndOfLine(File $phpcsFile, int $operator): void
     {
         $tokens = $phpcsFile->getTokens();
         $name = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($operator + 1), null, true);
@@ -169,10 +169,10 @@ class MethodChainingSniff implements Sniff
      * @param int $stackPtr The position of an object operator.
      * @return non-empty-list<int> The positions of the operators, in order.
      */
-    private function findChain(File $phpcsFile, int $stackPtr): array
+    private static function findChain(File $phpcsFile, int $stackPtr): array
     {
         $tokens = $phpcsFile->getTokens();
-        [$start, $end] = $this->findChainBounds($phpcsFile, $stackPtr);
+        [$start, $end] = self::findChainBounds($phpcsFile, $stackPtr);
         $brackets = $tokens[$stackPtr]['nested_parenthesis'] ?? null;
         $conditions = $tokens[$stackPtr]['conditions'];
 
@@ -199,7 +199,7 @@ class MethodChainingSniff implements Sniff
      * @param int $stackPtr The position of an object operator.
      * @return array{int, int} The positions of the first and last tokens.
      */
-    private function findChainBounds(File $phpcsFile, int $stackPtr): array
+    private static function findChainBounds(File $phpcsFile, int $stackPtr): array
     {
         $tokens = $phpcsFile->getTokens();
         $start = $phpcsFile->findStartOfStatement($stackPtr);
@@ -250,7 +250,7 @@ class MethodChainingSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param list<int> $chain The positions of the chain's operators.
      */
-    private function isSplit(File $phpcsFile, array $chain): bool
+    private static function isSplit(File $phpcsFile, array $chain): bool
     {
         foreach ($chain as $operator) {
             if (LayoutHelper::startsLine($phpcsFile, $operator)) {
@@ -267,7 +267,7 @@ class MethodChainingSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $operator The position of the first method's object operator.
      */
-    private function report(File $phpcsFile, int $operator): void
+    private static function report(File $phpcsFile, int $operator): void
     {
         $fix = $phpcsFile->addFixableError(
             'The first method of a chain split across lines must be on the next line',
@@ -278,7 +278,7 @@ class MethodChainingSniff implements Sniff
             return;
         }
 
-        FixerHelper::breakLineBefore($phpcsFile, $operator, $this->findChainIndent($phpcsFile, $operator));
+        FixerHelper::breakLineBefore($phpcsFile, $operator, self::findChainIndent($phpcsFile, $operator));
     }
 
     /**
@@ -287,10 +287,10 @@ class MethodChainingSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param non-empty-list<int> $chain The positions of the chain's operators.
      */
-    private function checkIndents(File $phpcsFile, array $chain): void
+    private static function checkIndents(File $phpcsFile, array $chain): void
     {
         $tokens = $phpcsFile->getTokens();
-        $expected = $this->findChainIndent($phpcsFile, $chain[0]);
+        $expected = self::findChainIndent($phpcsFile, $chain[0]);
         foreach ($chain as $operator) {
             $found = $tokens[$operator]['column'] - 1;
             if (!LayoutHelper::startsLine($phpcsFile, $operator) || $found === $expected) {
@@ -310,9 +310,9 @@ class MethodChainingSniff implements Sniff
      * @param int $operator The position of one of the chain's operators.
      * @return int The number of spaces.
      */
-    private function findChainIndent(File $phpcsFile, int $operator): int
+    private static function findChainIndent(File $phpcsFile, int $operator): int
     {
-        [$start] = $this->findChainBounds($phpcsFile, $operator);
+        [$start] = self::findChainBounds($phpcsFile, $operator);
         $first = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, $start, null, true);
 
         return LayoutHelper::lineIndent($phpcsFile, ($first === false ? $operator : $first)) + LayoutHelper::INDENT;

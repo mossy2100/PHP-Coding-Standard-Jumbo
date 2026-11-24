@@ -46,7 +46,7 @@ class NullableTypeDeclarationSniff extends Psr12Sniff
 
             $next = $phpcsFile->findNext(T_WHITESPACE, ($stackPtr + 1), null, true);
             if ($next !== false && $tokens[$next]['code'] === T_ARRAY) {
-                $this->checkArraySpacing($phpcsFile, $stackPtr, $next);
+                self::checkArraySpacing($phpcsFile, $stackPtr, $next);
                 return;
             }
         }
@@ -61,7 +61,7 @@ class NullableTypeDeclarationSniff extends Psr12Sniff
      * @param int $stackPtr The position of the `?`.
      * @param int $next The position of `array`.
      */
-    private function checkArraySpacing(File $phpcsFile, int $stackPtr, int $next): void
+    private static function checkArraySpacing(File $phpcsFile, int $stackPtr, int $next): void
     {
         if ($next === ($stackPtr + 1)) {
             return;

@@ -44,7 +44,7 @@ class ClassDeclarationSniff extends Psr2Sniff
      */
     public function process(File $phpcsFile, int $stackPtr): void
     {
-        $this->checkOneInterfacePerLine($phpcsFile, $stackPtr);
+        self::checkOneInterfacePerLine($phpcsFile, $stackPtr);
 
         if (EmptyBodyHelper::isOnOneLine($phpcsFile, $stackPtr)) {
             $this->processOpen($phpcsFile, $stackPtr);
@@ -52,7 +52,7 @@ class ClassDeclarationSniff extends Psr2Sniff
         }
 
         parent::process($phpcsFile, $stackPtr);
-        $this->checkBlankLineAfterOpenBrace($phpcsFile, $stackPtr);
+        self::checkBlankLineAfterOpenBrace($phpcsFile, $stackPtr);
     }
 
     /**
@@ -62,7 +62,7 @@ class ClassDeclarationSniff extends Psr2Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the class, interface, trait or enum keyword.
      */
-    private function checkBlankLineAfterOpenBrace(File $phpcsFile, int $stackPtr): void
+    private static function checkBlankLineAfterOpenBrace(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $opener = $tokens[$stackPtr]['scope_opener'] ?? null;
@@ -89,7 +89,7 @@ class ClassDeclarationSniff extends Psr2Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the class, interface or enum keyword.
      */
-    private function checkOneInterfacePerLine(File $phpcsFile, int $stackPtr): void
+    private static function checkOneInterfacePerLine(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $opener = $tokens[$stackPtr]['scope_opener'] ?? null;

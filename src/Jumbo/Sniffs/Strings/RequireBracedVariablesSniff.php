@@ -61,7 +61,7 @@ class RequireBracedVariablesSniff implements Sniff
         $prefix = '<?php ' . ($isHeredoc ? $tokens[$stackPtr]['content'] : '');
         $suffix = $isHeredoc ? "{$closer};" : '';
         $parts = token_get_all("{$prefix}{$body}{$suffix}");
-        [$fixed, $variables] = $this->brace($parts);
+        [$fixed, $variables] = self::brace($parts);
         if ($variables === []) {
             return;
         }
@@ -94,7 +94,7 @@ class RequireBracedVariablesSniff implements Sniff
      * @param list<array{int, string, int}|string> $parts The code's PHP tokens.
      * @return array{string, list<string>} The code, and the variables written without braces, as they're written.
      */
-    private function brace(array $parts): array
+    private static function brace(array $parts): array
     {
         $variables = [];
         $code = '';
@@ -116,7 +116,7 @@ class RequireBracedVariablesSniff implements Sniff
                 continue;
             }
 
-            [$written, $braced, $i] = $this->readVariable($parts, $i);
+            [$written, $braced, $i] = self::readVariable($parts, $i);
             $variables[] = $written;
             $code .= "{{$braced}}";
         }
@@ -132,7 +132,7 @@ class RequireBracedVariablesSniff implements Sniff
      * @return array{string, string, int} The variable as it's written, as it's written in braces, and the index of its
      * last token.
      */
-    private function readVariable(array $parts, int $index): array
+    private static function readVariable(array $parts, int $index): array
     {
         $written = $parts[$index][1];
         $braced = $written;

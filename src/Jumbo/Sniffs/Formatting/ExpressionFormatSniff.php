@@ -164,7 +164,7 @@ class ExpressionFormatSniff implements Sniff
 
         if (in_array($code, [T_ECHO, T_PRINT, T_OPEN_TAG_WITH_ECHO], true)) {
             if ($this->reflowStringExpressions) {
-                $this->processConversions($phpcsFile, $stackPtr);
+                self::processConversions($phpcsFile, $stackPtr);
             }
 
             return;
@@ -196,7 +196,7 @@ class ExpressionFormatSniff implements Sniff
         $tokens = $phpcsFile->getTokens();
         $column = $tokens[$start]['column'] - 1;
         $lineIndent = LayoutHelper::lineIndent($phpcsFile, $start);
-        $conditionOpener = $this->findConditionOpener($phpcsFile, $start);
+        $conditionOpener = self::findConditionOpener($phpcsFile, $start);
         $isCondition = $conditionOpener !== null && LayoutHelper::startsLine($phpcsFile, $start);
         $continuationIndent = $lineIndent + LayoutHelper::INDENT;
         if ($conditionOpener !== null) {
@@ -223,9 +223,9 @@ class ExpressionFormatSniff implements Sniff
         // expression on one line is only split where that can't clash with the layout around it. Neither is checked,
         // and nor are the strings laid out to fit the layout.
         $isLeftAlone = !$isLaidOut
-            && (($breaks !== [] && $this->isInTernary($phpcsFile, $before, $after))
-                || ($current === [] && !$misplaced && !$isCondition && !$this->isSplittableAfter($phpcsFile, $before)
-                    && !$this->isPairOnItsOwnLine($phpcsFile, $root)));
+            && (($breaks !== [] && self::isInTernary($phpcsFile, $before, $after))
+                || ($current === [] && !$misplaced && !$isCondition && !self::isSplittableAfter($phpcsFile, $before)
+                    && !self::isPairOnItsOwnLine($phpcsFile, $root)));
         if ($isLeftAlone) {
             $this->delegated = [];
         }
@@ -264,7 +264,7 @@ class ExpressionFormatSniff implements Sniff
      * @param int $after The position of the token that ends it after it.
      * @return bool True if it is.
      */
-    private function isInTernary(File $phpcsFile, int $before, int $after): bool
+    private static function isInTernary(File $phpcsFile, int $before, int $after): bool
     {
         $tokens = $phpcsFile->getTokens();
         $ternary = [T_INLINE_THEN, T_INLINE_ELSE];
@@ -281,7 +281,7 @@ class ExpressionFormatSniff implements Sniff
      * @param int $before The position of the token that ends the expression before it, or -1.
      * @return bool True if it can.
      */
-    private function isSplittableAfter(File $phpcsFile, int $before): bool
+    private static function isSplittableAfter(File $phpcsFile, int $before): bool
     {
         $tokens = $phpcsFile->getTokens();
 
@@ -296,7 +296,7 @@ class ExpressionFormatSniff implements Sniff
      * @param ExpressionNode $node The node.
      * @return bool True if it is.
      */
-    private function isPair(File $phpcsFile, ExpressionNode $node): bool
+    private static function isPair(File $phpcsFile, ExpressionNode $node): bool
     {
         return $node->kind === ExpressionNode::LEVEL
             && in_array($phpcsFile->getTokens()[$node->operators[0]]['code'], [T_DOUBLE_ARROW, T_MATCH_ARROW], true);
@@ -310,9 +310,9 @@ class ExpressionFormatSniff implements Sniff
      * @param ExpressionNode $root The expression.
      * @return bool True if it is.
      */
-    private function isPairOnItsOwnLine(File $phpcsFile, ExpressionNode $root): bool
+    private static function isPairOnItsOwnLine(File $phpcsFile, ExpressionNode $root): bool
     {
-        return $this->isPair($phpcsFile, $root) && LayoutHelper::startsLine($phpcsFile, $root->start);
+        return self::isPair($phpcsFile, $root) && LayoutHelper::startsLine($phpcsFile, $root->start);
     }
 
     /**
@@ -322,7 +322,7 @@ class ExpressionFormatSniff implements Sniff
      * @param ExpressionNode $node The node.
      * @return bool True if it is.
      */
-    private function isConcatenation(File $phpcsFile, ExpressionNode $node): bool
+    private static function isConcatenation(File $phpcsFile, ExpressionNode $node): bool
     {
         return $node->kind === ExpressionNode::LEVEL
             && $phpcsFile->getTokens()[$node->operators[0]]['code'] === T_STRING_CONCAT;
@@ -358,14 +358,14 @@ class ExpressionFormatSniff implements Sniff
      * @param int $after The position of the token that ends it after it.
      * @return bool True if it is.
      */
-    private function isStringLaidOut(File $phpcsFile, int $start, int $end, int $before, int $after): bool
+    private static function isStringLaidOut(File $phpcsFile, int $start, int $end, int $before, int $after): bool
     {
         $tokens = $phpcsFile->getTokens();
 
-        return $this->findConditionOpener($phpcsFile, $start) === null
-            && (!$this->isInTernary($phpcsFile, $before, $after)
-                || $this->isTernaryBranchOnItsOwnLine($phpcsFile, $before))
-            && ($this->isSplittableAfter($phpcsFile, $before) || LayoutHelper::startsLine($phpcsFile, $start)
+        return self::findConditionOpener($phpcsFile, $start) === null
+            && (!self::isInTernary($phpcsFile, $before, $after)
+                || self::isTernaryBranchOnItsOwnLine($phpcsFile, $before))
+            && (self::isSplittableAfter($phpcsFile, $before) || LayoutHelper::startsLine($phpcsFile, $start)
                 || $tokens[$start]['line'] !== $tokens[$end]['line']);
     }
 
@@ -382,8 +382,8 @@ class ExpressionFormatSniff implements Sniff
     private function processStrings(File $phpcsFile, ExpressionNode $root, int $before, int $after): bool
     {
         if (
-            $this->isConcatenation($phpcsFile, $root)
-            && $this->isStringLaidOut($phpcsFile, $root->start, $root->end, $before, $after)
+            self::isConcatenation($phpcsFile, $root)
+            && self::isStringLaidOut($phpcsFile, $root->start, $root->end, $before, $after)
         ) {
             $helper = new StringHelper($phpcsFile);
             if ($helper->read($root)) {
@@ -407,7 +407,7 @@ class ExpressionFormatSniff implements Sniff
      * @param int $before The position of the token that ends the expression before it, or -1.
      * @return bool True if it is.
      */
-    private function isTernaryBranchOnItsOwnLine(File $phpcsFile, int $before): bool
+    private static function isTernaryBranchOnItsOwnLine(File $phpcsFile, int $before): bool
     {
         $tokens = $phpcsFile->getTokens();
 
@@ -432,7 +432,7 @@ class ExpressionFormatSniff implements Sniff
         $inner = $node->children[0] ?? null;
         if (
             $node->kind === ExpressionNode::GROUP && $node->opener === $node->start && $inner !== null
-            && ($this->isConcatenation($phpcsFile, $inner) || $this->isStringLiteral($phpcsFile, $inner))
+            && (self::isConcatenation($phpcsFile, $inner) || $this->isStringLiteral($phpcsFile, $inner))
         ) {
             $helper = new StringHelper($phpcsFile);
             if ($helper->read($inner) && count($helper->segments()) === 1) {
@@ -441,7 +441,7 @@ class ExpressionFormatSniff implements Sniff
             }
         }
 
-        if (!$this->isConcatenation($phpcsFile, $node)) {
+        if (!self::isConcatenation($phpcsFile, $node)) {
             foreach ($node->children as $child) {
                 $this->processNestedStrings($phpcsFile, $child);
             }
@@ -519,7 +519,7 @@ class ExpressionFormatSniff implements Sniff
             return;
         }
 
-        if ($this->isStringLaidOut($phpcsFile, $start, $end, $before, $after)) {
+        if (self::isStringLaidOut($phpcsFile, $start, $end, $before, $after)) {
             $this->reportString($phpcsFile, $start, $end, $this->layoutString($phpcsFile, $helper, $start, $end));
         } elseif ($start !== $stackPtr) {
             $this->rewriteNestedString(
@@ -585,7 +585,7 @@ class ExpressionFormatSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the keyword or tag.
      */
-    private function processConversions(File $phpcsFile, int $stackPtr): void
+    private static function processConversions(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $ptr = $stackPtr;
@@ -599,7 +599,7 @@ class ExpressionFormatSniff implements Sniff
             [$start, $end, , $after] = $region;
             $node = ExpressionHelper::parse($phpcsFile, $start, $end);
             if ($node !== null && $node->kind !== ExpressionNode::LEVEL) {
-                $this->processConversion($phpcsFile, $stackPtr, $start, $end);
+                self::processConversion($phpcsFile, $stackPtr, $start, $end);
             }
 
             $ptr = $after;
@@ -614,7 +614,7 @@ class ExpressionFormatSniff implements Sniff
      * @param int $start The position of the argument's first token.
      * @param int $end The position of its last token.
      */
-    private function processConversion(File $phpcsFile, int $keyword, int $start, int $end): void
+    private static function processConversion(File $phpcsFile, int $keyword, int $start, int $end): void
     {
         $tokens = $phpcsFile->getTokens();
         $from = null;
@@ -662,7 +662,7 @@ class ExpressionFormatSniff implements Sniff
      * @param int $start The position of the expression's first token.
      * @return ?int The position of the opening parenthesis, or null if it isn't in one.
      */
-    private function findConditionOpener(File $phpcsFile, int $start): ?int
+    private static function findConditionOpener(File $phpcsFile, int $start): ?int
     {
         $tokens = $phpcsFile->getTokens();
         $openers = array_keys($tokens[$start]['nested_parenthesis'] ?? []);
@@ -723,7 +723,7 @@ class ExpressionFormatSniff implements Sniff
             ) + 1;
         }
 
-        if ($this->isPair($phpcsFile, $node)) {
+        if (self::isPair($phpcsFile, $node)) {
             return $this->layoutPair($phpcsFile, $node, $column, $lineIndent, $indent, $trailing, $breaks);
         }
 
@@ -808,7 +808,7 @@ class ExpressionFormatSniff implements Sniff
         // A string expression that becomes one string is one operand.
         $string = null;
         $valueLength = $value->flatLength;
-        if ($this->reflowStringExpressions && $this->isConcatenation($phpcsFile, $value)) {
+        if ($this->reflowStringExpressions && self::isConcatenation($phpcsFile, $value)) {
             $helper = new StringHelper($phpcsFile);
             if ($helper->read($value) && count($helper->segments()) === 1) {
                 $string = $helper;
@@ -855,7 +855,7 @@ class ExpressionFormatSniff implements Sniff
         int $trailing,
         bool $includeLiteral,
     ): ?int {
-        $isString = $this->isConcatenation($phpcsFile, $node)
+        $isString = self::isConcatenation($phpcsFile, $node)
             || ($includeLiteral && $node->kind === ExpressionNode::OPERAND
                 && $this->isStringLiteral($phpcsFile, $node));
         if (
@@ -931,13 +931,13 @@ class ExpressionFormatSniff implements Sniff
 
         foreach ($node->operators as $index => $operator) {
             $before = isset($breaks[$operator]) ? $phpcsFile->eolChar . str_repeat(' ', $breaks[$operator]) : ' ';
-            $this->setGap($phpcsFile, $node->children[$index]->end, $operator, $before);
-            $this->setGap($phpcsFile, $operator, $node->children[($index + 1)]->start, ' ');
+            self::setGap($phpcsFile, $node->children[$index]->end, $operator, $before);
+            self::setGap($phpcsFile, $operator, $node->children[($index + 1)]->start, ' ');
         }
 
         if ($node->kind === ExpressionNode::GROUP && is_int($node->opener) && is_int($node->closer)) {
-            $this->setGap($phpcsFile, $node->opener, $node->children[0]->start, '');
-            $this->setGap($phpcsFile, $node->children[0]->end, $node->closer, '');
+            self::setGap($phpcsFile, $node->opener, $node->children[0]->start, '');
+            self::setGap($phpcsFile, $node->children[0]->end, $node->closer, '');
         }
 
         foreach ($node->children as $child) {
@@ -964,7 +964,7 @@ class ExpressionFormatSniff implements Sniff
      * @param int $to The token after the gap.
      * @param string $content The whitespace wanted.
      */
-    private function setGap(File $phpcsFile, int $from, int $to, string $content): void
+    private static function setGap(File $phpcsFile, int $from, int $to, string $content): void
     {
         if ($phpcsFile->getTokensAsString(($from + 1), ($to - $from - 1)) !== $content) {
             FixerHelper::setBetween($phpcsFile, $from, $to, $content);

@@ -110,7 +110,7 @@ class SwitchDeclarationSniff implements Sniff
 
         // PERCS31: each label is checked up to the next one, or the switch's `}`, so a braced body and a body that
         // shares its closer with the next case are measured the same way.
-        $cases = $this->findCases($phpcsFile, $stackPtr, $closer);
+        $cases = self::findCases($phpcsFile, $stackPtr, $closer);
         foreach ($cases as $index => $case) {
             $this->checkLabel($phpcsFile, $case, $cases[($index + 1)] ?? $closer, isset($cases[($index + 1)]));
         }
@@ -129,7 +129,7 @@ class SwitchDeclarationSniff implements Sniff
         $tokens = $phpcsFile->getTokens();
         $type = $tokens[$case]['code'] === T_DEFAULT ? 'default' : 'case';
 
-        $this->checkKeywordCase($phpcsFile, $case, $type);
+        self::checkKeywordCase($phpcsFile, $case, $type);
 
         if (
             $type === 'case'
@@ -152,13 +152,13 @@ class SwitchDeclarationSniff implements Sniff
 
         // PERCS31: a block straight after the label is only an error when it's the whole body. Otherwise the case is
         // checked from its colon, as any other.
-        $colon = $this->findColon($phpcsFile, $case);
+        $colon = self::findColon($phpcsFile, $case);
         if ($colon === null) {
-            $this->reportMissingColon($phpcsFile, $case, $opener, $type);
+            self::reportMissingColon($phpcsFile, $case, $opener, $type);
             return;
         }
 
-        if ($tokens[$opener]['code'] === T_OPEN_CURLY_BRACKET && $this->wrapsWholeBody($phpcsFile, $opener)) {
+        if ($tokens[$opener]['code'] === T_OPEN_CURLY_BRACKET && self::wrapsWholeBody($phpcsFile, $opener)) {
             $phpcsFile->addError(
                 'The %s body must not be wrapped in braces',
                 $case,
@@ -191,7 +191,7 @@ class SwitchDeclarationSniff implements Sniff
      * @param int $case The position of the keyword.
      * @param string $type The kind of label, `case` or `default`.
      */
-    private function checkKeywordCase(File $phpcsFile, int $case, string $type): void
+    private static function checkKeywordCase(File $phpcsFile, int $case, string $type): void
     {
         $tokens = $phpcsFile->getTokens();
         $content = (string) $tokens[$case]['content'];
@@ -214,7 +214,7 @@ class SwitchDeclarationSniff implements Sniff
      * @param int $case The position of the `case` or `default` keyword.
      * @return ?int The position of the colon, or null if the label doesn't end in one.
      */
-    private function findColon(File $phpcsFile, int $case): ?int
+    private static function findColon(File $phpcsFile, int $case): ?int
     {
         $tokens = $phpcsFile->getTokens();
         $opener = $tokens[$case]['scope_opener'] ?? null;
@@ -243,7 +243,7 @@ class SwitchDeclarationSniff implements Sniff
      * @param int $opener The position of the label's scope opener.
      * @param string $type The kind of label, `case` or `default`.
      */
-    private function reportMissingColon(File $phpcsFile, int $case, int $opener, string $type): void
+    private static function reportMissingColon(File $phpcsFile, int $case, int $opener, string $type): void
     {
         $tokens = $phpcsFile->getTokens();
         $error = '%s statements must be defined using a colon';
@@ -351,7 +351,7 @@ class SwitchDeclarationSniff implements Sniff
         } else {
             // PERCS31: after a block that's part of the body, the statement that ends the case comes after the block.
             // One that's also an earlier case's closer, after a fall-through, is checked with that case.
-            $terminator = $this->findTerminatorAfterBlock($phpcsFile, $opener, $end);
+            $terminator = self::findTerminatorAfterBlock($phpcsFile, $opener, $end);
             if ($terminator !== null && isset($tokens[$terminator]['scope_condition'])) {
                 $terminator = null;
             }
@@ -398,7 +398,7 @@ class SwitchDeclarationSniff implements Sniff
      * @return ?int The position of the terminating statement's first token, or null if there's none after the
      *     block.
      */
-    private function findTerminatorAfterBlock(File $phpcsFile, int $opener, int $end): ?int
+    private static function findTerminatorAfterBlock(File $phpcsFile, int $opener, int $end): ?int
     {
         $tokens = $phpcsFile->getTokens();
         $blockCloser = $tokens[$opener]['scope_closer'] ?? null;
@@ -411,7 +411,7 @@ class SwitchDeclarationSniff implements Sniff
             return null;
         }
 
-        $start = $this->findStatementStart($phpcsFile, $last);
+        $start = self::findStatementStart($phpcsFile, $last);
 
         return $start > $blockCloser && in_array($tokens[$start]['code'], self::TERMINATORS, true) ? $start : null;
     }
@@ -427,7 +427,7 @@ class SwitchDeclarationSniff implements Sniff
      * @param int $semicolon The position of the semicolon.
      * @return int The position of the statement's first token.
      */
-    private function findStatementStart(File $phpcsFile, int $semicolon): int
+    private static function findStatementStart(File $phpcsFile, int $semicolon): int
     {
         $tokens = $phpcsFile->getTokens();
         $start = $phpcsFile->findStartOfStatement(($semicolon - 1));
@@ -446,7 +446,7 @@ class SwitchDeclarationSniff implements Sniff
      * @param int $opener The position of the block's `{`.
      * @return bool True if the block is the whole body.
      */
-    private function wrapsWholeBody(File $phpcsFile, int $opener): bool
+    private static function wrapsWholeBody(File $phpcsFile, int $opener): bool
     {
         $tokens = $phpcsFile->getTokens();
 
@@ -469,7 +469,7 @@ class SwitchDeclarationSniff implements Sniff
      * @param int $closer The position of the switch's `}`.
      * @return list<int> The positions.
      */
-    private function findCases(File $phpcsFile, int $switch, int $closer): array
+    private static function findCases(File $phpcsFile, int $switch, int $closer): array
     {
         $tokens = $phpcsFile->getTokens();
         $cases = [];
@@ -760,7 +760,7 @@ class SwitchDeclarationSniff implements Sniff
      * @param int $end The position to stop looking at.
      * @return false|int The position, or false if there's none.
      */
-    private function findNextCase(File $phpcsFile, int $stackPtr, int $end): false|int
+    private static function findNextCase(File $phpcsFile, int $stackPtr, int $end): false|int
     {
         $tokens = $phpcsFile->getTokens();
         $found = $phpcsFile->findNext([T_CASE, T_DEFAULT, T_SWITCH], $stackPtr, $end);
@@ -797,7 +797,7 @@ class SwitchDeclarationSniff implements Sniff
 
         if ($tokens[$lastToken]['code'] === T_SEMICOLON) {
             // The last statement of the case: check whether it's a terminating one.
-            $terminator = $this->findStatementStart($phpcsFile, $lastToken);
+            $terminator = self::findStatementStart($phpcsFile, $lastToken);
 
             return in_array($tokens[$terminator]['code'], self::TERMINATORS, true) ? $terminator : false;
         }
@@ -902,8 +902,8 @@ class SwitchDeclarationSniff implements Sniff
 
         $hasDefaultBlock = false;
         $hasTerminator = false;
-        $nextCase = $this->findNextCase($phpcsFile, ($switch + 1), $endOfSwitch);
-        for (; $nextCase !== false; $nextCase = $this->findNextCase($phpcsFile, ($nextCase + 1), $endOfSwitch)) {
+        $nextCase = self::findNextCase($phpcsFile, ($switch + 1), $endOfSwitch);
+        for (; $nextCase !== false; $nextCase = self::findNextCase($phpcsFile, ($nextCase + 1), $endOfSwitch)) {
             $hasDefaultBlock = $hasDefaultBlock || $tokens[$nextCase]['code'] === T_DEFAULT;
             $opener = $tokens[$nextCase]['scope_opener'] ?? null;
             if (!is_int($opener)) {
@@ -916,7 +916,7 @@ class SwitchDeclarationSniff implements Sniff
                 continue;
             }
 
-            $endOfCase = $this->findNextCase($phpcsFile, ($opener + 1), $endOfSwitch);
+            $endOfCase = self::findNextCase($phpcsFile, ($opener + 1), $endOfSwitch);
             $hasTerminator = $this->findNestedTerminator($phpcsFile, ($opener + 1), $endOfCase ?: $endOfSwitch);
             if ($hasTerminator === false) {
                 return false;

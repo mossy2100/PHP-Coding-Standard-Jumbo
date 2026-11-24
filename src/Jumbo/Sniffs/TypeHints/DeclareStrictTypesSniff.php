@@ -68,9 +68,9 @@ class DeclareStrictTypesSniff implements Sniff
             ? FileHeaderHelper::findStrictTypesDirective($phpcsFile, $stackPtr)
             : null;
         if ($directive === null) {
-            $this->reportMissing($phpcsFile, $stackPtr);
+            self::reportMissing($phpcsFile, $stackPtr);
         } else {
-            $this->checkValue($phpcsFile, $directive);
+            self::checkValue($phpcsFile, $directive);
         }
     }
 
@@ -80,7 +80,7 @@ class DeclareStrictTypesSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $directive The position of the strict_types directive.
      */
-    private function checkValue(File $phpcsFile, int $directive): void
+    private static function checkValue(File $phpcsFile, int $directive): void
     {
         $tokens = $phpcsFile->getTokens();
         $equals = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($directive + 1), null, true);
@@ -106,7 +106,7 @@ class DeclareStrictTypesSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $tagPtr The position of the file's first opening tag.
      */
-    private function reportMissing(File $phpcsFile, int $tagPtr): void
+    private static function reportMissing(File $phpcsFile, int $tagPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $eol = $phpcsFile->eolChar;

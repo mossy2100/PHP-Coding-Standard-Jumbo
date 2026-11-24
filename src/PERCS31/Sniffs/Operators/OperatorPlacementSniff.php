@@ -150,7 +150,7 @@ class OperatorPlacementSniff implements Sniff
         $lastPtr = $stackPtr;
         if ($code === T_INLINE_THEN) {
             if (!Operators::isShortTernary($phpcsFile, $stackPtr)) {
-                $this->processTernary($phpcsFile, $stackPtr);
+                self::processTernary($phpcsFile, $stackPtr);
                 return;
             }
 
@@ -162,7 +162,7 @@ class OperatorPlacementSniff implements Sniff
             }
         }
 
-        if ($this->isUnaryOrReference($phpcsFile, $stackPtr)) {
+        if (self::isUnaryOrReference($phpcsFile, $stackPtr)) {
             return;
         }
 
@@ -246,7 +246,7 @@ class OperatorPlacementSniff implements Sniff
             return;
         }
 
-        $boundary = $this->findExpressionBoundary($phpcsFile, $stackPtr);
+        $boundary = self::findExpressionBoundary($phpcsFile, $stackPtr);
         $start = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($boundary + 1), null, true);
         if ($start === false) {
             return;
@@ -256,8 +256,8 @@ class OperatorPlacementSniff implements Sniff
         // operator lines up with the group's first line when that's on a line of its own.
         // An arrow function's `=>` and body are indented once past the line its `fn` is on, in a group or not. In a
         // nested arrow function, that's the innermost `fn`.
-        $fnPtr = $this->findArrowFunction($phpcsFile, $stackPtr, $boundary);
-        $isGroup = $fnPtr === null && $this->isGroupingParenthesis($phpcsFile, $boundary);
+        $fnPtr = self::findArrowFunction($phpcsFile, $stackPtr, $boundary);
+        $isGroup = $fnPtr === null && self::isGroupingParenthesis($phpcsFile, $boundary);
         $base = $fnPtr ?? ($isGroup ? $boundary : $start);
         $expected = LayoutHelper::lineIndent($phpcsFile, $base) + LayoutHelper::INDENT;
         $found = $tokens[$stackPtr]['column'] - 1;
@@ -273,7 +273,7 @@ class OperatorPlacementSniff implements Sniff
             default => 'A line starting with operator "%s" must be indented once past the line its expression starts '
                 . 'on; expected %s spaces, found %s',
         };
-        $this->reportIndent($phpcsFile, $stackPtr, $lastPtr, $error, $expected, $found);
+        self::reportIndent($phpcsFile, $stackPtr, $lastPtr, $error, $expected, $found);
     }
 
     /**
@@ -284,7 +284,7 @@ class OperatorPlacementSniff implements Sniff
      * @param int $boundary The position of the token before the operator's expression.
      * @return ?int The position of the arrow function's `fn`, or null if there's none.
      */
-    private function findArrowFunction(File $phpcsFile, int $stackPtr, int $boundary): ?int
+    private static function findArrowFunction(File $phpcsFile, int $stackPtr, int $boundary): ?int
     {
         $tokens = $phpcsFile->getTokens();
         for ($i = ($stackPtr - 1); $i > $boundary; $i--) {
@@ -305,7 +305,7 @@ class OperatorPlacementSniff implements Sniff
      * @param int $ptr The position of the token, or -1.
      * @return bool True if it is.
      */
-    private function isGroupingParenthesis(File $phpcsFile, int $ptr): bool
+    private static function isGroupingParenthesis(File $phpcsFile, int $ptr): bool
     {
         $tokens = $phpcsFile->getTokens();
         if ($ptr < 0 || $tokens[$ptr]['code'] !== T_OPEN_PARENTHESIS || isset($tokens[$ptr]['parenthesis_owner'])) {
@@ -335,7 +335,7 @@ class OperatorPlacementSniff implements Sniff
             if ($found < $minimum) {
                 $error = 'A line starting with operator "%s" in a condition must be indented at least once past the '
                     . 'line with the opening parenthesis; expected at least %s spaces, found %s';
-                $this->reportIndent($phpcsFile, $stackPtr, $lastPtr, $error, $minimum, $found);
+                self::reportIndent($phpcsFile, $stackPtr, $lastPtr, $error, $minimum, $found);
             }
 
             return;
@@ -345,19 +345,19 @@ class OperatorPlacementSniff implements Sniff
             if ($found !== $minimum) {
                 $error = 'A line starting with operator "%s" in a condition must be indented once past the line with '
                     . 'the opening parenthesis; expected %s spaces, found %s';
-                $this->reportIndent($phpcsFile, $stackPtr, $lastPtr, $error, $minimum, $found);
+                self::reportIndent($phpcsFile, $stackPtr, $lastPtr, $error, $minimum, $found);
             }
 
             return;
         }
 
         // Any other operator is indented once past the line its operand starts on, after a boolean operator or the (.
-        $start = $this->findOperandStart($phpcsFile, $stackPtr, $opener);
+        $start = self::findOperandStart($phpcsFile, $stackPtr, $opener);
         $expected = LayoutHelper::lineIndent($phpcsFile, $start) + LayoutHelper::INDENT;
         if ($found !== $expected) {
             $error = 'A line starting with operator "%s" must be indented once past the line its expression starts on; '
                 . 'expected %s spaces, found %s';
-            $this->reportIndent($phpcsFile, $stackPtr, $lastPtr, $error, $expected, $found);
+            self::reportIndent($phpcsFile, $stackPtr, $lastPtr, $error, $expected, $found);
         }
     }
 
@@ -370,7 +370,7 @@ class OperatorPlacementSniff implements Sniff
      * @param int $opener The position of the condition's opening parenthesis.
      * @return int The position of the operand's first token.
      */
-    private function findOperandStart(File $phpcsFile, int $stackPtr, int $opener): int
+    private static function findOperandStart(File $phpcsFile, int $stackPtr, int $opener): int
     {
         $tokens = $phpcsFile->getTokens();
         $i = $stackPtr - 1;
@@ -393,7 +393,7 @@ class OperatorPlacementSniff implements Sniff
      * @param int $expected The expected number of spaces.
      * @param int $found The number of spaces found.
      */
-    private function reportIndent(
+    private static function reportIndent(
         File $phpcsFile,
         int $stackPtr,
         int $lastPtr,
@@ -416,7 +416,7 @@ class OperatorPlacementSniff implements Sniff
      * @param int $stackPtr The position of the operator.
      * @return int The position of the boundary, or -1 if the expression starts the file.
      */
-    private function findExpressionBoundary(File $phpcsFile, int $stackPtr): int
+    private static function findExpressionBoundary(File $phpcsFile, int $stackPtr): int
     {
         $tokens = $phpcsFile->getTokens();
         for ($i = ($stackPtr - 1); $i >= 0; $i--) {
@@ -472,7 +472,7 @@ class OperatorPlacementSniff implements Sniff
      * @param int $stackPtr The position of the operator.
      * @return bool True if it isn't a binary operator.
      */
-    private function isUnaryOrReference(File $phpcsFile, int $stackPtr): bool
+    private static function isUnaryOrReference(File $phpcsFile, int $stackPtr): bool
     {
         if (
             PropertyHookHelper::isHookParameterType($phpcsFile, $stackPtr)
@@ -495,7 +495,7 @@ class OperatorPlacementSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $inlineThenPointer The position of the `?`.
      */
-    private function processTernary(File $phpcsFile, int $inlineThenPointer): void
+    private static function processTernary(File $phpcsFile, int $inlineThenPointer): void
     {
         if (PropertyHookHelper::isHookParameterType($phpcsFile, $inlineThenPointer)) {
             return;
@@ -506,19 +506,19 @@ class OperatorPlacementSniff implements Sniff
             return;
         }
 
-        $inlineElsePointer = $this->findElse($phpcsFile, $inlineThenPointer);
+        $inlineElsePointer = self::findElse($phpcsFile, $inlineThenPointer);
         if ($inlineElsePointer === null) {
             return;
         }
 
-        $startPointer = $this->findStart(
+        $startPointer = self::findStart(
             $phpcsFile,
             $inlineThenPointer,
             TernaryOperatorHelper::getStartPointer($phpcsFile, $inlineThenPointer),
         );
         if (
-            !$this->isSplitAtOperator($phpcsFile, $inlineThenPointer)
-            && !$this->isSplitAtOperator($phpcsFile, $inlineElsePointer)
+            !self::isSplitAtOperator($phpcsFile, $inlineThenPointer)
+            && !self::isSplitAtOperator($phpcsFile, $inlineElsePointer)
         ) {
             return;
         }
@@ -528,20 +528,20 @@ class OperatorPlacementSniff implements Sniff
         $indentation = str_repeat(' ', LayoutHelper::lineIndent($phpcsFile, $startPointer) + LayoutHelper::INDENT);
 
         if (
-            $this->startsLineWithIndentation($phpcsFile, $inlineThenPointer, $indentation)
-            && $this->startsLineWithIndentation($phpcsFile, $inlineElsePointer, $indentation)
-            && $this->hasOperandOnLine($phpcsFile, $inlineThenPointer)
-            && $this->hasOperandOnLine($phpcsFile, $inlineElsePointer)
+            self::startsLineWithIndentation($phpcsFile, $inlineThenPointer, $indentation)
+            && self::startsLineWithIndentation($phpcsFile, $inlineElsePointer, $indentation)
+            && self::hasOperandOnLine($phpcsFile, $inlineThenPointer)
+            && self::hasOperandOnLine($phpcsFile, $inlineElsePointer)
         ) {
-            $this->checkBlankLineBefore($phpcsFile, $inlineThenPointer);
-            $this->checkBlankLineBefore($phpcsFile, $inlineElsePointer);
+            self::checkBlankLineBefore($phpcsFile, $inlineThenPointer);
+            self::checkBlankLineBefore($phpcsFile, $inlineElsePointer);
 
             return;
         }
 
         $error = 'A ternary split at "?" or ":" must take three lines, with each starting a line, indented once';
         $operators = [$inlineThenPointer, $inlineElsePointer];
-        $isFixable = !$this->hasCommentAround($phpcsFile, $operators);
+        $isFixable = !self::hasCommentAround($phpcsFile, $operators);
         $code = self::CODE_TERNARY_LAYOUT;
         if (!FixerHelper::addFixableErrorIf($phpcsFile, $isFixable, $error, $inlineThenPointer, $code)) {
             return;
@@ -571,7 +571,7 @@ class OperatorPlacementSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $operator The position of the `?` or `:`.
      */
-    private function checkBlankLineBefore(File $phpcsFile, int $operator): void
+    private static function checkBlankLineBefore(File $phpcsFile, int $operator): void
     {
         $tokens = $phpcsFile->getTokens();
         $blankLines = LayoutHelper::findBlankLinesBefore($phpcsFile, $operator);
@@ -593,7 +593,7 @@ class OperatorPlacementSniff implements Sniff
      * @param int $operator The position of the `?` or `:`.
      * @return bool True if the code before or after the operator is on another line.
      */
-    private function isSplitAtOperator(File $phpcsFile, int $operator): bool
+    private static function isSplitAtOperator(File $phpcsFile, int $operator): bool
     {
         $tokens = $phpcsFile->getTokens();
         $before = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($operator - 1), null, true);
@@ -611,7 +611,7 @@ class OperatorPlacementSniff implements Sniff
      * @param int $startPointer The position Slevomat's helper found.
      * @return int The position of the ternary's first token.
      */
-    private function findStart(File $phpcsFile, int $inlineThenPointer, int $startPointer): int
+    private static function findStart(File $phpcsFile, int $inlineThenPointer, int $startPointer): int
     {
         $tokens = $phpcsFile->getTokens();
         $boundaries = [
@@ -662,7 +662,7 @@ class OperatorPlacementSniff implements Sniff
      * @param int $inlineThenPointer The position of the `?`.
      * @return ?int The position of the `:`, or null if there isn't one.
      */
-    private function findElse(File $phpcsFile, int $inlineThenPointer): ?int
+    private static function findElse(File $phpcsFile, int $inlineThenPointer): ?int
     {
         $tokens = $phpcsFile->getTokens();
         $depth = 0;
@@ -705,7 +705,7 @@ class OperatorPlacementSniff implements Sniff
      * @param string $indentation The expected indentation.
      * @return bool True if the operator starts its line with that indentation.
      */
-    private function startsLineWithIndentation(File $phpcsFile, int $operator, string $indentation): bool
+    private static function startsLineWithIndentation(File $phpcsFile, int $operator, string $indentation): bool
     {
         return LayoutHelper::startsLine($phpcsFile, $operator)
             && $phpcsFile->getTokens()[$operator]['column'] - 1 === strlen($indentation);
@@ -719,7 +719,7 @@ class OperatorPlacementSniff implements Sniff
      * @param int $operator The position of the `?` or `:`.
      * @return bool True if the next token that isn't white space or a comment is on the operator's line.
      */
-    private function hasOperandOnLine(File $phpcsFile, int $operator): bool
+    private static function hasOperandOnLine(File $phpcsFile, int $operator): bool
     {
         $tokens = $phpcsFile->getTokens();
         $after = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($operator + 1), null, true);
@@ -734,7 +734,7 @@ class OperatorPlacementSniff implements Sniff
      * @param list<int> $operators The positions of the `?` and `:`.
      * @return bool True if a comment comes right before or after an operator.
      */
-    private function hasCommentAround(File $phpcsFile, array $operators): bool
+    private static function hasCommentAround(File $phpcsFile, array $operators): bool
     {
         $tokens = $phpcsFile->getTokens();
         foreach ($operators as $operator) {

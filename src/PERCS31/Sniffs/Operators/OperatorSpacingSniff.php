@@ -113,7 +113,7 @@ class OperatorSpacingSniff extends SquizSniff
             return null;
         }
 
-        $this->checkShortTernary($phpcsFile, $stackPtr);
+        self::checkShortTernary($phpcsFile, $stackPtr);
 
         $result = parent::process($phpcsFile, $stackPtr);
 
@@ -126,7 +126,7 @@ class OperatorSpacingSniff extends SquizSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the current token, which may be a short ternary's `?`.
      */
-    private function checkShortTernary(File $phpcsFile, int $stackPtr): void
+    private static function checkShortTernary(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         if ($tokens[$stackPtr]['code'] !== T_INLINE_THEN || !Operators::isShortTernary($phpcsFile, $stackPtr)) {
@@ -135,7 +135,7 @@ class OperatorSpacingSniff extends SquizSniff
 
         $elsePtr = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($stackPtr + 1), null, true);
         if ($elsePtr !== false && $elsePtr !== ($stackPtr + 1)) {
-            $this->reportSplitShortTernary($phpcsFile, $stackPtr, $elsePtr);
+            self::reportSplitShortTernary($phpcsFile, $stackPtr, $elsePtr);
         }
     }
 
@@ -147,7 +147,7 @@ class OperatorSpacingSniff extends SquizSniff
      * @param int $thenPtr The position of the `?`.
      * @param int $elsePtr The position of the `:`.
      */
-    private function reportSplitShortTernary(File $phpcsFile, int $thenPtr, int $elsePtr): void
+    private static function reportSplitShortTernary(File $phpcsFile, int $thenPtr, int $elsePtr): void
     {
         $error = 'The short ternary operator must be written "?:", with nothing between "?" and ":"';
         $isFixable = $phpcsFile->findNext(Tokens::COMMENT_TOKENS, ($thenPtr + 1), $elsePtr) === false;
@@ -189,7 +189,7 @@ class OperatorSpacingSniff extends SquizSniff
             return true;
         }
 
-        if ($this->checkDefaultValues && $this->isDefaultValueEquals($phpcsFile, $stackPtr)) {
+        if ($this->checkDefaultValues && self::isDefaultValueEquals($phpcsFile, $stackPtr)) {
             return true;
         }
 
@@ -209,7 +209,7 @@ class OperatorSpacingSniff extends SquizSniff
      * @param int $stackPtr The position of the token.
      * @return bool True if it's an `=` directly inside a function's parameter list.
      */
-    private function isDefaultValueEquals(File $phpcsFile, int $stackPtr): bool
+    private static function isDefaultValueEquals(File $phpcsFile, int $stackPtr): bool
     {
         return $phpcsFile->getTokens()[$stackPtr]['code'] === T_EQUAL
             && Parentheses::lastOwnerIn($phpcsFile, $stackPtr, Collections::functionDeclarationTokens()) !== false;

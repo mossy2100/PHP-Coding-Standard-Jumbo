@@ -65,14 +65,14 @@ class RequireCloneParenthesesSniff implements Sniff
         if ($tokens[$next]['code'] === T_OPEN_PARENTHESIS) {
             $closer = $tokens[$next]['parenthesis_closer'] ?? null;
             if (is_int($closer) && TokenHelper::findCloneArguments($phpcsFile, $stackPtr) === null) {
-                $this->processGrouping($phpcsFile, $stackPtr, $next, $closer);
+                self::processGrouping($phpcsFile, $stackPtr, $next, $closer);
             }
 
             return;
         }
 
         $error = 'Use parentheses with clone, e.g. "clone($a)", not "clone $a"';
-        $end = $this->findOperandEnd($phpcsFile, $next);
+        $end = self::findOperandEnd($phpcsFile, $next);
         $hasComment = $end !== null
             && $phpcsFile->findNext(Tokens::COMMENT_TOKENS, ($stackPtr + 1), ($end + 1)) !== false;
         if ($end === null || $hasComment) {
@@ -103,12 +103,12 @@ class RequireCloneParenthesesSniff implements Sniff
      * @param int $opener The position of the `(`.
      * @param int $closer The position of the `)`.
      */
-    private function processGrouping(File $phpcsFile, int $stackPtr, int $opener, int $closer): void
+    private static function processGrouping(File $phpcsFile, int $stackPtr, int $opener, int $closer): void
     {
         $error = 'The parentheses after clone must hold everything that is cloned, e.g. "clone($a->b)", not '
             . '"clone($a)->b"';
         // Only a comment between clone and the parentheses would be lost. One further on stays where it is.
-        $end = $this->findChainEnd($phpcsFile, $closer);
+        $end = self::findChainEnd($phpcsFile, $closer);
         $hasComment = $phpcsFile->findNext(Tokens::COMMENT_TOKENS, ($stackPtr + 1), $opener) !== false;
         if ($end === null || $hasComment) {
             $phpcsFile->addWarning($error, $stackPtr, self::CODE_PART_OF_OPERAND);
@@ -123,7 +123,7 @@ class RequireCloneParenthesesSniff implements Sniff
         // A simple expression needs no parentheses of its own, so its closing one moves. Anything else keeps them.
         $first = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($opener + 1), null, true);
         $last = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($closer - 1), null, true);
-        $isSimple = $first !== false && $this->findOperandEnd($phpcsFile, $first) === $last;
+        $isSimple = $first !== false && self::findOperandEnd($phpcsFile, $first) === $last;
 
         $phpcsFile->fixer->beginChangeset();
         FixerHelper::blankBetween($phpcsFile, $stackPtr, $opener);
@@ -145,7 +145,7 @@ class RequireCloneParenthesesSniff implements Sniff
      * @param int $start The position of the operand's first token.
      * @return ?int The position, or null if the operand isn't simple.
      */
-    private function findOperandEnd(File $phpcsFile, int $start): ?int
+    private static function findOperandEnd(File $phpcsFile, int $start): ?int
     {
         // A variable variable starts with a `$` of its own, as in `$$a` or `${$a}`.
         $tokens = $phpcsFile->getTokens();
@@ -163,7 +163,7 @@ class RequireCloneParenthesesSniff implements Sniff
             return null;
         }
 
-        return $end === null ? null : $this->findChainEnd($phpcsFile, $end);
+        return $end === null ? null : self::findChainEnd($phpcsFile, $end);
     }
 
     /**
@@ -173,7 +173,7 @@ class RequireCloneParenthesesSniff implements Sniff
      * @param int $end The position of the token they follow.
      * @return ?int The position, or the token's own if nothing follows, or null if a member's name isn't simple.
      */
-    private function findChainEnd(File $phpcsFile, int $end): ?int
+    private static function findChainEnd(File $phpcsFile, int $end): ?int
     {
         $tokens = $phpcsFile->getTokens();
         while ($end !== null) {

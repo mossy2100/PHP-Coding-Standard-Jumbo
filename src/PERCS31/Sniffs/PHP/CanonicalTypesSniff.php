@@ -118,11 +118,11 @@ class CanonicalTypesSniff implements Sniff
     {
         $code = $phpcsFile->getTokens()[$stackPtr]['code'];
         match (true) {
-            isset(Tokens::CAST_TOKENS[$code]) => $this->processCast($phpcsFile, $stackPtr),
-            isset(Tokens::OO_SCOPE_TOKENS[$code]) => $this->processClass($phpcsFile, $stackPtr),
-            in_array($code, [T_FUNCTION, T_CLOSURE, T_FN], true) => $this->processFunction($phpcsFile, $stackPtr),
-            $code === T_STRING => $this->processHook($phpcsFile, $stackPtr),
-            default => $this->processDocComment($phpcsFile, $stackPtr),
+            isset(Tokens::CAST_TOKENS[$code]) => self::processCast($phpcsFile, $stackPtr),
+            isset(Tokens::OO_SCOPE_TOKENS[$code]) => self::processClass($phpcsFile, $stackPtr),
+            in_array($code, [T_FUNCTION, T_CLOSURE, T_FN], true) => self::processFunction($phpcsFile, $stackPtr),
+            $code === T_STRING => self::processHook($phpcsFile, $stackPtr),
+            default => self::processDocComment($phpcsFile, $stackPtr),
         };
     }
 
@@ -132,7 +132,7 @@ class CanonicalTypesSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the cast.
      */
-    private function processCast(File $phpcsFile, int $stackPtr): void
+    private static function processCast(File $phpcsFile, int $stackPtr): void
     {
         // A binary string's prefix, as in b'abc', has the same token as the cast, so go by the content.
         $content = $phpcsFile->getTokens()[$stackPtr]['content'];
@@ -145,7 +145,7 @@ class CanonicalTypesSniff implements Sniff
             return;
         }
 
-        if ($this->report($phpcsFile, $stackPtr, $match[2], $expected, 'a cast')) {
+        if (self::report($phpcsFile, $stackPtr, $match[2], $expected, 'a cast')) {
             $phpcsFile->fixer->replaceToken($stackPtr, "{$match[1]}{$expected}{$match[3]}");
         }
     }
@@ -156,7 +156,7 @@ class CanonicalTypesSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the `function` or `fn` keyword.
      */
-    private function processFunction(File $phpcsFile, int $stackPtr): void
+    private static function processFunction(File $phpcsFile, int $stackPtr): void
     {
         try {
             $properties = $phpcsFile->getMethodProperties($stackPtr);
@@ -167,13 +167,13 @@ class CanonicalTypesSniff implements Sniff
 
         if ($properties['return_type_token'] !== false && $properties['return_type_end_token'] !== false) {
             $start = $properties['return_type_token'];
-            $this->processRange($phpcsFile, $start, $properties['return_type_end_token'], 'a return type');
+            self::processRange($phpcsFile, $start, $properties['return_type_end_token'], 'a return type');
         }
 
         foreach ($parameters as $parameter) {
             if ($parameter['type_hint_token'] !== false && $parameter['type_hint_end_token'] !== false) {
                 $start = $parameter['type_hint_token'];
-                $this->processRange($phpcsFile, $start, $parameter['type_hint_end_token'], 'a parameter type');
+                self::processRange($phpcsFile, $start, $parameter['type_hint_end_token'], 'a parameter type');
             }
         }
     }
@@ -185,11 +185,11 @@ class CanonicalTypesSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the keyword.
      */
-    private function processClass(File $phpcsFile, int $stackPtr): void
+    private static function processClass(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         if ($tokens[$stackPtr]['code'] === T_ENUM) {
-            $this->processBackingType($phpcsFile, $stackPtr);
+            self::processBackingType($phpcsFile, $stackPtr);
         }
 
         $opener = $tokens[$stackPtr]['scope_opener'] ?? null;
@@ -206,9 +206,9 @@ class CanonicalTypesSniff implements Sniff
             }
 
             if ($code === T_CONST) {
-                $this->processConstant($phpcsFile, $i);
+                self::processConstant($phpcsFile, $i);
             } elseif ($code === T_VARIABLE && PropertyHookHelper::isPropertyVariable($phpcsFile, $i)) {
-                $this->processProperty($phpcsFile, $i);
+                self::processProperty($phpcsFile, $i);
             }
         }
     }
@@ -219,7 +219,7 @@ class CanonicalTypesSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the `const` keyword.
      */
-    private function processConstant(File $phpcsFile, int $stackPtr): void
+    private static function processConstant(File $phpcsFile, int $stackPtr): void
     {
         try {
             $properties = Constants::getProperties($phpcsFile, $stackPtr);
@@ -230,7 +230,7 @@ class CanonicalTypesSniff implements Sniff
         $start = $properties['type_token'];
         $end = $properties['type_end_token'];
         if (is_int($start) && is_int($end)) {
-            $this->processRange($phpcsFile, $start, $end, 'a constant type');
+            self::processRange($phpcsFile, $start, $end, 'a constant type');
         }
     }
 
@@ -240,7 +240,7 @@ class CanonicalTypesSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the variable.
      */
-    private function processProperty(File $phpcsFile, int $stackPtr): void
+    private static function processProperty(File $phpcsFile, int $stackPtr): void
     {
         try {
             $properties = $phpcsFile->getMemberProperties($stackPtr);
@@ -250,7 +250,7 @@ class CanonicalTypesSniff implements Sniff
 
         if ($properties['type_token'] !== false && $properties['type_end_token'] !== false) {
             $start = $properties['type_token'];
-            $this->processRange($phpcsFile, $start, $properties['type_end_token'], 'a property type');
+            self::processRange($phpcsFile, $start, $properties['type_end_token'], 'a property type');
         }
     }
 
@@ -260,7 +260,7 @@ class CanonicalTypesSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $enumPtr The position of the `enum` keyword.
      */
-    private function processBackingType(File $phpcsFile, int $enumPtr): void
+    private static function processBackingType(File $phpcsFile, int $enumPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $name = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($enumPtr + 1), null, true);
@@ -271,7 +271,7 @@ class CanonicalTypesSniff implements Sniff
 
         $type = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($colon + 1), null, true);
         if ($type !== false) {
-            $this->processRange($phpcsFile, $type, $type, 'an enum\'s backing type');
+            self::processRange($phpcsFile, $type, $type, 'an enum\'s backing type');
         }
     }
 
@@ -281,7 +281,7 @@ class CanonicalTypesSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of a name, which may be the hook's.
      */
-    private function processHook(File $phpcsFile, int $stackPtr): void
+    private static function processHook(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         if (strtolower($tokens[$stackPtr]['content']) !== 'set') {
@@ -296,7 +296,7 @@ class CanonicalTypesSniff implements Sniff
         $closer = $tokens[$opener]['parenthesis_closer'];
         $variable = $phpcsFile->findNext(T_VARIABLE, ($opener + 1), $closer);
         if ($variable !== false) {
-            $this->processRange($phpcsFile, ($opener + 1), ($variable - 1), 'a parameter type');
+            self::processRange($phpcsFile, ($opener + 1), ($variable - 1), 'a parameter type');
         }
     }
 
@@ -308,7 +308,7 @@ class CanonicalTypesSniff implements Sniff
      * @param int $end The position of its last token.
      * @param string $place Where the type is, for the error message.
      */
-    private function processRange(File $phpcsFile, int $start, int $end, string $place): void
+    private static function processRange(File $phpcsFile, int $start, int $end, string $place): void
     {
         $tokens = $phpcsFile->getTokens();
         for ($i = $start; $i <= $end; $i++) {
@@ -320,7 +320,7 @@ class CanonicalTypesSniff implements Sniff
 
             $name = $tokens[$i]['content'];
             $expected = self::canonical($name, self::NATIVE_TYPES);
-            if ($expected !== null && $this->report($phpcsFile, $i, $name, $expected, $place)) {
+            if ($expected !== null && self::report($phpcsFile, $i, $name, $expected, $place)) {
                 $phpcsFile->fixer->replaceToken($i, $expected);
             }
         }
@@ -332,7 +332,7 @@ class CanonicalTypesSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the doc comment's `/**`.
      */
-    private function processDocComment(File $phpcsFile, int $stackPtr): void
+    private static function processDocComment(File $phpcsFile, int $stackPtr): void
     {
         $fix = false;
         foreach (
@@ -342,7 +342,7 @@ class CanonicalTypesSniff implements Sniff
             $expected = self::canonical($node->name, self::DOC_TYPES);
             if ($expected !== null) {
                 $place = "a {$annotation->getName()} tag";
-                $fix = $this->report(
+                $fix = self::report(
                     $phpcsFile,
                     $annotation->getStartPointer(),
                     $node->name,
@@ -391,7 +391,7 @@ class CanonicalTypesSniff implements Sniff
      * @param string $place Where the type is, for the message.
      * @return bool True if it's to be fixed now.
      */
-    private function report(File $phpcsFile, int $stackPtr, string $name, string $expected, string $place): bool
+    private static function report(File $phpcsFile, int $stackPtr, string $name, string $expected, string $place): bool
     {
         if (isset(self::LONG_NAMES[strtolower($name)])) {
             $error = 'Use the short type name "%s", not "%s", in %s';

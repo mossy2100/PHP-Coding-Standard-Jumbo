@@ -93,7 +93,7 @@ class HeaderLayoutSniff implements Sniff
     {
         $tokens = $phpcsFile->getTokens();
         $first = $phpcsFile->findNext(T_WHITESPACE, ($openPtr + 1), $closePtr, true);
-        if ($first === false || $this->lineLength($phpcsFile, $openPtr) <= $this->maxLineLength) {
+        if ($first === false || self::lineLength($phpcsFile, $openPtr) <= $this->maxLineLength) {
             return;
         }
 
@@ -112,20 +112,20 @@ class HeaderLayoutSniff implements Sniff
         $last = $phpcsFile->findPrevious(T_WHITESPACE, ($closePtr - 1), $openPtr, true);
 
         $phpcsFile->fixer->beginChangeset();
-        $this->setGap($phpcsFile, $openPtr, $first, $innerBreak);
+        self::setGap($phpcsFile, $openPtr, $first, $innerBreak);
 
         // A for header's expressions go on a line each.
         if ($tokens[$stackPtr]['code'] === T_FOR) {
             for ($i = $first; $i < $closePtr; $i++) {
                 $next = $phpcsFile->findNext(T_WHITESPACE, ($i + 1), $closePtr, true);
                 if ($tokens[$i]['code'] === T_SEMICOLON && $next !== false) {
-                    $this->setGap($phpcsFile, $i, $next, $innerBreak);
+                    self::setGap($phpcsFile, $i, $next, $innerBreak);
                 }
             }
         }
 
         if ($last !== false) {
-            $this->setGap($phpcsFile, $last, $closePtr, $phpcsFile->eolChar . str_repeat(' ', $indent));
+            self::setGap($phpcsFile, $last, $closePtr, $phpcsFile->eolChar . str_repeat(' ', $indent));
         }
 
         $phpcsFile->fixer->endChangeset();
@@ -138,7 +138,7 @@ class HeaderLayoutSniff implements Sniff
      * @param int $ptr The position of the token.
      * @return int The number of characters.
      */
-    private function lineLength(File $phpcsFile, int $ptr): int
+    private static function lineLength(File $phpcsFile, int $ptr): int
     {
         $tokens = $phpcsFile->getTokens();
         $line = $tokens[$ptr]['line'];
@@ -162,7 +162,7 @@ class HeaderLayoutSniff implements Sniff
      * @param int $to The token after the gap.
      * @param string $content The whitespace wanted.
      */
-    private function setGap(File $phpcsFile, int $from, int $to, string $content): void
+    private static function setGap(File $phpcsFile, int $from, int $to, string $content): void
     {
         for ($i = ($from + 1); $i < $to; $i++) {
             $phpcsFile->fixer->replaceToken($i, '');

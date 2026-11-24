@@ -78,8 +78,8 @@ class TraitUseBlockSniff implements Sniff
     {
         $tokens = $phpcsFile->getTokens();
         if ($tokens[$stackPtr]['code'] === T_USE) {
-            $this->checkConflictBlock($phpcsFile, $stackPtr);
-            $this->checkBlankLinesAfterUse($phpcsFile, $stackPtr);
+            self::checkConflictBlock($phpcsFile, $stackPtr);
+            self::checkBlankLinesAfterUse($phpcsFile, $stackPtr);
             return;
         }
 
@@ -114,7 +114,7 @@ class TraitUseBlockSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $use The position of the `use` keyword.
      */
-    private function checkConflictBlock(File $phpcsFile, int $use): void
+    private static function checkConflictBlock(File $phpcsFile, int $use): void
     {
         $tokens = $phpcsFile->getTokens();
         $opener = $tokens[$use]['scope_opener'] ?? null;
@@ -164,7 +164,7 @@ class TraitUseBlockSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $use The position of the `use` keyword.
      */
-    private function checkBlankLinesAfterUse(File $phpcsFile, int $use): void
+    private static function checkBlankLinesAfterUse(File $phpcsFile, int $use): void
     {
         if (!UseStatements::isTraitUse($phpcsFile, $use)) {
             return;
@@ -180,7 +180,7 @@ class TraitUseBlockSniff implements Sniff
         // A trait use straight after this one, with only comments between, has no blank line before it.
         $nextCode = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($end + 1), $classCloser, true);
         if ($nextCode !== false && $tokens[$nextCode]['code'] === T_USE) {
-            $this->checkBlankLinesBetween($phpcsFile, $end, $nextCode);
+            self::checkBlankLinesBetween($phpcsFile, $end, $nextCode);
             return;
         }
 
@@ -230,7 +230,7 @@ class TraitUseBlockSniff implements Sniff
      * @param int $end The position of the end of the first statement: its semicolon, or its block's closing brace.
      * @param int $next The position of the second statement's `use` keyword.
      */
-    private function checkBlankLinesBetween(File $phpcsFile, int $end, int $next): void
+    private static function checkBlankLinesBetween(File $phpcsFile, int $end, int $next): void
     {
         $error = 'There must be no blank line between two trait use statements';
         for ($i = ($end + 1); $i < $next; $i++) {

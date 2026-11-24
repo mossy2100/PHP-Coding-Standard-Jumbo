@@ -66,10 +66,10 @@ class IncrementStyleSniff implements Sniff
             return;
         }
 
-        $end = $this->findVariableEnd($phpcsFile, $start);
+        $end = self::findVariableEnd($phpcsFile, $start);
         if (
             !FunctionCallHelper::isStatement($phpcsFile, $stackPtr, $end)
-            && !$this->isForStep($phpcsFile, $stackPtr, $end)
+            && !self::isForStep($phpcsFile, $stackPtr, $end)
         ) {
             return;
         }
@@ -98,7 +98,7 @@ class IncrementStyleSniff implements Sniff
      * @param int $start The position of the variable's first token.
      * @return int The position of its last token.
      */
-    private function findVariableEnd(File $phpcsFile, int $start): int
+    private static function findVariableEnd(File $phpcsFile, int $start): int
     {
         $tokens = $phpcsFile->getTokens();
         $end = $start;
@@ -122,7 +122,7 @@ class IncrementStyleSniff implements Sniff
      * @param int $end The position of its last token.
      * @return bool True if it is.
      */
-    private function isForStep(File $phpcsFile, int $start, int $end): bool
+    private static function isForStep(File $phpcsFile, int $start, int $end): bool
     {
         $tokens = $phpcsFile->getTokens();
         $openers = array_keys($tokens[$start]['nested_parenthesis'] ?? []);

@@ -83,7 +83,7 @@ class AcronymCasingSniff implements Sniff
      */
     public function process(File $phpcsFile, int $stackPtr): void
     {
-        foreach ($this->findNames($phpcsFile, $stackPtr) as $namePtr) {
+        foreach (self::findNames($phpcsFile, $stackPtr) as $namePtr) {
             $this->checkName($phpcsFile, $stackPtr, $namePtr);
         }
     }
@@ -108,7 +108,7 @@ class AcronymCasingSniff implements Sniff
 
         // A constant with no lower-case letter is in UPPER_CASE, which is how a constant is written, so it has no
         // acronym to write like a word. Any other name is checked.
-        if ($this->isConstant($phpcsFile, $stackPtr) && strtoupper($name) === $name) {
+        if (self::isConstant($phpcsFile, $stackPtr) && strtoupper($name) === $name) {
             return;
         }
 
@@ -138,7 +138,7 @@ class AcronymCasingSniff implements Sniff
      */
     private function hasAcronym(string $name): bool
     {
-        foreach ($this->splitList($this->excludedNames) as $excluded) {
+        foreach (self::splitList($this->excludedNames) as $excluded) {
             if (ltrim($excluded, '$') === ltrim($name, '$')) {
                 return false;
             }
@@ -153,7 +153,7 @@ class AcronymCasingSniff implements Sniff
      * @param ?string $list The list.
      * @return list<string> The values, without surrounding space.
      */
-    private function splitList(?string $list): array
+    private static function splitList(?string $list): array
     {
         $values = array_map(trim(...), explode(',', $list ?? ''));
 
@@ -167,7 +167,7 @@ class AcronymCasingSniff implements Sniff
      * @param int $stackPtr The position of the keyword or variable.
      * @return list<int> The names' positions.
      */
-    private function findNames(File $phpcsFile, int $stackPtr): array
+    private static function findNames(File $phpcsFile, int $stackPtr): array
     {
         if ($phpcsFile->getTokens()[$stackPtr]['code'] === T_CONST) {
             // A class constant must be in UPPER_CASE, which PERCS31.NamingConventions.ValidConstantName checks.
@@ -180,7 +180,7 @@ class AcronymCasingSniff implements Sniff
             return NamingHelper::findConstantNames($phpcsFile, $stackPtr);
         }
 
-        $namePtr = $this->findName($phpcsFile, $stackPtr);
+        $namePtr = self::findName($phpcsFile, $stackPtr);
 
         return $namePtr === false ? [] : [$namePtr];
     }
@@ -192,7 +192,7 @@ class AcronymCasingSniff implements Sniff
      * @param int $stackPtr The position of the keyword or variable.
      * @return false|int The name's position, or false if there's nothing to check.
      */
-    private function findName(File $phpcsFile, int $stackPtr): false|int
+    private static function findName(File $phpcsFile, int $stackPtr): false|int
     {
         $tokens = $phpcsFile->getTokens();
         $code = $tokens[$stackPtr]['code'];
@@ -206,7 +206,7 @@ class AcronymCasingSniff implements Sniff
         }
 
         if ($code === T_AS) {
-            return $this->findAlias($phpcsFile, $stackPtr);
+            return self::findAlias($phpcsFile, $stackPtr);
         }
 
         if ($code === T_STRING || $code === T_NAME_FULLY_QUALIFIED) {
@@ -238,7 +238,7 @@ class AcronymCasingSniff implements Sniff
      * @param int $stackPtr The position of `as`.
      * @return false|int The alias's position, or false if there's nothing to check.
      */
-    private function findAlias(File $phpcsFile, int $stackPtr): false|int
+    private static function findAlias(File $phpcsFile, int $stackPtr): false|int
     {
         $tokens = $phpcsFile->getTokens();
 
@@ -262,7 +262,7 @@ class AcronymCasingSniff implements Sniff
      * @param int $stackPtr The position of the token the sniff was called for.
      * @return bool True if it is.
      */
-    private function isConstant(File $phpcsFile, int $stackPtr): bool
+    private static function isConstant(File $phpcsFile, int $stackPtr): bool
     {
         $code = $phpcsFile->getTokens()[$stackPtr]['code'];
         if ($code === T_AS) {

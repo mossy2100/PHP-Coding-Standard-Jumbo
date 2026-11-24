@@ -111,25 +111,25 @@ class SimplifySyntaxSniff implements Sniff
     {
         switch ($phpcsFile->getTokens()[$stackPtr]['code']) {
             case T_FOR:
-                $this->checkFor($phpcsFile, $stackPtr);
+                self::checkFor($phpcsFile, $stackPtr);
                 break;
             case T_ISSET:
-                $this->checkIssets($phpcsFile, $stackPtr);
+                self::checkIssets($phpcsFile, $stackPtr);
                 break;
             case T_UNSET:
-                $this->checkUnsets($phpcsFile, $stackPtr);
+                self::checkUnsets($phpcsFile, $stackPtr);
                 break;
             case T_NULLSAFE_OBJECT_OPERATOR:
-                $this->checkNullsafe($phpcsFile, $stackPtr);
+                self::checkNullsafe($phpcsFile, $stackPtr);
                 break;
             case T_OPEN_CURLY_BRACKET:
-                $this->checkBraces($phpcsFile, $stackPtr);
+                self::checkBraces($phpcsFile, $stackPtr);
                 break;
             case T_RETURN:
-                $this->checkReturn($phpcsFile, $stackPtr);
+                self::checkReturn($phpcsFile, $stackPtr);
                 break;
             default:
-                $this->checkBinaryString($phpcsFile, $stackPtr);
+                self::checkBinaryString($phpcsFile, $stackPtr);
                 break;
         }
     }
@@ -142,7 +142,7 @@ class SimplifySyntaxSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the `for` keyword.
      */
-    private function checkFor(File $phpcsFile, int $stackPtr): void
+    private static function checkFor(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $opener = $tokens[$stackPtr]['parenthesis_opener'] ?? null;
@@ -227,11 +227,11 @@ class SimplifySyntaxSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the `isset` keyword.
      */
-    private function checkIssets(File $phpcsFile, int $stackPtr): void
+    private static function checkIssets(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $previous = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
-        if ($previous !== false && !$this->isLooseNeighbour($phpcsFile, $previous)) {
+        if ($previous !== false && !self::isLooseNeighbour($phpcsFile, $previous)) {
             return;
         }
 
@@ -243,33 +243,33 @@ class SimplifySyntaxSniff implements Sniff
             true,
         );
         if ($before !== false && $tokens[$previous]['code'] === T_BOOLEAN_AND) {
-            $earlier = $this->findCallBefore($phpcsFile, $before, T_ISSET);
+            $earlier = self::findCallBefore($phpcsFile, $before, T_ISSET);
             $beforeEarlier = $earlier === null ? false : $phpcsFile->findPrevious(
                 Tokens::EMPTY_TOKENS,
                 ($earlier - 1),
                 null,
                 true,
             );
-            $isEarlierJoined = $beforeEarlier === false || $this->isLooseNeighbour($phpcsFile, $beforeEarlier);
+            $isEarlierJoined = $beforeEarlier === false || self::isLooseNeighbour($phpcsFile, $beforeEarlier);
             if ($earlier !== null && $isEarlierJoined) {
                 return;
             }
         }
 
         $chain = [$stackPtr];
-        $next = $this->findNextIsset($phpcsFile, $stackPtr);
+        $next = self::findNextIsset($phpcsFile, $stackPtr);
         while ($next !== null) {
             $chain[] = $next;
-            $next = $this->findNextIsset($phpcsFile, $next);
+            $next = self::findNextIsset($phpcsFile, $next);
         }
 
-        $lastCloser = $this->closer($phpcsFile, end($chain));
+        $lastCloser = self::closer($phpcsFile, end($chain));
         $after = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($lastCloser + 1), null, true);
-        if ($after === false || !$this->isLooseNeighbour($phpcsFile, $after)) {
+        if ($after === false || !self::isLooseNeighbour($phpcsFile, $after)) {
             array_pop($chain);
         }
 
-        $this->reportChain(
+        self::reportChain(
             $phpcsFile,
             $chain,
             'Consecutive isset() calls joined by && must be one isset() call',
@@ -283,9 +283,9 @@ class SimplifySyntaxSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the `unset` keyword.
      */
-    private function checkUnsets(File $phpcsFile, int $stackPtr): void
+    private static function checkUnsets(File $phpcsFile, int $stackPtr): void
     {
-        if (!$this->isUnsetStatement($phpcsFile, $stackPtr)) {
+        if (!self::isUnsetStatement($phpcsFile, $stackPtr)) {
             return;
         }
 
@@ -294,24 +294,24 @@ class SimplifySyntaxSniff implements Sniff
         $previous = $phpcsFile->findPrevious(T_WHITESPACE, ($stackPtr - 1), null, true);
         $before = $previous === false ? false : $phpcsFile->findPrevious(T_WHITESPACE, ($previous - 1), null, true);
         if ($before !== false && $tokens[$previous]['code'] === T_SEMICOLON) {
-            $earlier = $this->findCallBefore($phpcsFile, $before, T_UNSET);
-            if ($earlier !== null && $this->isUnsetStatement($phpcsFile, $earlier)) {
+            $earlier = self::findCallBefore($phpcsFile, $before, T_UNSET);
+            if ($earlier !== null && self::isUnsetStatement($phpcsFile, $earlier)) {
                 return;
             }
         }
 
         $chain = [$stackPtr];
         while (true) {
-            $semicolon = $phpcsFile->findNext(T_WHITESPACE, ($this->closer($phpcsFile, end($chain)) + 1), null, true);
+            $semicolon = $phpcsFile->findNext(T_WHITESPACE, (self::closer($phpcsFile, end($chain)) + 1), null, true);
             $next = $semicolon === false ? false : $phpcsFile->findNext(T_WHITESPACE, ($semicolon + 1), null, true);
-            if ($next === false || $tokens[$next]['code'] !== T_UNSET || !$this->isUnsetStatement($phpcsFile, $next)) {
+            if ($next === false || $tokens[$next]['code'] !== T_UNSET || !self::isUnsetStatement($phpcsFile, $next)) {
                 break;
             }
 
             $chain[] = $next;
         }
 
-        $this->reportChain(
+        self::reportChain(
             $phpcsFile,
             $chain,
             'Consecutive unset() statements must be one unset() statement',
@@ -327,7 +327,7 @@ class SimplifySyntaxSniff implements Sniff
      * @param string $error The message.
      * @param string $code The code.
      */
-    private function reportChain(File $phpcsFile, array $chain, string $error, string $code): void
+    private static function reportChain(File $phpcsFile, array $chain, string $error, string $code): void
     {
         if (count($chain) < 2) {
             return;
@@ -338,7 +338,7 @@ class SimplifySyntaxSniff implements Sniff
         $joins = [];
         $hasComment = false;
         foreach (array_slice($chain, 1) as $index => $keywordPtr) {
-            $join = [$this->closer($phpcsFile, $chain[$index]), $this->opener($phpcsFile, $keywordPtr)];
+            $join = [self::closer($phpcsFile, $chain[$index]), self::opener($phpcsFile, $keywordPtr)];
             $joins[] = $join;
             $hasComment = $hasComment || $phpcsFile->findNext(Tokens::COMMENT_TOKENS, $join[0], $join[1]) !== false;
         }
@@ -375,10 +375,10 @@ class SimplifySyntaxSniff implements Sniff
      * @param int $issetPtr The position of the first call's `isset` keyword.
      * @return ?int The position of the next call's `isset` keyword, or null if there isn't one.
      */
-    private function findNextIsset(File $phpcsFile, int $issetPtr): ?int
+    private static function findNextIsset(File $phpcsFile, int $issetPtr): ?int
     {
         $tokens = $phpcsFile->getTokens();
-        $operator = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($this->closer($phpcsFile, $issetPtr) + 1), null, true);
+        $operator = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, (self::closer($phpcsFile, $issetPtr) + 1), null, true);
         if ($operator === false || $tokens[$operator]['code'] !== T_BOOLEAN_AND) {
             return null;
         }
@@ -396,7 +396,7 @@ class SimplifySyntaxSniff implements Sniff
      * @param int|string $keyword The keyword's token code.
      * @return ?int The position of the keyword, or null if the parenthesis doesn't end such a call.
      */
-    private function findCallBefore(File $phpcsFile, int $closer, int|string $keyword): ?int
+    private static function findCallBefore(File $phpcsFile, int $closer, int|string $keyword): ?int
     {
         $tokens = $phpcsFile->getTokens();
         $opener = $tokens[$closer]['parenthesis_opener'] ?? null;
@@ -416,9 +416,9 @@ class SimplifySyntaxSniff implements Sniff
      * @param int $unsetPtr The position of the `unset` keyword.
      * @return bool True if it is.
      */
-    private function isUnsetStatement(File $phpcsFile, int $unsetPtr): bool
+    private static function isUnsetStatement(File $phpcsFile, int $unsetPtr): bool
     {
-        $closer = $this->closer($phpcsFile, $unsetPtr);
+        $closer = self::closer($phpcsFile, $unsetPtr);
         $next = $phpcsFile->findNext(T_WHITESPACE, ($closer + 1), null, true);
 
         return $next !== false && $phpcsFile->getTokens()[$next]['code'] === T_SEMICOLON
@@ -433,7 +433,7 @@ class SimplifySyntaxSniff implements Sniff
      * @param int $ptr The position of the token.
      * @return bool True if it does.
      */
-    private function isLooseNeighbour(File $phpcsFile, int $ptr): bool
+    private static function isLooseNeighbour(File $phpcsFile, int $ptr): bool
     {
         $code = $phpcsFile->getTokens()[$ptr]['code'];
         $precedences = ExpressionHelper::precedences();
@@ -451,7 +451,7 @@ class SimplifySyntaxSniff implements Sniff
      * @param int $keywordPtr The position of the keyword.
      * @return int The position of the parenthesis.
      */
-    private function opener(File $phpcsFile, int $keywordPtr): int
+    private static function opener(File $phpcsFile, int $keywordPtr): int
     {
         return FunctionCallHelper::opener($phpcsFile, $keywordPtr);
     }
@@ -463,11 +463,11 @@ class SimplifySyntaxSniff implements Sniff
      * @param int $keywordPtr The position of the keyword.
      * @return int The position of the parenthesis.
      */
-    private function closer(File $phpcsFile, int $keywordPtr): int
+    private static function closer(File $phpcsFile, int $keywordPtr): int
     {
         $tokens = $phpcsFile->getTokens();
 
-        return (int) ($tokens[$this->opener($phpcsFile, $keywordPtr)]['parenthesis_closer'] ?? $keywordPtr);
+        return (int) ($tokens[self::opener($phpcsFile, $keywordPtr)]['parenthesis_closer'] ?? $keywordPtr);
     }
 
     // endregion
@@ -480,7 +480,7 @@ class SimplifySyntaxSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the `?->`.
      */
-    private function checkNullsafe(File $phpcsFile, int $stackPtr): void
+    private static function checkNullsafe(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $variable = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
@@ -516,7 +516,7 @@ class SimplifySyntaxSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the token.
      */
-    private function checkBinaryString(File $phpcsFile, int $stackPtr): void
+    private static function checkBinaryString(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $content = $tokens[$stackPtr]['content'];
@@ -549,7 +549,7 @@ class SimplifySyntaxSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the opening brace.
      */
-    private function checkBraces(File $phpcsFile, int $stackPtr): void
+    private static function checkBraces(File $phpcsFile, int $stackPtr): void
     {
         // PHP_CodeSniffer makes the braces after `case 1:` the case's scope, but they're still a block on its own.
         $tokens = $phpcsFile->getTokens();
@@ -572,8 +572,8 @@ class SimplifySyntaxSniff implements Sniff
         }
 
         $phpcsFile->fixer->beginChangeset();
-        $this->removeToken($phpcsFile, $stackPtr);
-        $this->removeToken($phpcsFile, $closer);
+        self::removeToken($phpcsFile, $stackPtr);
+        self::removeToken($phpcsFile, $closer);
         $phpcsFile->fixer->endChangeset();
     }
 
@@ -583,7 +583,7 @@ class SimplifySyntaxSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the `return` keyword.
      */
-    private function checkReturn(File $phpcsFile, int $stackPtr): void
+    private static function checkReturn(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $semicolon = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($stackPtr + 1), null, true);
@@ -634,7 +634,7 @@ class SimplifySyntaxSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $ptr The position of the token.
      */
-    private function removeToken(File $phpcsFile, int $ptr): void
+    private static function removeToken(File $phpcsFile, int $ptr): void
     {
         $tokens = $phpcsFile->getTokens();
         $before = $ptr - 1;

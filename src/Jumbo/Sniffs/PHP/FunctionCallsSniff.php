@@ -232,7 +232,7 @@ class FunctionCallsSniff implements Sniff
     {
         $code = $phpcsFile->getTokens()[$stackPtr]['code'];
         if ($code === T_EXIT || $code === T_PRINT) {
-            $code === T_EXIT ? $this->processDie($phpcsFile, $stackPtr) : $this->processPrint($phpcsFile, $stackPtr);
+            $code === T_EXIT ? self::processDie($phpcsFile, $stackPtr) : self::processPrint($phpcsFile, $stackPtr);
             return;
         }
 
@@ -243,24 +243,24 @@ class FunctionCallsSniff implements Sniff
         }
 
         match (true) {
-            isset(self::CASTS[$name]) => $this->processCast($phpcsFile, $stackPtr, $name, $arguments),
-            $name === 'settype' => $this->processSetType($phpcsFile, $stackPtr, $arguments),
+            isset(self::CASTS[$name]) => self::processCast($phpcsFile, $stackPtr, $name, $arguments),
+            $name === 'settype' => self::processSetType($phpcsFile, $stackPtr, $arguments),
             in_array($name, ['ini_set', 'ini_alter'], true)
-                => $this->processIniSet($phpcsFile, $stackPtr, $name, $arguments),
-            isset(self::ALIASES[$name]) => $this->processAlias($phpcsFile, $stackPtr, $name),
-            $name === 'strpos' => $this->processStrpos($phpcsFile, $stackPtr, $arguments),
+                => self::processIniSet($phpcsFile, $stackPtr, $name, $arguments),
+            isset(self::ALIASES[$name]) => self::processAlias($phpcsFile, $stackPtr, $name),
+            $name === 'strpos' => self::processStrpos($phpcsFile, $stackPtr, $arguments),
             $name === 'substr', $name === 'strncmp', $name === 'substr_compare'
-                => $this->processStartsOrEnds($phpcsFile, $stackPtr, $name, $arguments),
+                => self::processStartsOrEnds($phpcsFile, $stackPtr, $name, $arguments),
             $name === 'array_key_first', $name === 'array_key_last'
                 => $this->processArrayKey($phpcsFile, $stackPtr, $name, $arguments),
             $name === 'strlen' => $this->processStrlen($phpcsFile, $stackPtr, $arguments),
-            $name === 'array_push' => $this->processArrayPush($phpcsFile, $stackPtr, $arguments),
-            $name === 'implode' => $this->processImplode($phpcsFile, $stackPtr, $arguments),
-            $name === 'sprintf', $name === 'printf' => $this->processSprintf($phpcsFile, $stackPtr, $name, $arguments),
+            $name === 'array_push' => self::processArrayPush($phpcsFile, $stackPtr, $arguments),
+            $name === 'implode' => self::processImplode($phpcsFile, $stackPtr, $arguments),
+            $name === 'sprintf', $name === 'printf' => self::processSprintf($phpcsFile, $stackPtr, $name, $arguments),
             $name === 'pow' => $this->processPow($phpcsFile, $stackPtr, $arguments),
             $name === 'call_user_func', $name === 'call_user_func_array'
-                => $this->processCallUserFunc($phpcsFile, $stackPtr, $name, $arguments),
-            $name === 'fopen' => $this->processFopen($phpcsFile, $stackPtr, $arguments),
+                => self::processCallUserFunc($phpcsFile, $stackPtr, $name, $arguments),
+            $name === 'fopen' => self::processFopen($phpcsFile, $stackPtr, $arguments),
             default => null,
         };
     }
@@ -271,7 +271,7 @@ class FunctionCallsSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the keyword.
      */
-    private function processDie(File $phpcsFile, int $stackPtr): void
+    private static function processDie(File $phpcsFile, int $stackPtr): void
     {
         $content = $phpcsFile->getTokens()[$stackPtr]['content'];
         if (strtolower($content) !== 'die') {
@@ -289,7 +289,7 @@ class FunctionCallsSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the keyword.
      */
-    private function processPrint(File $phpcsFile, int $stackPtr): void
+    private static function processPrint(File $phpcsFile, int $stackPtr): void
     {
         $end = $phpcsFile->findNext([T_SEMICOLON, T_CLOSE_TAG], ($stackPtr + 1));
         $last = $end === false ? false : $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($end - 1), null, true);
@@ -310,7 +310,7 @@ class FunctionCallsSniff implements Sniff
      * @param string $name The function, in lower case.
      * @param list<array{start: int, end: int, clean: string}> $arguments The arguments.
      */
-    private function processCast(File $phpcsFile, int $stackPtr, string $name, array $arguments): void
+    private static function processCast(File $phpcsFile, int $stackPtr, string $name, array $arguments): void
     {
         if (count($arguments) !== 1) {
             return;
@@ -319,8 +319,8 @@ class FunctionCallsSniff implements Sniff
         $cast = self::CASTS[$name];
         $error = 'Use a (%s) cast, not %s()';
         if ($phpcsFile->addFixableError($error, $stackPtr, self::CODE_CAST_FUNCTION, [$cast, $name])) {
-            $operand = $this->operand($phpcsFile, $arguments[0]);
-            $this->replaceCall($phpcsFile, $stackPtr, "({$cast}) {$operand}");
+            $operand = self::operand($phpcsFile, $arguments[0]);
+            self::replaceCall($phpcsFile, $stackPtr, "({$cast}) {$operand}");
         }
     }
 
@@ -331,7 +331,7 @@ class FunctionCallsSniff implements Sniff
      * @param int $stackPtr The position of the function's name.
      * @param list<array{start: int, end: int, clean: string}> $arguments The arguments.
      */
-    private function processSetType(File $phpcsFile, int $stackPtr, array $arguments): void
+    private static function processSetType(File $phpcsFile, int $stackPtr, array $arguments): void
     {
         $type = count($arguments) === 2
             ? FunctionCallHelper::stringValue($phpcsFile, $arguments[1]['start'], $arguments[1]['end'])
@@ -340,7 +340,7 @@ class FunctionCallsSniff implements Sniff
         $variable = $arguments[0]['clean'] ?? '';
         if (
             $type === null || !array_key_exists($type, self::SET_TYPES) || preg_match('/^\$\w+$/', $variable) !== 1
-            || !FunctionCallHelper::isStatement($phpcsFile, $stackPtr, $this->closer($phpcsFile, $stackPtr))
+            || !FunctionCallHelper::isStatement($phpcsFile, $stackPtr, self::closer($phpcsFile, $stackPtr))
         ) {
             return;
         }
@@ -348,7 +348,7 @@ class FunctionCallsSniff implements Sniff
         $cast = self::SET_TYPES[$type];
         $code = $cast === null ? "{$variable} = null" : "{$variable} = ({$cast}) {$variable}";
         if ($phpcsFile->addFixableError('Use %s, not settype()', $stackPtr, self::CODE_SET_TYPE, [$code])) {
-            $this->replaceCall($phpcsFile, $stackPtr, $code);
+            self::replaceCall($phpcsFile, $stackPtr, $code);
         }
     }
 
@@ -359,7 +359,7 @@ class FunctionCallsSniff implements Sniff
      * @param int $stackPtr The position of the function's name.
      * @param string $name The alias, in lower case.
      */
-    private function processAlias(File $phpcsFile, int $stackPtr, string $name): void
+    private static function processAlias(File $phpcsFile, int $stackPtr, string $name): void
     {
         $content = $phpcsFile->getTokens()[$stackPtr]['content'];
         $main = (str_starts_with($content, '\\') ? '\\' : '') . self::ALIASES[$name];
@@ -377,7 +377,7 @@ class FunctionCallsSniff implements Sniff
      * @param string $name `ini_set` or `ini_alter`.
      * @param list<array{start: int, end: int, clean: string}> $arguments The arguments.
      */
-    private function processIniSet(File $phpcsFile, int $stackPtr, string $name, array $arguments): void
+    private static function processIniSet(File $phpcsFile, int $stackPtr, string $name, array $arguments): void
     {
         $setting = count($arguments) === 2
             ? FunctionCallHelper::stringValue($phpcsFile, $arguments[0]['start'], $arguments[0]['end'])
@@ -389,16 +389,16 @@ class FunctionCallsSniff implements Sniff
 
         if ($function === null) {
             if ($name === 'ini_alter') {
-                $this->processAlias($phpcsFile, $stackPtr, $name);
+                self::processAlias($phpcsFile, $stackPtr, $name);
             }
 
             return;
         }
 
         [$replacement, $type] = $function;
-        $value = $type === null ? null : $this->convertIniValue($phpcsFile, $arguments[1], $type);
+        $value = $type === null ? null : self::convertIniValue($phpcsFile, $arguments[1], $type);
         $isFixable = $value !== null
-            && FunctionCallHelper::isStatement($phpcsFile, $stackPtr, $this->closer($phpcsFile, $stackPtr));
+            && FunctionCallHelper::isStatement($phpcsFile, $stackPtr, self::closer($phpcsFile, $stackPtr));
         $error = 'Use %s() instead of %s(\'%s\')';
         $data = [$replacement, $name, (string) $setting];
         if (!$isFixable) {
@@ -408,7 +408,7 @@ class FunctionCallsSniff implements Sniff
 
         if ($phpcsFile->addFixableError($error, $stackPtr, self::CODE_DEDICATED_INI_FUNCTION, $data)) {
             $prefix = str_starts_with($phpcsFile->getTokens()[$stackPtr]['content'], '\\') ? '\\' : '';
-            $this->replaceCall($phpcsFile, $stackPtr, "{$prefix}{$replacement}({$value})");
+            self::replaceCall($phpcsFile, $stackPtr, "{$prefix}{$replacement}({$value})");
         }
     }
 
@@ -420,7 +420,7 @@ class FunctionCallsSniff implements Sniff
      * @param string $type `int`, `string`, `bool` or `int|string`.
      * @return ?string The value's code, or null if it isn't a literal that converts.
      */
-    private function convertIniValue(File $phpcsFile, array $argument, string $type): ?string
+    private static function convertIniValue(File $phpcsFile, array $argument, string $type): ?string
     {
         $tokens = $phpcsFile->getTokens();
         $code = $tokens[$argument['start']]['code'];
@@ -454,9 +454,9 @@ class FunctionCallsSniff implements Sniff
      * @param int $stackPtr The position of the function's name.
      * @param list<array{start: int, end: int, clean: string}> $arguments The arguments.
      */
-    private function processStrpos(File $phpcsFile, int $stackPtr, array $arguments): void
+    private static function processStrpos(File $phpcsFile, int $stackPtr, array $arguments): void
     {
-        $comparison = count($arguments) === 2 ? $this->findComparison($phpcsFile, $stackPtr) : null;
+        $comparison = count($arguments) === 2 ? self::findComparison($phpcsFile, $stackPtr) : null;
         if ($comparison === null) {
             return;
         }
@@ -473,7 +473,7 @@ class FunctionCallsSniff implements Sniff
         }
 
         $isPositive = ($operator === '!==') === ($value === 'false');
-        $this->reportModern($phpcsFile, $stackPtr, $start, $end, $function, $arguments, $isPositive);
+        self::reportModern($phpcsFile, $stackPtr, $start, $end, $function, $arguments, $isPositive);
     }
 
     /**
@@ -485,47 +485,47 @@ class FunctionCallsSniff implements Sniff
      * @param string $name The function, in lower case.
      * @param list<array{start: int, end: int, clean: string}> $arguments The arguments.
      */
-    private function processStartsOrEnds(File $phpcsFile, int $stackPtr, string $name, array $arguments): void
+    private static function processStartsOrEnds(File $phpcsFile, int $stackPtr, string $name, array $arguments): void
     {
-        $comparison = $this->findComparison($phpcsFile, $stackPtr);
+        $comparison = self::findComparison($phpcsFile, $stackPtr);
         if ($comparison === null || !in_array($comparison[2], ['===', '!=='], true)) {
             return;
         }
 
         [$start, $end, $operator, $other] = $comparison;
         $count = count($arguments);
-        $normalized = $this->normalize($other);
+        $normalized = self::normalize($other);
         $needle = null;
         $function = null;
         if ($name === 'substr' && $count === 3 && $arguments[1]['clean'] === '0') {
-            $length = $this->strlenArgument($phpcsFile, $arguments[2], false);
+            $length = self::strlenArgument($phpcsFile, $arguments[2], false);
             $needle = $length === $normalized ? $other : null;
             $function = 'str_starts_with';
         } elseif ($name === 'substr' && $count === 2) {
-            $length = $this->strlenArgument($phpcsFile, $arguments[1], true);
+            $length = self::strlenArgument($phpcsFile, $arguments[1], true);
             $needle = $length === $normalized ? $other : null;
             $function = 'str_ends_with';
         } elseif ($name === 'strncmp' && $count === 3 && $other === '0') {
-            $length = $this->strlenArgument($phpcsFile, $arguments[2], false);
-            $needle = $length === $this->normalize($arguments[1]['clean']) ? $arguments[1]['clean'] : null;
+            $length = self::strlenArgument($phpcsFile, $arguments[2], false);
+            $needle = $length === self::normalize($arguments[1]['clean']) ? $arguments[1]['clean'] : null;
             $function = 'str_starts_with';
         } elseif ($name === 'substr_compare' && $count === 3 && $other === '0') {
-            $length = $this->strlenArgument($phpcsFile, $arguments[2], true);
-            $needle = $length === $this->normalize($arguments[1]['clean']) ? $arguments[1]['clean'] : null;
+            $length = self::strlenArgument($phpcsFile, $arguments[2], true);
+            $needle = $length === self::normalize($arguments[1]['clean']) ? $arguments[1]['clean'] : null;
             $function = 'str_ends_with';
         }
 
         // For an empty needle, the old code's -0 takes the whole string, so only a non-empty literal is certain.
         if (
             $needle === null || $function === null
-            || ($function === 'str_ends_with' && !$this->isNonEmptyLiteral($needle))
+            || ($function === 'str_ends_with' && !self::isNonEmptyLiteral($needle))
         ) {
             return;
         }
 
         $haystack = $arguments[0];
         $newArguments = [$haystack, ['start' => 0, 'end' => 0, 'clean' => $needle]];
-        $this->reportModern($phpcsFile, $stackPtr, $start, $end, $function, $newArguments, $operator === '===');
+        self::reportModern($phpcsFile, $stackPtr, $start, $end, $function, $newArguments, $operator === '===');
     }
 
     /**
@@ -541,7 +541,7 @@ class FunctionCallsSniff implements Sniff
     {
         $tokens = $phpcsFile->getTokens();
         $bracket = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
-        $closer = $this->closer($phpcsFile, $stackPtr);
+        $closer = self::closer($phpcsFile, $stackPtr);
         $after = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($closer + 1), null, true);
         if (
             (FunctionCallHelper::minimumPhpVersion() ?? 0) < 80500 || count($arguments) !== 1 || $bracket === false
@@ -551,7 +551,7 @@ class FunctionCallsSniff implements Sniff
             return;
         }
 
-        $array = $this->normalize($arguments[0]['clean']);
+        $array = self::normalize($arguments[0]['clean']);
         $start = $this->findArrayStart($phpcsFile, $bracket, $array);
         if ($start === null) {
             return;
@@ -560,7 +560,7 @@ class FunctionCallsSniff implements Sniff
         $function = $name === 'array_key_first' ? 'array_first' : 'array_last';
         $error = 'Use %s(), not the array accessed at %s()';
         if ($phpcsFile->addFixableError($error, $stackPtr, self::CODE_ARRAY_FIRST_LAST, [$function, $name])) {
-            $this->replace($phpcsFile, $start, $after, "{$function}({$arguments[0]['clean']})");
+            self::replace($phpcsFile, $start, $after, "{$function}({$arguments[0]['clean']})");
         }
     }
 
@@ -573,7 +573,7 @@ class FunctionCallsSniff implements Sniff
      */
     private function processStrlen(File $phpcsFile, int $stackPtr, array $arguments): void
     {
-        $comparison = count($arguments) === 1 ? $this->findComparison($phpcsFile, $stackPtr) : null;
+        $comparison = count($arguments) === 1 ? self::findComparison($phpcsFile, $stackPtr) : null;
         if ($comparison === null || $comparison[3] !== '0') {
             return;
         }
@@ -591,7 +591,7 @@ class FunctionCallsSniff implements Sniff
 
         $code = "{$this->operand($phpcsFile, $arguments[0])} {$expected} ''";
         if ($phpcsFile->addFixableError('Use %s, not strlen()', $stackPtr, self::CODE_STRING_LENGTH, [$code])) {
-            $this->replace($phpcsFile, $start, $end, $code);
+            self::replace($phpcsFile, $start, $end, $code);
         }
     }
 
@@ -602,19 +602,19 @@ class FunctionCallsSniff implements Sniff
      * @param int $stackPtr The position of the function's name.
      * @param list<array{start: int, end: int, clean: string}> $arguments The arguments.
      */
-    private function processArrayPush(File $phpcsFile, int $stackPtr, array $arguments): void
+    private static function processArrayPush(File $phpcsFile, int $stackPtr, array $arguments): void
     {
         if (
             count($arguments) !== 2
             || !FunctionCallHelper::isSimpleOperand($phpcsFile, $arguments[0]['start'], $arguments[0]['end'])
-            || !FunctionCallHelper::isStatement($phpcsFile, $stackPtr, $this->closer($phpcsFile, $stackPtr))
+            || !FunctionCallHelper::isStatement($phpcsFile, $stackPtr, self::closer($phpcsFile, $stackPtr))
         ) {
             return;
         }
 
         $code = "{$arguments[0]['clean']}[] = {$arguments[1]['clean']}";
         if ($phpcsFile->addFixableError('Use %s, not array_push()', $stackPtr, self::CODE_ARRAY_PUSH, [$code])) {
-            $this->replaceCall($phpcsFile, $stackPtr, $code);
+            self::replaceCall($phpcsFile, $stackPtr, $code);
         }
     }
 
@@ -625,7 +625,7 @@ class FunctionCallsSniff implements Sniff
      * @param int $stackPtr The position of the function's name.
      * @param list<array{start: int, end: int, clean: string}> $arguments The arguments.
      */
-    private function processImplode(File $phpcsFile, int $stackPtr, array $arguments): void
+    private static function processImplode(File $phpcsFile, int $stackPtr, array $arguments): void
     {
         if (count($arguments) !== 1) {
             return;
@@ -646,7 +646,7 @@ class FunctionCallsSniff implements Sniff
      * @param string $name `sprintf` or `printf`.
      * @param list<array{start: int, end: int, clean: string}> $arguments The arguments.
      */
-    private function processSprintf(File $phpcsFile, int $stackPtr, string $name, array $arguments): void
+    private static function processSprintf(File $phpcsFile, int $stackPtr, string $name, array $arguments): void
     {
         $tokens = $phpcsFile->getTokens();
         $format = $arguments[0] ?? null;
@@ -661,19 +661,19 @@ class FunctionCallsSniff implements Sniff
         if ($name === 'sprintf') {
             $error = 'sprintf() isn\'t needed for a string with no placeholders';
             if ($phpcsFile->addFixableError($error, $stackPtr, self::CODE_USELESS_SPRINTF)) {
-                $this->replaceCall($phpcsFile, $stackPtr, $format['clean']);
+                self::replaceCall($phpcsFile, $stackPtr, $format['clean']);
             }
 
             return;
         }
 
-        if (!FunctionCallHelper::isStatement($phpcsFile, $stackPtr, $this->closer($phpcsFile, $stackPtr))) {
+        if (!FunctionCallHelper::isStatement($phpcsFile, $stackPtr, self::closer($phpcsFile, $stackPtr))) {
             return;
         }
 
         $error = 'Use echo, not printf(), for a string with no placeholders';
         if ($phpcsFile->addFixableError($error, $stackPtr, self::CODE_USELESS_PRINTF)) {
-            $this->replaceCall($phpcsFile, $stackPtr, "echo {$format['clean']}");
+            self::replaceCall($phpcsFile, $stackPtr, "echo {$format['clean']}");
         }
     }
 
@@ -692,14 +692,14 @@ class FunctionCallsSniff implements Sniff
 
         $code = "{$this->operand($phpcsFile, $arguments[0])} ** {$this->operand($phpcsFile, $arguments[1])}";
         $tokens = $phpcsFile->getTokens();
-        $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($this->closer($phpcsFile, $stackPtr) + 1), null, true);
+        $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, (self::closer($phpcsFile, $stackPtr) + 1), null, true);
         if ($next !== false && $tokens[$next]['code'] === T_POW) {
             // ** is right-associative, so pow($a, $b) ** $c needs the parentheses.
             $code = "({$code})";
         }
 
         if ($phpcsFile->addFixableError('Use the ** operator, not pow()', $stackPtr, self::CODE_POW)) {
-            $this->replaceCall($phpcsFile, $stackPtr, $code);
+            self::replaceCall($phpcsFile, $stackPtr, $code);
         }
     }
 
@@ -711,7 +711,7 @@ class FunctionCallsSniff implements Sniff
      * @param string $name The function, in lower case.
      * @param list<array{start: int, end: int, clean: string}> $arguments The arguments.
      */
-    private function processCallUserFunc(File $phpcsFile, int $stackPtr, string $name, array $arguments): void
+    private static function processCallUserFunc(File $phpcsFile, int $stackPtr, string $name, array $arguments): void
     {
         $callable = $arguments[0] ?? null;
         $rest = array_slice($arguments, 1);
@@ -719,7 +719,7 @@ class FunctionCallsSniff implements Sniff
             return;
         }
 
-        $target = $this->directCallTarget($phpcsFile, $callable);
+        $target = self::directCallTarget($phpcsFile, $callable);
         foreach ($rest as $argument) {
             // A call that changes the callable's variable as it's made would call something else.
             if ($target !== null && preg_match('/\$\w+\s*=(?!=)/', $argument['clean']) === 1) {
@@ -736,7 +736,7 @@ class FunctionCallsSniff implements Sniff
             : implode(', ', array_map(static fn(array $argument): string => $argument['clean'], $rest));
         $error = 'Call the function directly, not through %s()';
         if ($phpcsFile->addFixableError($error, $stackPtr, self::CODE_CALL_USER_FUNC, [$name])) {
-            $this->replaceCall($phpcsFile, $stackPtr, "{$target}({$list})");
+            self::replaceCall($phpcsFile, $stackPtr, "{$target}({$list})");
         }
     }
 
@@ -747,7 +747,7 @@ class FunctionCallsSniff implements Sniff
      * @param array{start: int, end: int, clean: string} $callable The callable argument.
      * @return ?string The code before the arguments, or null if it can't be called directly for certain.
      */
-    private function directCallTarget(File $phpcsFile, array $callable): ?string
+    private static function directCallTarget(File $phpcsFile, array $callable): ?string
     {
         $tokens = $phpcsFile->getTokens();
         $start = $callable['start'];
@@ -782,7 +782,7 @@ class FunctionCallsSniff implements Sniff
      * @param int $stackPtr The position of the function's name.
      * @param list<array{start: int, end: int, clean: string}> $arguments The arguments.
      */
-    private function processFopen(File $phpcsFile, int $stackPtr, array $arguments): void
+    private static function processFopen(File $phpcsFile, int $stackPtr, array $arguments): void
     {
         $mode = isset($arguments[1])
             ? FunctionCallHelper::stringValue($phpcsFile, $arguments[1]['start'], $arguments[1]['end'])
@@ -804,7 +804,7 @@ class FunctionCallsSniff implements Sniff
      * @param array<array{start: int, end: int, clean: string}> $arguments The new function's arguments.
      * @param bool $isPositive Whether the comparison is true when the new function is.
      */
-    private function reportModern(
+    private static function reportModern(
         File $phpcsFile,
         int $stackPtr,
         int $start,
@@ -818,7 +818,7 @@ class FunctionCallsSniff implements Sniff
         $code = ($isPositive ? '' : '!') . "{$prefix}{$function}({$list})";
         $error = 'Use %s, which says what\'s meant';
         if ($phpcsFile->addFixableError($error, $stackPtr, self::CODE_MODERN_STRING_FUNCTION, [$code])) {
-            $this->replace($phpcsFile, $start, $end, $code);
+            self::replace($phpcsFile, $start, $end, $code);
         }
     }
 
@@ -830,20 +830,20 @@ class FunctionCallsSniff implements Sniff
      * @return array{int, int, string, string, bool}|null The comparison's first and last tokens, its operator, the
      *     other side's code, and whether the call is on the right, or null if there's no such comparison.
      */
-    private function findComparison(File $phpcsFile, int $stackPtr): ?array
+    private static function findComparison(File $phpcsFile, int $stackPtr): ?array
     {
         $tokens = $phpcsFile->getTokens();
         $comparisons = [T_IS_IDENTICAL, T_IS_NOT_IDENTICAL, T_GREATER_THAN, T_LESS_THAN];
-        $closer = $this->closer($phpcsFile, $stackPtr);
+        $closer = self::closer($phpcsFile, $stackPtr);
         $after = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($closer + 1), null, true);
         $before = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
         if ($after !== false && in_array($tokens[$after]['code'], $comparisons, true)) {
-            $other = $this->operandAfter($phpcsFile, $after);
+            $other = self::operandAfter($phpcsFile, $after);
             $edge = $before;
             $result = $other === null ? null : [$stackPtr, $other[1], $tokens[$after]['content'], $other[2], false];
         } elseif ($before !== false && in_array($tokens[$before]['code'], $comparisons, true)) {
-            $other = $this->operandBefore($phpcsFile, $before);
-            $edge = $other === null ? false : $this->previousCode($phpcsFile, $other[0]);
+            $other = self::operandBefore($phpcsFile, $before);
+            $edge = $other === null ? false : self::previousCode($phpcsFile, $other[0]);
             $result = $other === null ? null : [$other[0], $closer, $tokens[$before]['content'], $other[2], true];
         } else {
             return null;
@@ -868,7 +868,7 @@ class FunctionCallsSniff implements Sniff
      * @param int $operator The position of the operator.
      * @return array{int, int, string}|null Its first and last tokens and its code, or null if there's none.
      */
-    private function operandAfter(File $phpcsFile, int $operator): ?array
+    private static function operandAfter(File $phpcsFile, int $operator): ?array
     {
         $tokens = $phpcsFile->getTokens();
         $start = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($operator + 1), null, true);
@@ -899,7 +899,7 @@ class FunctionCallsSniff implements Sniff
      * @param int $operator The position of the operator.
      * @return array{int, int, string}|null Its first and last tokens and its code, or null if there's none.
      */
-    private function operandBefore(File $phpcsFile, int $operator): ?array
+    private static function operandBefore(File $phpcsFile, int $operator): ?array
     {
         $tokens = $phpcsFile->getTokens();
         $end = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($operator - 1), null, true);
@@ -934,7 +934,7 @@ class FunctionCallsSniff implements Sniff
      * @param bool $negated Whether it must be negated.
      * @return ?string The `strlen()` argument's code, normalized, or null if the argument isn't such a call.
      */
-    private function strlenArgument(File $phpcsFile, array $argument, bool $negated): ?string
+    private static function strlenArgument(File $phpcsFile, array $argument, bool $negated): ?string
     {
         $tokens = $phpcsFile->getTokens();
         $start = $argument['start'];
@@ -951,11 +951,11 @@ class FunctionCallsSniff implements Sniff
         }
 
         $inner = FunctionCallHelper::arguments($phpcsFile, $start);
-        if ($inner === null || count($inner) !== 1 || $this->closer($phpcsFile, $start) !== $argument['end']) {
+        if ($inner === null || count($inner) !== 1 || self::closer($phpcsFile, $start) !== $argument['end']) {
             return null;
         }
 
-        return $this->normalize($inner[0]['clean']);
+        return self::normalize($inner[0]['clean']);
     }
 
     /**
@@ -1001,7 +1001,7 @@ class FunctionCallsSniff implements Sniff
      * @param string $code The code.
      * @return bool True if it is.
      */
-    private function isNonEmptyLiteral(string $code): bool
+    private static function isNonEmptyLiteral(string $code): bool
     {
         return preg_match('/^(\'(?:[^\'\\\\]|\\\\.)+\'|"[^"$\\\\]+")$/s', $code) === 1;
     }
@@ -1013,7 +1013,7 @@ class FunctionCallsSniff implements Sniff
      * @param array{start: int, end: int, clean: string} $argument The argument.
      * @return string The code.
      */
-    private function operand(File $phpcsFile, array $argument): string
+    private static function operand(File $phpcsFile, array $argument): string
     {
         return FunctionCallHelper::isSimpleOperand($phpcsFile, $argument['start'], $argument['end'])
             ? $argument['clean']
@@ -1026,7 +1026,7 @@ class FunctionCallsSniff implements Sniff
      * @param string $code The code.
      * @return string The code without that white space.
      */
-    private function normalize(string $code): string
+    private static function normalize(string $code): string
     {
         $pattern = '/(\'(?:[^\'\\\\]|\\\\.)*\'|"(?:[^"\\\\]|\\\\.)*")|\s+/s';
 
@@ -1040,7 +1040,7 @@ class FunctionCallsSniff implements Sniff
      * @param int $stackPtr The position of the token.
      * @return false|int The position of the code, or false if there's none.
      */
-    private function previousCode(File $phpcsFile, int $stackPtr): false|int
+    private static function previousCode(File $phpcsFile, int $stackPtr): false|int
     {
         return $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
     }
@@ -1052,7 +1052,7 @@ class FunctionCallsSniff implements Sniff
      * @param int $stackPtr The position of the function's name.
      * @return int The position of the parenthesis.
      */
-    private function closer(File $phpcsFile, int $stackPtr): int
+    private static function closer(File $phpcsFile, int $stackPtr): int
     {
         return $phpcsFile->getTokens()[FunctionCallHelper::opener($phpcsFile, $stackPtr)]['parenthesis_closer'];
     }
@@ -1064,9 +1064,9 @@ class FunctionCallsSniff implements Sniff
      * @param int $stackPtr The position of the function's name.
      * @param string $code The new code.
      */
-    private function replaceCall(File $phpcsFile, int $stackPtr, string $code): void
+    private static function replaceCall(File $phpcsFile, int $stackPtr, string $code): void
     {
-        $this->replace($phpcsFile, $stackPtr, $this->closer($phpcsFile, $stackPtr), $code);
+        self::replace($phpcsFile, $stackPtr, self::closer($phpcsFile, $stackPtr), $code);
     }
 
     /**
@@ -1077,7 +1077,7 @@ class FunctionCallsSniff implements Sniff
      * @param int $end The position of the last token.
      * @param string $code The new code.
      */
-    private function replace(File $phpcsFile, int $start, int $end, string $code): void
+    private static function replace(File $phpcsFile, int $start, int $end, string $code): void
     {
         $phpcsFile->fixer->beginChangeset();
         $phpcsFile->fixer->replaceToken($start, $code);

@@ -50,7 +50,7 @@ class AnonClassLayoutSniff extends GenericSniff
      */
     public function process(File $phpcsFile, int $stackPtr): void
     {
-        $this->checkSpaceAfterArguments($phpcsFile, $stackPtr);
+        self::checkSpaceAfterArguments($phpcsFile, $stackPtr);
         parent::process($phpcsFile, $stackPtr);
     }
 
@@ -61,7 +61,7 @@ class AnonClassLayoutSniff extends GenericSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the anonymous class's `class` keyword.
      */
-    private function checkSpaceAfterArguments(File $phpcsFile, int $stackPtr): void
+    private static function checkSpaceAfterArguments(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $closer = $tokens[$stackPtr]['parenthesis_closer'] ?? null;

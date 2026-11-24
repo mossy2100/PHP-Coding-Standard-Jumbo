@@ -91,13 +91,13 @@ class BuiltInNameCaseSniff implements Sniff
     {
         $code = $phpcsFile->getTokens()[$stackPtr]['code'];
         if ($code === T_OPEN_TAG) {
-            $this->checkReferences($phpcsFile, $stackPtr);
+            self::checkReferences($phpcsFile, $stackPtr);
         } elseif ($code === T_USE) {
-            $this->checkUseStatement($phpcsFile, $stackPtr);
+            self::checkUseStatement($phpcsFile, $stackPtr);
         } elseif ($code === T_FUNCTION) {
-            $this->checkMethodDeclaration($phpcsFile, $stackPtr);
+            self::checkMethodDeclaration($phpcsFile, $stackPtr);
         } else {
-            $this->checkMethodCall($phpcsFile, $stackPtr);
+            self::checkMethodCall($phpcsFile, $stackPtr);
         }
     }
 
@@ -109,7 +109,7 @@ class BuiltInNameCaseSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the opening tag.
      */
-    private function checkReferences(File $phpcsFile, int $stackPtr): void
+    private static function checkReferences(File $phpcsFile, int $stackPtr): void
     {
         if ($phpcsFile->findPrevious(T_OPEN_TAG, ($stackPtr - 1)) !== false) {
             return;
@@ -133,7 +133,7 @@ class BuiltInNameCaseSniff implements Sniff
 
             $written = $reference->getNameAsReferencedInFile();
             $resolved = NamespaceHelper::resolveClassName($phpcsFile, $written, $namePtr);
-            $this->checkClassName($phpcsFile, $namePtr, $written, $resolved);
+            self::checkClassName($phpcsFile, $namePtr, $written, $resolved);
         }
     }
 
@@ -143,7 +143,7 @@ class BuiltInNameCaseSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the `use` keyword.
      */
-    private function checkUseStatement(File $phpcsFile, int $stackPtr): void
+    private static function checkUseStatement(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($stackPtr + 1), null, true);
@@ -160,7 +160,7 @@ class BuiltInNameCaseSniff implements Sniff
             $previous = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($i - 1), null, true);
             if (in_array($tokens[$i]['code'], self::NAME_TOKENS, true) && $tokens[$previous]['code'] !== T_AS) {
                 $written = $tokens[$i]['content'];
-                $this->checkClassName($phpcsFile, $i, $written, $written);
+                self::checkClassName($phpcsFile, $i, $written, $written);
             }
         }
     }
@@ -173,7 +173,7 @@ class BuiltInNameCaseSniff implements Sniff
      * @param string $written The name as written.
      * @param string $resolved The fully qualified name it refers to.
      */
-    private function checkClassName(File $phpcsFile, int $namePtr, string $written, string $resolved): void
+    private static function checkClassName(File $phpcsFile, int $namePtr, string $written, string $resolved): void
     {
         $real = self::builtInClasses()[strtolower(ltrim($resolved, '\\'))] ?? null;
         if ($real === null) {
@@ -225,13 +225,13 @@ class BuiltInNameCaseSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the `function` keyword.
      */
-    private function checkMethodDeclaration(File $phpcsFile, int $stackPtr): void
+    private static function checkMethodDeclaration(File $phpcsFile, int $stackPtr): void
     {
         // The name comes after any `&`, as in `function &__get()`.
         $opener = $phpcsFile->getTokens()[$stackPtr]['parenthesis_opener'] ?? null;
         $namePtr = is_int($opener) ? $phpcsFile->findNext(T_STRING, ($stackPtr + 1), $opener) : false;
         if ($namePtr !== false && Scopes::isOOMethod($phpcsFile, $stackPtr)) {
-            $this->checkMagicName($phpcsFile, $namePtr);
+            self::checkMagicName($phpcsFile, $namePtr);
         }
     }
 
@@ -241,7 +241,7 @@ class BuiltInNameCaseSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the name.
      */
-    private function checkMethodCall(File $phpcsFile, int $stackPtr): void
+    private static function checkMethodCall(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         if (!str_starts_with($tokens[$stackPtr]['content'], '__')) {
@@ -255,7 +255,7 @@ class BuiltInNameCaseSniff implements Sniff
             $previous !== false && $next !== false && in_array($tokens[$previous]['code'], $operators, true)
             && $tokens[$next]['code'] === T_OPEN_PARENTHESIS
         ) {
-            $this->checkMagicName($phpcsFile, $stackPtr);
+            self::checkMagicName($phpcsFile, $stackPtr);
         }
     }
 
@@ -265,7 +265,7 @@ class BuiltInNameCaseSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $namePtr The position of the name.
      */
-    private function checkMagicName(File $phpcsFile, int $namePtr): void
+    private static function checkMagicName(File $phpcsFile, int $namePtr): void
     {
         $name = $phpcsFile->getTokens()[$namePtr]['content'];
         $expected = self::MAGIC_METHODS[strtolower($name)] ?? null;

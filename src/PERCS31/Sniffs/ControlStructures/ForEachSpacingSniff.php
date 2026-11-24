@@ -69,8 +69,8 @@ class ForEachSpacingSniff implements Sniff
             return;
         }
 
-        $this->checkSpacing($phpcsFile, $asPtr, true, self::CODE_SPACING_BEFORE_AS);
-        $this->checkSpacing($phpcsFile, $asPtr, false, self::CODE_SPACING_AFTER_AS);
+        self::checkSpacing($phpcsFile, $asPtr, true, self::CODE_SPACING_BEFORE_AS);
+        self::checkSpacing($phpcsFile, $asPtr, false, self::CODE_SPACING_AFTER_AS);
 
         $arrowPtr = TokenHelper::findNextAtLevel(
             $phpcsFile,
@@ -82,8 +82,8 @@ class ForEachSpacingSniff implements Sniff
             return;
         }
 
-        $this->checkSpacing($phpcsFile, $arrowPtr, true, self::CODE_SPACING_BEFORE_ARROW);
-        $this->checkSpacing($phpcsFile, $arrowPtr, false, self::CODE_SPACING_AFTER_ARROW);
+        self::checkSpacing($phpcsFile, $arrowPtr, true, self::CODE_SPACING_BEFORE_ARROW);
+        self::checkSpacing($phpcsFile, $arrowPtr, false, self::CODE_SPACING_AFTER_ARROW);
     }
 
     /**
@@ -94,7 +94,7 @@ class ForEachSpacingSniff implements Sniff
      * @param bool $isBefore Whether to check the side before the token, not the side after it.
      * @param string $code The error code.
      */
-    private function checkSpacing(File $phpcsFile, int $ptr, bool $isBefore, string $code): void
+    private static function checkSpacing(File $phpcsFile, int $ptr, bool $isBefore, string $code): void
     {
         $tokens = $phpcsFile->getTokens();
         $sidePtr = $isBefore ? ($ptr - 1) : ($ptr + 1);

@@ -128,7 +128,7 @@ class DisallowInvisibleCharactersSniff implements Sniff
     {
         $token = $phpcsFile->getTokens()[$stackPtr];
         $content = $token['orig_content'] ?? $token['content'];
-        $characters = $this->findCharacters($content);
+        $characters = self::findCharacters($content);
         if ($stackPtr === 0 && str_starts_with($content, "\u{FEFF}")) {
             unset($characters[0]);
         }
@@ -144,7 +144,7 @@ class DisallowInvisibleCharactersSniff implements Sniff
      * @param string $content The content.
      * @return array<int, string> Each character, by its byte offset.
      */
-    private function findCharacters(string $content): array
+    private static function findCharacters(string $content): array
     {
         $count = preg_match_all(self::PATTERN, $content, $matches, PREG_OFFSET_CAPTURE);
         if ($count === false) {
@@ -179,8 +179,8 @@ class DisallowInvisibleCharactersSniff implements Sniff
         [$fixed, $fixable] = match (true) {
             $isText => [$this->fixText($phpcsFile, $stackPtr, $content), array_keys($characters)],
             in_array($code, [T_CONSTANT_ENCAPSED_STRING, T_DOUBLE_QUOTED_STRING, T_HEREDOC], true)
-                => $this->fixString($phpcsFile, $stackPtr, $content, $characters),
-            $code === T_NOWDOC => $this->fixNowdoc($phpcsFile, $stackPtr, $content, $characters),
+                => self::fixString($phpcsFile, $stackPtr, $content, $characters),
+            $code === T_NOWDOC => self::fixNowdoc($phpcsFile, $stackPtr, $content, $characters),
             default => [$content, []],
         };
 
@@ -202,7 +202,7 @@ class DisallowInvisibleCharactersSniff implements Sniff
         $phpcsFile->fixer->beginChangeset();
         $phpcsFile->fixer->replaceToken($stackPtr, $fixed);
         if ($code === T_NOWDOC) {
-            $this->openAsHeredoc($phpcsFile, $stackPtr);
+            self::openAsHeredoc($phpcsFile, $stackPtr);
         }
 
         $phpcsFile->fixer->endChangeset();
@@ -230,7 +230,7 @@ class DisallowInvisibleCharactersSniff implements Sniff
                 $replacement = str_repeat(' ', $tabWidth - (($column - 1) % $tabWidth));
             } elseif ($char === "\r") {
                 $replacement = ($chars[($index + 1)] ?? '') === "\n" ? '' : "\n";
-            } elseif ($char !== "\t" && $this->findCharacters($char) !== []) {
+            } elseif ($char !== "\t" && self::findCharacters($char) !== []) {
                 $replacement = preg_match('/\p{Cf}/u', $char) === 1 ? '' : ' ';
             }
 
@@ -251,13 +251,13 @@ class DisallowInvisibleCharactersSniff implements Sniff
      * @param array<int, string> $characters Each character found, by its byte offset.
      * @return array{string, list<int>} The fixed content, and the offsets of the characters fixed.
      */
-    private function fixString(File $phpcsFile, int $stackPtr, string $content, array $characters): array
+    private static function fixString(File $phpcsFile, int $stackPtr, string $content, array $characters): array
     {
         $tokens = $phpcsFile->getTokens();
         $code = $tokens[$stackPtr]['code'];
         $prefix = strspn($content, 'bB');
         $first = $content[$prefix] ?? '';
-        if ($code === T_CONSTANT_ENCAPSED_STRING && $this->isSingleQuoted($phpcsFile, $stackPtr)) {
+        if ($code === T_CONSTANT_ENCAPSED_STRING && self::isSingleQuoted($phpcsFile, $stackPtr)) {
             $isWhole = $first === "'" && strlen($content) > ($prefix + 1) && str_ends_with($content, "'");
             $body = substr($content, ($prefix + 1), -1);
             if (!$isWhole || str_contains($body, '$') || str_contains($body, '\\')) {
@@ -265,7 +265,7 @@ class DisallowInvisibleCharactersSniff implements Sniff
             }
 
             $body = str_replace('"', '\"', $body);
-            $escaped = $this->escape($body, array_keys($this->findCharacters($body)), false);
+            $escaped = self::escape($body, array_keys(self::findCharacters($body)), false);
 
             return [substr($content, 0, $prefix) . "\"{$escaped}\"", array_keys($characters)];
         }
@@ -273,12 +273,12 @@ class DisallowInvisibleCharactersSniff implements Sniff
         $isInterpolated = $code !== T_CONSTANT_ENCAPSED_STRING;
         $fixable = [];
         foreach (array_keys($characters) as $offset) {
-            if (!$isInterpolated || !$this->isInInterpolation(substr($content, 0, $offset), $characters[$offset])) {
+            if (!$isInterpolated || !self::isInInterpolation(substr($content, 0, $offset), $characters[$offset])) {
                 $fixable[] = $offset;
             }
         }
 
-        return [$this->escape($content, $fixable, true), $fixable];
+        return [self::escape($content, $fixable, true), $fixable];
     }
 
     /**
@@ -290,7 +290,7 @@ class DisallowInvisibleCharactersSniff implements Sniff
      * @param array<int, string> $characters Each character found, by its byte offset.
      * @return array{string, list<int>} The fixed content, and the offsets of the characters fixed.
      */
-    private function fixNowdoc(File $phpcsFile, int $stackPtr, string $content, array $characters): array
+    private static function fixNowdoc(File $phpcsFile, int $stackPtr, string $content, array $characters): array
     {
         $tokens = $phpcsFile->getTokens();
         $start = $phpcsFile->findPrevious(T_START_NOWDOC, $stackPtr);
@@ -305,7 +305,7 @@ class DisallowInvisibleCharactersSniff implements Sniff
             }
         }
 
-        return [$this->escape($content, array_keys($characters), false), array_keys($characters)];
+        return [self::escape($content, array_keys($characters), false), array_keys($characters)];
     }
 
     /**
@@ -314,7 +314,7 @@ class DisallowInvisibleCharactersSniff implements Sniff
      * @param File $phpcsFile The file being fixed.
      * @param int $stackPtr The position of a line in the nowdoc.
      */
-    private function openAsHeredoc(File $phpcsFile, int $stackPtr): void
+    private static function openAsHeredoc(File $phpcsFile, int $stackPtr): void
     {
         $start = $phpcsFile->findPrevious(T_START_NOWDOC, $stackPtr);
         if ($start !== false) {
@@ -330,7 +330,7 @@ class DisallowInvisibleCharactersSniff implements Sniff
      * @param int $stackPtr The position of the token.
      * @return bool True if it is.
      */
-    private function isSingleQuoted(File $phpcsFile, int $stackPtr): bool
+    private static function isSingleQuoted(File $phpcsFile, int $stackPtr): bool
     {
         $tokens = $phpcsFile->getTokens();
         $first = $stackPtr;
@@ -351,7 +351,7 @@ class DisallowInvisibleCharactersSniff implements Sniff
      * @param string $character The character.
      * @return bool True if it is.
      */
-    private function isInInterpolation(string $before, string $character): bool
+    private static function isInInterpolation(string $before, string $character): bool
     {
         $unescaped = preg_replace('/\\\\./s', '', $before) ?? $before;
         if (preg_match('/(\{\$|\$\{)[^}]*$/', $unescaped) === 1) {
@@ -370,7 +370,7 @@ class DisallowInvisibleCharactersSniff implements Sniff
      * escaping too: in a double-quoted string or a heredoc, `\` then a tab is a backslash and a tab.
      * @return string The text with escapes.
      */
-    private function escape(string $content, array $offsets, bool $checkBackslashes): string
+    private static function escape(string $content, array $offsets, bool $checkBackslashes): string
     {
         rsort($offsets);
         foreach ($offsets as $offset) {

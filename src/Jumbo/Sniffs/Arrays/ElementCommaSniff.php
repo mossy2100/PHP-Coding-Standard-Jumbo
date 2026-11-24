@@ -47,7 +47,7 @@ class ElementCommaSniff implements Sniff
         $tokens = $phpcsFile->getTokens();
         $code = $tokens[$stackPtr]['code'];
         if ($code === T_LIST || ($code === T_OPEN_SHORT_ARRAY && Lists::isShortList($phpcsFile, $stackPtr))) {
-            $this->processList($phpcsFile, $stackPtr);
+            self::processList($phpcsFile, $stackPtr);
             return;
         }
 
@@ -61,7 +61,7 @@ class ElementCommaSniff implements Sniff
         }
 
         foreach (PassedParameters::getParameters($phpcsFile, $stackPtr) as $element) {
-            $this->checkElement($phpcsFile, (int) $element['start'], (int) $element['end'], $openClose['closer']);
+            self::checkElement($phpcsFile, (int) $element['start'], (int) $element['end'], $openClose['closer']);
         }
     }
 
@@ -71,7 +71,7 @@ class ElementCommaSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of `list` or the short list's `[`.
      */
-    private function processList(File $phpcsFile, int $stackPtr): void
+    private static function processList(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $openClose = Lists::getOpenClose($phpcsFile, $stackPtr);
@@ -86,7 +86,7 @@ class ElementCommaSniff implements Sniff
                 continue;
             }
 
-            $this->checkElement($phpcsFile, $start, $end, $openClose['closer']);
+            self::checkElement($phpcsFile, $start, $end, $openClose['closer']);
         }
     }
 
@@ -98,7 +98,7 @@ class ElementCommaSniff implements Sniff
      * @param int $end The position of the element's last token, which may be whitespace or a comment.
      * @param int $closer The position of the array's closing bracket.
      */
-    private function checkElement(File $phpcsFile, int $start, int $end, int $closer): void
+    private static function checkElement(File $phpcsFile, int $start, int $end, int $closer): void
     {
         $tokens = $phpcsFile->getTokens();
         $last = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, $end, ($start - 1), true);

@@ -50,7 +50,7 @@ class DisallowTrailingCommaInCallSniff extends SlevomatSniff
             return;
         }
 
-        if (!$this->isCall($phpcsFile, $parenthesisOpenerPointer)) {
+        if (!self::isCall($phpcsFile, $parenthesisOpenerPointer)) {
             return;
         }
 
@@ -68,7 +68,7 @@ class DisallowTrailingCommaInCallSniff extends SlevomatSniff
      * @param int $opener The position of the opening parenthesis.
      * @return bool True if the parent would check them.
      */
-    private function isCall(File $phpcsFile, int $opener): bool
+    private static function isCall(File $phpcsFile, int $opener): bool
     {
         $tokens = $phpcsFile->getTokens();
         $callCodes = [

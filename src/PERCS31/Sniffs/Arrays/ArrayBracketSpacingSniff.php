@@ -38,7 +38,7 @@ class ArrayBracketSpacingSniff extends PhpCollectiveSniff
             return;
         }
 
-        $this->checkAfterOpener($phpcsFile, $stackPtr);
+        self::checkAfterOpener($phpcsFile, $stackPtr);
         parent::process($phpcsFile, $stackPtr);
     }
 
@@ -48,7 +48,7 @@ class ArrayBracketSpacingSniff extends PhpCollectiveSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the array keyword or the opening bracket.
      */
-    private function checkAfterOpener(File $phpcsFile, int $stackPtr): void
+    private static function checkAfterOpener(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $bounds = Arrays::getOpenClose($phpcsFile, $stackPtr);

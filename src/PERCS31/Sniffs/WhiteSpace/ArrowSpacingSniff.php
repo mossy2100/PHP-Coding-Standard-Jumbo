@@ -89,7 +89,7 @@ class ArrowSpacingSniff implements Sniff
         }
 
         if ($code === T_YIELD) {
-            $arrow = $this->findYieldArrow($phpcsFile, $stackPtr);
+            $arrow = self::findYieldArrow($phpcsFile, $stackPtr);
             if ($arrow !== null) {
                 $this->checkArrow($phpcsFile, $arrow, 'yield');
             }
@@ -97,7 +97,7 @@ class ArrowSpacingSniff implements Sniff
             return;
         }
 
-        foreach ($this->findArrayArrows($phpcsFile, $stackPtr) as $arrow) {
+        foreach (self::findArrayArrows($phpcsFile, $stackPtr) as $arrow) {
             $this->checkArrow($phpcsFile, $arrow, 'array');
         }
     }
@@ -109,7 +109,7 @@ class ArrowSpacingSniff implements Sniff
      * @param int $openerPtr The position of `array`, `list` or a short array's or list's `[`.
      * @return list<int> The positions of the arrows.
      */
-    private function findArrayArrows(File $phpcsFile, int $openerPtr): array
+    private static function findArrayArrows(File $phpcsFile, int $openerPtr): array
     {
         $code = $phpcsFile->getTokens()[$openerPtr]['code'];
         $isList = $code === T_LIST || ($code === T_OPEN_SHORT_ARRAY && Lists::isShortList($phpcsFile, $openerPtr));
@@ -141,7 +141,7 @@ class ArrowSpacingSniff implements Sniff
      * @param int $yieldPtr The position of `yield`.
      * @return ?int The position of the `=>`, or null if the `yield` has no key.
      */
-    private function findYieldArrow(File $phpcsFile, int $yieldPtr): ?int
+    private static function findYieldArrow(File $phpcsFile, int $yieldPtr): ?int
     {
         $tokens = $phpcsFile->getTokens();
         $count = count($tokens);
@@ -179,8 +179,8 @@ class ArrowSpacingSniff implements Sniff
      */
     private function checkArrow(File $phpcsFile, int $arrowPtr, string $context): void
     {
-        $this->checkSpacing($phpcsFile, $arrowPtr, $arrowPtr - 1, 'before', $context, $this->allowSeveralSpaces);
-        $this->checkSpacing($phpcsFile, $arrowPtr, $arrowPtr + 1, 'after', $context, $this->allowSeveralSpaces);
+        self::checkSpacing($phpcsFile, $arrowPtr, $arrowPtr - 1, 'before', $context, $this->allowSeveralSpaces);
+        self::checkSpacing($phpcsFile, $arrowPtr, $arrowPtr + 1, 'after', $context, $this->allowSeveralSpaces);
     }
 
     /**
@@ -193,7 +193,7 @@ class ArrowSpacingSniff implements Sniff
      * @param string $context What the arrow belongs to, for the error message.
      * @param bool $minimum Whether more than one space is allowed.
      */
-    private function checkSpacing(
+    private static function checkSpacing(
         File $phpcsFile,
         int $arrowPtr,
         int $sidePtr,

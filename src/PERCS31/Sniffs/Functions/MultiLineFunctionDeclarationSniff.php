@@ -86,7 +86,7 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
             return;
         }
 
-        if ($this->joinUseToParenthesis($phpcsFile, $stackPtr)) {
+        if (self::joinUseToParenthesis($phpcsFile, $stackPtr)) {
             return;
         }
 
@@ -123,11 +123,11 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
      * @param int $stackPtr The position of the function keyword.
      * @return bool True if it was reported, so the parent's checks, whose fixes for it undo each other, are skipped.
      */
-    private function joinUseToParenthesis(File $phpcsFile, int $stackPtr): bool
+    private static function joinUseToParenthesis(File $phpcsFile, int $stackPtr): bool
     {
         $tokens = $phpcsFile->getTokens();
         $closer = $tokens[$stackPtr]['parenthesis_closer'] ?? null;
-        $use = $this->findUse($phpcsFile, $stackPtr);
+        $use = self::findUse($phpcsFile, $stackPtr);
         if (!is_int($closer) || $use === null || $tokens[$use]['line'] === $tokens[$closer]['line']) {
             return false;
         }
@@ -149,7 +149,7 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
      * @param int $stackPtr The position of the function keyword.
      * @return ?int The position of `use`, or null if it isn't a closure, or has no `use`.
      */
-    private function findUse(File $phpcsFile, int $stackPtr): ?int
+    private static function findUse(File $phpcsFile, int $stackPtr): ?int
     {
         $tokens = $phpcsFile->getTokens();
         $closer = $tokens[$stackPtr]['parenthesis_closer'] ?? null;
@@ -185,7 +185,7 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
 
         $this->processBracket($phpcsFile, $opener, $tokens);
         $this->processArgumentList($phpcsFile, $stackPtr, $this->indent);
-        $this->checkBlankLines($phpcsFile, $stackPtr);
+        self::checkBlankLines($phpcsFile, $stackPtr);
     }
 
     /**
@@ -203,7 +203,7 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
         }
 
         parent::processArgumentList($phpcsFile, $stackPtr, $indent, $type);
-        $this->checkParameterIndents($phpcsFile, $stackPtr, $indent);
+        self::checkParameterIndents($phpcsFile, $stackPtr, $indent);
     }
 
     /**
@@ -217,12 +217,12 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
      * @param int $stackPtr The position of the function keyword.
      * @param int $indent The number of spaces in one indent level.
      */
-    private function checkParameterIndents(File $phpcsFile, int $stackPtr, int $indent): void
+    private static function checkParameterIndents(File $phpcsFile, int $stackPtr, int $indent): void
     {
         $tokens = $phpcsFile->getTokens();
         $functionIndent = LayoutHelper::lineIndent($phpcsFile, $stackPtr);
         $lists = [[$tokens[$stackPtr]['parenthesis_opener'] ?? null, $tokens[$stackPtr]['parenthesis_closer'] ?? null]];
-        $use = $this->findUse($phpcsFile, $stackPtr);
+        $use = self::findUse($phpcsFile, $stackPtr);
         if ($use !== null) {
             $lists[] = [$tokens[$use]['parenthesis_opener'] ?? null, $tokens[$use]['parenthesis_closer'] ?? null];
         }
@@ -237,7 +237,7 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
                     continue;
                 }
 
-                $expected = $this->findExpectedParameterIndent($phpcsFile, $i, $opener, $closer);
+                $expected = self::findExpectedParameterIndent($phpcsFile, $i, $opener, $closer);
                 $found = $tokens[$i]['column'] - 1;
                 $spaces = $expected === null ? null : ($functionIndent + ($expected * $indent));
                 if ($spaces === null || $spaces === $found) {
@@ -262,7 +262,7 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
      * @return ?int 0 for the closing parenthesis, 1 for a line that starts an item or its attributes, or null for a
      *     line that isn't checked.
      */
-    private function findExpectedParameterIndent(File $phpcsFile, int $first, int $opener, int $closer): ?int
+    private static function findExpectedParameterIndent(File $phpcsFile, int $first, int $opener, int $closer): ?int
     {
         if ($first === $closer) {
             return 0;
@@ -314,7 +314,7 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
     public function processMultiLineDeclaration(File $phpcsFile, int $stackPtr, array $tokens): void
     {
         parent::processMultiLineDeclaration($phpcsFile, $stackPtr, $tokens);
-        $this->checkBlankLines($phpcsFile, $stackPtr);
+        self::checkBlankLines($phpcsFile, $stackPtr);
     }
 
     /**
@@ -325,13 +325,13 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the function keyword.
      */
-    private function checkBlankLines(File $phpcsFile, int $stackPtr): void
+    private static function checkBlankLines(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $lists = [[$tokens[$stackPtr]['parenthesis_opener'] ?? null, $tokens[$stackPtr]['parenthesis_closer'] ?? null]];
 
         // A closure's use list is checked too, as the parent does.
-        $use = $this->findUse($phpcsFile, $stackPtr);
+        $use = self::findUse($phpcsFile, $stackPtr);
         if ($use !== null) {
             $lists[] = [$tokens[$use]['parenthesis_opener'] ?? null, $tokens[$use]['parenthesis_closer'] ?? null];
         }
@@ -343,7 +343,7 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
 
             $blankLines = [
                 ...LayoutHelper::findBlankLinesAtStartAndEnd($phpcsFile, $opener, $closer),
-                ...$this->findBlankLinesAfterAttributes($phpcsFile, $opener, $closer),
+                ...self::findBlankLinesAfterAttributes($phpcsFile, $opener, $closer),
             ];
 
             // The text only puts the first item on the line after the opening parenthesis, so a blank line before
@@ -372,7 +372,7 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
      * @param int $closer The position of the list's closing parenthesis.
      * @return list<int> The position of each blank line's whitespace token.
      */
-    private function findBlankLinesAfterAttributes(File $phpcsFile, int $opener, int $closer): array
+    private static function findBlankLinesAfterAttributes(File $phpcsFile, int $opener, int $closer): array
     {
         $tokens = $phpcsFile->getTokens();
         $blankLines = [];

@@ -187,7 +187,7 @@ class StringHelper
             static fn(StringAtom $atom): bool => $atom->single !== null,
         );
 
-        return $isSingle ? $this->renderSingle($atoms) : $this->renderDouble($atoms);
+        return $isSingle ? self::renderSingle($atoms) : self::renderDouble($atoms);
     }
 
     /**
@@ -196,7 +196,7 @@ class StringHelper
      * @param list<StringAtom> $atoms The atoms, each of which can be single-quoted.
      * @return string The code.
      */
-    private function renderSingle(array $atoms): string
+    private static function renderSingle(array $atoms): string
     {
         $code = '';
         foreach ($atoms as $index => $atom) {
@@ -220,7 +220,7 @@ class StringHelper
      * @param list<StringAtom> $atoms The atoms.
      * @return string The code.
      */
-    private function renderDouble(array $atoms): string
+    private static function renderDouble(array $atoms): string
     {
         $code = '';
         foreach ($atoms as $index => $atom) {
@@ -407,11 +407,11 @@ class StringHelper
         }
 
         if ($token['code'] === T_CONSTANT_ENCAPSED_STRING && $content[0] === "'") {
-            $atoms = $this->readSingleQuoted(substr($content, 1, -1), $ptr);
+            $atoms = self::readSingleQuoted(substr($content, 1, -1), $ptr);
         } elseif ($token['code'] === T_CONSTANT_ENCAPSED_STRING && $content[0] === '"') {
-            $atoms = $this->readDoubleQuoted(substr($content, 1, -1), $ptr);
+            $atoms = self::readDoubleQuoted(substr($content, 1, -1), $ptr);
         } elseif ($token['code'] === T_DOUBLE_QUOTED_STRING) {
-            $atoms = $this->readInterpolated($content, $ptr);
+            $atoms = self::readInterpolated($content, $ptr);
             if ($atoms === null) {
                 return null;
             }
@@ -431,7 +431,7 @@ class StringHelper
      * @param int $source The position of the literal.
      * @return list<StringAtom> The atoms.
      */
-    private function readSingleQuoted(string $content, int $source): array
+    private static function readSingleQuoted(string $content, int $source): array
     {
         $atoms = [];
         $length = strlen($content);
@@ -458,7 +458,7 @@ class StringHelper
      * @param int $source The position of the literal.
      * @return list<StringAtom> The atoms.
      */
-    private function readDoubleQuoted(string $content, int $source): array
+    private static function readDoubleQuoted(string $content, int $source): array
     {
         $atoms = [];
         $pattern = '/\G(?:\\\\[0-7]{1,3}|\\\\x[0-9A-Fa-f]{1,2}|\\\\u\{[0-9A-Fa-f]+\}|\\\\[\s\S]|[\x00-\x7f]|[\xc0-\xff]'
@@ -488,7 +488,7 @@ class StringHelper
      * @param int $source The position of the literal.
      * @return list<StringAtom>|null The atoms, or null if it uses `${`.
      */
-    private function readInterpolated(string $content, int $source): ?array
+    private static function readInterpolated(string $content, int $source): ?array
     {
         $parts = token_get_all("<?php {$content}");
         $atoms = [];
@@ -502,18 +502,18 @@ class StringHelper
             }
 
             if ($id === T_ENCAPSED_AND_WHITESPACE) {
-                $atoms = [...$atoms, ...$this->readDoubleQuoted($text, $source)];
+                $atoms = [...$atoms, ...self::readDoubleQuoted($text, $source)];
                 continue;
             }
 
             if ($id === T_CURLY_OPEN) {
-                [$variable, $i] = $this->readBracedInterpolation($parts, $i);
+                [$variable, $i] = self::readBracedInterpolation($parts, $i);
                 $atoms[] = new StringAtom(StringAtom::VARIABLE, null, $variable, $source);
                 continue;
             }
 
             if ($id === T_VARIABLE) {
-                [$variable, $i] = $this->readSimpleInterpolation($parts, $i);
+                [$variable, $i] = self::readSimpleInterpolation($parts, $i);
                 $atoms[] = new StringAtom(StringAtom::VARIABLE, null, $variable, $source, true);
             }
         }
@@ -528,7 +528,7 @@ class StringHelper
      * @param int $index The position of its {.
      * @return array{string, int} The variable with its braces, and the position of its }.
      */
-    private function readBracedInterpolation(array $parts, int $index): array
+    private static function readBracedInterpolation(array $parts, int $index): array
     {
         $count = count($parts);
         $depth = 0;
@@ -559,7 +559,7 @@ class StringHelper
      * @param int $index The position of its variable.
      * @return array{string, int} The variable as written, and the position of its last token.
      */
-    private function readSimpleInterpolation(array $parts, int $index): array
+    private static function readSimpleInterpolation(array $parts, int $index): array
     {
         $count = count($parts);
         $variable = is_array($parts[$index]) ? $parts[$index][1] : $parts[$index];

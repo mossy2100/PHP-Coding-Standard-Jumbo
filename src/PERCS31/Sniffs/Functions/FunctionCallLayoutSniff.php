@@ -87,20 +87,20 @@ class FunctionCallLayoutSniff extends Psr2Sniff
                 return;
             }
 
-            if ($opener !== false && $this->isSplitCallable($phpcsFile, $opener)) {
+            if ($opener !== false && self::isSplitCallable($phpcsFile, $opener)) {
                 return;
             }
         }
 
         $opener = $tokens[$stackPtr]['code'] === T_CLONE ? $parentheses[0] : $opener;
-        if ($opener !== false && $this->reportCommentBeforeParenthesis($phpcsFile, $stackPtr, $opener)) {
+        if ($opener !== false && self::reportCommentBeforeParenthesis($phpcsFile, $stackPtr, $opener)) {
             return;
         }
 
         parent::process($phpcsFile, $stackPtr);
 
         if ($opener !== false) {
-            $this->checkBlankLines($phpcsFile, $stackPtr, $opener);
+            self::checkBlankLines($phpcsFile, $stackPtr, $opener);
         }
     }
 
@@ -140,7 +140,7 @@ class FunctionCallLayoutSniff extends Psr2Sniff
      * @param int $stackPtr The position of the function's name.
      * @param int $opener The position of the token after the function's name, which may be the opening parenthesis.
      */
-    private function checkBlankLines(File $phpcsFile, int $stackPtr, int $opener): void
+    private static function checkBlankLines(File $phpcsFile, int $stackPtr, int $opener): void
     {
         $tokens = $phpcsFile->getTokens();
         $closer = $tokens[$opener]['parenthesis_closer'] ?? null;
@@ -179,7 +179,7 @@ class FunctionCallLayoutSniff extends Psr2Sniff
      * @param int $opener The position of the token after the name, which may be the opening parenthesis.
      * @return bool True if it was reported, so the parent, which would report it again with its fix, isn't run.
      */
-    private function reportCommentBeforeParenthesis(File $phpcsFile, int $stackPtr, int $opener): bool
+    private static function reportCommentBeforeParenthesis(File $phpcsFile, int $stackPtr, int $opener): bool
     {
         $tokens = $phpcsFile->getTokens();
         if (
@@ -208,7 +208,7 @@ class FunctionCallLayoutSniff extends Psr2Sniff
      * @param int $opener The position of the token after the function's name.
      * @return bool True if it is, so the parent's checks for a split argument list are skipped.
      */
-    private function isSplitCallable(File $phpcsFile, int $opener): bool
+    private static function isSplitCallable(File $phpcsFile, int $opener): bool
     {
         $tokens = $phpcsFile->getTokens();
         $closer = $tokens[$opener]['parenthesis_closer'] ?? null;

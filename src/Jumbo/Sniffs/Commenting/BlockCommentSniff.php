@@ -79,7 +79,7 @@ class BlockCommentSniff implements Sniff
         }
 
         if (str_contains($content, '*/')) {
-            $this->checkOneLine($phpcsFile, $stackPtr);
+            self::checkOneLine($phpcsFile, $stackPtr);
 
             return;
         }
@@ -94,7 +94,7 @@ class BlockCommentSniff implements Sniff
         }
 
         if (str_contains($tokens[$last]['content'], '*/')) {
-            $this->checkLines($phpcsFile, $stackPtr, $last);
+            self::checkLines($phpcsFile, $stackPtr, $last);
         }
     }
 
@@ -105,7 +105,7 @@ class BlockCommentSniff implements Sniff
      * @param int $first The position of the comment's first line.
      * @param int $last The position of the comment's last line.
      */
-    private function checkLines(File $phpcsFile, int $first, int $last): void
+    private static function checkLines(File $phpcsFile, int $first, int $last): void
     {
         $tokens = $phpcsFile->getTokens();
         $lineStart = $phpcsFile->findFirstOnLine(T_WHITESPACE, $first, true);
@@ -158,7 +158,7 @@ class BlockCommentSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the comment.
      */
-    private function checkOneLine(File $phpcsFile, int $stackPtr): void
+    private static function checkOneLine(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $content = rtrim($tokens[$stackPtr]['content']);
@@ -174,14 +174,14 @@ class BlockCommentSniff implements Sniff
         $line = $tokens[$stackPtr]['line'];
         $previous = $phpcsFile->findPrevious(T_WHITESPACE, ($stackPtr - 1), null, true);
         $isBeside = $previous !== false && $tokens[$previous]['line'] === $line;
-        if ($isBeside && !$this->isCheckedElsewhere($tokens[$previous]['code'], true)) {
-            $this->checkSpace($phpcsFile, $previous, $stackPtr, true);
+        if ($isBeside && !self::isCheckedElsewhere($tokens[$previous]['code'], true)) {
+            self::checkSpace($phpcsFile, $previous, $stackPtr, true);
         }
 
         $next = $phpcsFile->findNext(T_WHITESPACE, ($stackPtr + 1), null, true);
         $isBeside = $next !== false && $tokens[$next]['line'] === $line;
-        if ($isBeside && !$this->isCheckedElsewhere($tokens[$next]['code'], false)) {
-            $this->checkSpace($phpcsFile, $stackPtr, $next, false);
+        if ($isBeside && !self::isCheckedElsewhere($tokens[$next]['code'], false)) {
+            self::checkSpace($phpcsFile, $stackPtr, $next, false);
         }
     }
 
@@ -192,7 +192,7 @@ class BlockCommentSniff implements Sniff
      * @param bool $isBefore Whether the token is before the comment. No sniff checks the space after a semicolon.
      * @return bool True if it is.
      */
-    private function isCheckedElsewhere(int|string $code, bool $isBefore): bool
+    private static function isCheckedElsewhere(int|string $code, bool $isBefore): bool
     {
         if ($isBefore && $code === T_SEMICOLON) {
             return false;
@@ -211,7 +211,7 @@ class BlockCommentSniff implements Sniff
      * @param int $to The position of the second.
      * @param bool $isBefore Whether the space is before the comment.
      */
-    private function checkSpace(File $phpcsFile, int $from, int $to, bool $isBefore): void
+    private static function checkSpace(File $phpcsFile, int $from, int $to, bool $isBefore): void
     {
         $tokens = $phpcsFile->getTokens();
         $found = $to === ($from + 1) ? '' : $tokens[($from + 1)]['content'];

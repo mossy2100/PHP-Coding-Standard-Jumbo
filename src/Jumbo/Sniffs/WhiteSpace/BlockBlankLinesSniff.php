@@ -51,7 +51,7 @@ class BlockBlankLinesSniff implements Sniff
     {
         $tokens = $phpcsFile->getTokens();
         foreach (PropertyHookHelper::findHookScopes($phpcsFile) as $opener => $closer) {
-            $this->checkBlock($phpcsFile, $opener, $closer, 'property hook');
+            self::checkBlock($phpcsFile, $opener, $closer, 'property hook');
         }
 
         $declare = $phpcsFile->findNext(T_DECLARE, ($stackPtr + 1));
@@ -59,7 +59,7 @@ class BlockBlankLinesSniff implements Sniff
             $opener = $tokens[$declare]['scope_opener'] ?? null;
             $closer = $tokens[$declare]['scope_closer'] ?? null;
             if (is_int($opener) && is_int($closer) && $tokens[$opener]['code'] === T_OPEN_CURLY_BRACKET) {
-                $this->checkBlock($phpcsFile, $opener, $closer, 'block declare');
+                self::checkBlock($phpcsFile, $opener, $closer, 'block declare');
             }
 
             $declare = $phpcsFile->findNext(T_DECLARE, ($declare + 1));
@@ -76,7 +76,7 @@ class BlockBlankLinesSniff implements Sniff
      * @param int $closer The position of the closing brace.
      * @param string $kind The kind of block, for the message.
      */
-    private function checkBlock(File $phpcsFile, int $opener, int $closer, string $kind): void
+    private static function checkBlock(File $phpcsFile, int $opener, int $closer, string $kind): void
     {
         $firstContent = $phpcsFile->findNext(T_WHITESPACE, ($opener + 1), null, true);
         foreach (LayoutHelper::findBlankLinesAtStartAndEnd($phpcsFile, $opener, $closer) as $blankLine) {

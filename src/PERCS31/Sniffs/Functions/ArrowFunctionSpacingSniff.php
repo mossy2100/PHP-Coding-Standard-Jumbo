@@ -52,8 +52,8 @@ class ArrowFunctionSpacingSniff implements Sniff
      */
     public function process(File $phpcsFile, int $stackPtr): void
     {
-        $this->checkLineBreakAfterFn($phpcsFile, $stackPtr);
-        $this->checkBlankLineBeforeArrow($phpcsFile, $stackPtr);
+        self::checkLineBreakAfterFn($phpcsFile, $stackPtr);
+        self::checkBlankLineBeforeArrow($phpcsFile, $stackPtr);
 
         $tokens = $phpcsFile->getTokens();
         $closer = $tokens[$stackPtr]['scope_closer'] ?? null;
@@ -94,7 +94,7 @@ class ArrowFunctionSpacingSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of `fn`.
      */
-    private function checkBlankLineBeforeArrow(File $phpcsFile, int $stackPtr): void
+    private static function checkBlankLineBeforeArrow(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $arrow = $tokens[$stackPtr]['scope_opener'] ?? null;
@@ -119,7 +119,7 @@ class ArrowFunctionSpacingSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of `fn`.
      */
-    private function checkLineBreakAfterFn(File $phpcsFile, int $stackPtr): void
+    private static function checkLineBreakAfterFn(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($stackPtr + 1), null, true);

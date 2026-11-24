@@ -45,8 +45,8 @@ class EnumMemberVisibilitySniff implements Sniff
 
         $tokens = $phpcsFile->getTokens();
         [$protectedPtr, $finalPtr] = $tokens[$stackPtr]['code'] === T_CONST
-            ? $this->findConstantModifiers($phpcsFile, $stackPtr)
-            : $this->findMethodModifiers($phpcsFile, $stackPtr);
+            ? self::findConstantModifiers($phpcsFile, $stackPtr)
+            : self::findMethodModifiers($phpcsFile, $stackPtr);
         if ($protectedPtr === null) {
             return;
         }
@@ -81,7 +81,7 @@ class EnumMemberVisibilitySniff implements Sniff
      * @param int $constPtr The position of `const`.
      * @return array{?int, ?int} The positions of `protected` and `final`, each null if it isn't there.
      */
-    private function findConstantModifiers(File $phpcsFile, int $constPtr): array
+    private static function findConstantModifiers(File $phpcsFile, int $constPtr): array
     {
         $constant = Constants::getProperties($phpcsFile, $constPtr);
         $scopePtr = $constant['scope_token'];
@@ -101,7 +101,7 @@ class EnumMemberVisibilitySniff implements Sniff
      * @param int $functionPtr The position of `function`.
      * @return array{?int, ?int} The positions of `protected` and `final`, each null if it isn't there.
      */
-    private function findMethodModifiers(File $phpcsFile, int $functionPtr): array
+    private static function findMethodModifiers(File $phpcsFile, int $functionPtr): array
     {
         $found = $phpcsFile->findPrevious(
             [T_SEMICOLON, T_OPEN_CURLY_BRACKET, T_CLOSE_CURLY_BRACKET, T_ATTRIBUTE_END],

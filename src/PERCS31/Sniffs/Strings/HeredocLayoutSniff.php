@@ -70,7 +70,7 @@ class HeredocLayoutSniff implements Sniff
     public function process(File $phpcsFile, int $stackPtr): void
     {
         // Joining lines changes the line to indent past, so the indent is checked on the next pass.
-        if ($this->checkContext($phpcsFile, $stackPtr)) {
+        if (self::checkContext($phpcsFile, $stackPtr)) {
             return;
         }
 
@@ -97,7 +97,7 @@ class HeredocLayoutSniff implements Sniff
             [$kind, $expected, $found],
         );
         if ($fix) {
-            $this->reindent($phpcsFile, $stackPtr, $end, ($expected - $found));
+            self::reindent($phpcsFile, $stackPtr, $end, ($expected - $found));
         }
     }
 
@@ -108,7 +108,7 @@ class HeredocLayoutSniff implements Sniff
      * @param int $stackPtr The position of the `<<<` token.
      * @return bool True if it doesn't.
      */
-    private function checkContext(File $phpcsFile, int $stackPtr): bool
+    private static function checkContext(File $phpcsFile, int $stackPtr): bool
     {
         $tokens = $phpcsFile->getTokens();
         $context = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
@@ -118,16 +118,16 @@ class HeredocLayoutSniff implements Sniff
 
         $code = $tokens[$context]['code'];
         if ($tokens[$context]['line'] !== $tokens[$stackPtr]['line']) {
-            if (in_array($code, self::ITEM_OR_STATEMENT_STARTS, true) || $this->isLeftToOperatorSniffs($code)) {
+            if (in_array($code, self::ITEM_OR_STATEMENT_STARTS, true) || self::isLeftToOperatorSniffs($code)) {
                 return false;
             }
 
-            $this->reportContext($phpcsFile, $stackPtr, $context, $stackPtr);
+            self::reportContext($phpcsFile, $stackPtr, $context, $stackPtr);
             return true;
         }
 
         // `$x` followed by `= <<<`. The operator is on the heredoc's line, but what it sets isn't.
-        if (!$this->isAssignmentOrArrow($code)) {
+        if (!self::isAssignmentOrArrow($code)) {
             return false;
         }
 
@@ -136,7 +136,7 @@ class HeredocLayoutSniff implements Sniff
             return false;
         }
 
-        $this->reportContext($phpcsFile, $stackPtr, $target, $context);
+        self::reportContext($phpcsFile, $stackPtr, $target, $context);
         return true;
     }
 
@@ -148,7 +148,7 @@ class HeredocLayoutSniff implements Sniff
      * @param int $from The token to stay where it is.
      * @param int $to The token to move up to it.
      */
-    private function reportContext(File $phpcsFile, int $stackPtr, int $from, int $to): void
+    private static function reportContext(File $phpcsFile, int $stackPtr, int $from, int $to): void
     {
         $tokens = $phpcsFile->getTokens();
         $kind = $tokens[$stackPtr]['code'] === T_START_NOWDOC ? 'nowdoc' : 'heredoc';
@@ -168,7 +168,7 @@ class HeredocLayoutSniff implements Sniff
      * @param int|string $code The token's code.
      * @return bool True if it is.
      */
-    private function isAssignmentOrArrow(int|string $code): bool
+    private static function isAssignmentOrArrow(int|string $code): bool
     {
         return isset(Tokens::ASSIGNMENT_TOKENS[$code]) || in_array($code, [T_MATCH_ARROW, T_FN_ARROW], true);
     }
@@ -180,9 +180,9 @@ class HeredocLayoutSniff implements Sniff
      * @param int|string $code The token's code.
      * @return bool True if it is.
      */
-    private function isLeftToOperatorSniffs(int|string $code): bool
+    private static function isLeftToOperatorSniffs(int|string $code): bool
     {
-        if ($this->isAssignmentOrArrow($code)) {
+        if (self::isAssignmentOrArrow($code)) {
             return false;
         }
 
@@ -197,7 +197,7 @@ class HeredocLayoutSniff implements Sniff
      * @param int $end The position of the closing marker.
      * @param int $shift The number of spaces to add, or to remove if negative.
      */
-    private function reindent(File $phpcsFile, int $start, int $end, int $shift): void
+    private static function reindent(File $phpcsFile, int $start, int $end, int $shift): void
     {
         $tokens = $phpcsFile->getTokens();
         $phpcsFile->fixer->beginChangeset();

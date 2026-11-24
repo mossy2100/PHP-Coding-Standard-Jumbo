@@ -112,7 +112,7 @@ class AfterClosingBraceSniff implements Sniff
     {
         $tokens = $phpcsFile->getTokens();
         if ($tokens[$stackPtr]['code'] === T_VARIABLE) {
-            $this->processHooks($phpcsFile, $stackPtr);
+            self::processHooks($phpcsFile, $stackPtr);
 
             return;
         }
@@ -124,12 +124,12 @@ class AfterClosingBraceSniff implements Sniff
 
         $code = $tokens[$condition]['code'];
         if (in_array($code, self::DECLARATIONS, true)) {
-            $this->checkAfter($phpcsFile, $stackPtr, true, self::ALLOWED_NEXT);
+            self::checkAfter($phpcsFile, $stackPtr, true, self::ALLOWED_NEXT);
 
             return;
         }
 
-        if (!in_array($code, self::STRUCTURES, true) || $this->isDeclareInHeader($phpcsFile, $condition)) {
+        if (!in_array($code, self::STRUCTURES, true) || self::isDeclareInHeader($phpcsFile, $condition)) {
             return;
         }
 
@@ -138,7 +138,7 @@ class AfterClosingBraceSniff implements Sniff
             $allowed[] = T_WHILE;
         }
 
-        $this->checkAfter($phpcsFile, $stackPtr, false, $allowed);
+        self::checkAfter($phpcsFile, $stackPtr, false, $allowed);
     }
 
     /**
@@ -147,7 +147,7 @@ class AfterClosingBraceSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $varPtr The position of a variable, which may be a property's.
      */
-    private function processHooks(File $phpcsFile, int $varPtr): void
+    private static function processHooks(File $phpcsFile, int $varPtr): void
     {
         if (!PropertyHookHelper::isPropertyVariable($phpcsFile, $varPtr)) {
             return;
@@ -165,12 +165,12 @@ class AfterClosingBraceSniff implements Sniff
             $bodyCloser = $bodyOpener === null ? null : ($tokens[$bodyOpener]['bracket_closer'] ?? null);
             if (is_int($bodyCloser)) {
                 // Only another hook can follow a hook's body, and PropertyHooks puts each on its own line.
-                $this->checkAfter($phpcsFile, $bodyCloser, true, null);
+                self::checkAfter($phpcsFile, $bodyCloser, true, null);
             }
         }
 
         // What follows a promoted property's hook list, a `,` or `)`, is part of the parameter list.
-        $this->checkAfter($phpcsFile, $closer, true, [...self::ALLOWED_NEXT, T_COMMA, T_CLOSE_PARENTHESIS]);
+        self::checkAfter($phpcsFile, $closer, true, [...self::ALLOWED_NEXT, T_COMMA, T_CLOSE_PARENTHESIS]);
     }
 
     /**
@@ -181,7 +181,7 @@ class AfterClosingBraceSniff implements Sniff
      * @param bool $isCommentBanned Whether a comment after the brace is reported.
      * @param list<int|string>|null $allowed The tokens that can follow the brace, or null to check for a comment only.
      */
-    private function checkAfter(File $phpcsFile, int $closer, bool $isCommentBanned, ?array $allowed): void
+    private static function checkAfter(File $phpcsFile, int $closer, bool $isCommentBanned, ?array $allowed): void
     {
         $tokens = $phpcsFile->getTokens();
         $line = $tokens[$closer]['line'];
@@ -236,7 +236,7 @@ class AfterClosingBraceSniff implements Sniff
      * @param int $condition The position of the structure's keyword.
      * @return bool True if it is.
      */
-    private function isDeclareInHeader(File $phpcsFile, int $condition): bool
+    private static function isDeclareInHeader(File $phpcsFile, int $condition): bool
     {
         $tokens = $phpcsFile->getTokens();
         if ($tokens[$condition]['code'] !== T_DECLARE) {

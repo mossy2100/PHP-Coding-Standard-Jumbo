@@ -68,13 +68,13 @@ class ArrayDeclarationSniff implements Sniff
         }
 
         // Leave it to an enclosing array that fits, since fixing that collapses this one too.
-        $outerPtr = $this->findEnclosingArray($phpcsFile, $stackPtr);
+        $outerPtr = self::findEnclosingArray($phpcsFile, $stackPtr);
         while ($outerPtr !== null) {
             $outerClosePtr = $tokens[$outerPtr]['bracket_closer'];
             if (SingleLineHelper::collapse($phpcsFile, $outerPtr, $outerClosePtr, $this->maxLineLength) !== null) {
                 return;
             }
-            $outerPtr = $this->findEnclosingArray($phpcsFile, $outerPtr);
+            $outerPtr = self::findEnclosingArray($phpcsFile, $outerPtr);
         }
 
         $fix = $phpcsFile->addFixableError(
@@ -97,7 +97,7 @@ class ArrayDeclarationSniff implements Sniff
      * @param int $openPtr The position of the opening bracket.
      * @return ?int The position of the enclosing array's opening bracket, or null if there is none.
      */
-    private function findEnclosingArray(File $phpcsFile, int $openPtr): ?int
+    private static function findEnclosingArray(File $phpcsFile, int $openPtr): ?int
     {
         // Go out through parentheses and index brackets, such as a call's, but not out of a block.
         $tokens = $phpcsFile->getTokens();

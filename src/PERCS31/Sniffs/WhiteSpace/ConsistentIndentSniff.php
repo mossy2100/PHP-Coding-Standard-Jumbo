@@ -89,7 +89,7 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
         $token = $phpcsFile->getTokens()[$stackPtr];
         if ($token['code'] === T_DOUBLE_ARROW) {
             if (!$this->isAfterIndentedTag) {
-                $this->checkWrappedArrayValue($phpcsFile, $stackPtr);
+                self::checkWrappedArrayValue($phpcsFile, $stackPtr);
             }
 
             return;
@@ -109,7 +109,7 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
         }
 
         // The parent skips these, as it assumes a fixed depth from column 0.
-        $anchor = $this->findAnchor($phpcsFile, $stackPtr);
+        $anchor = self::findAnchor($phpcsFile, $stackPtr);
         if ($anchor !== null) {
             $this->checkFromAnchor($phpcsFile, $stackPtr, $anchor);
             return;
@@ -185,7 +185,7 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
         $expected = $this->getExpectedIndent($phpcsFile, $next, $tokens) * LayoutHelper::INDENT;
         $found = strlen($content);
         if ($found > $expected) {
-            $this->reportIndent($phpcsFile, $next, $expected, $found);
+            self::reportIndent($phpcsFile, $next, $expected, $found);
         }
     }
 
@@ -213,11 +213,11 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
         }
 
         $previous = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
-        if (!$this->checkComments || $previous === false || !$this->endsStatement($phpcsFile, $previous)) {
+        if (!$this->checkComments || $previous === false || !self::endsStatement($phpcsFile, $previous)) {
             return true;
         }
 
-        $anchor = $this->findAnchor($phpcsFile, $stackPtr);
+        $anchor = self::findAnchor($phpcsFile, $stackPtr);
         $expected = $anchor === null
             ? $this->getExpectedIndent($phpcsFile, $next, $tokens) * LayoutHelper::INDENT
             : $this->findExpectedFromAnchor($phpcsFile, $next, $anchor);
@@ -244,7 +244,7 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
      * @param int $stackPtr The position of the whitespace at the start of a line.
      * @return ?int The position of its keyword, or null if there isn't one.
      */
-    private function findAnchor(File $phpcsFile, int $stackPtr): ?int
+    private static function findAnchor(File $phpcsFile, int $stackPtr): ?int
     {
         $tokens = $phpcsFile->getTokens();
         $next = $stackPtr + 1;
@@ -279,17 +279,17 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
         }
 
         $previous = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
-        if ($previous === false || !$this->endsStatement($phpcsFile, $previous)) {
+        if ($previous === false || !self::endsStatement($phpcsFile, $previous)) {
             return;
         }
 
         // Dead code after a `break` is directly in the switch, with no `case` to measure from, so it's level with the
         // statement before it, exactly.
         $found = strlen($tokens[$stackPtr]['content']);
-        if ($this->isDeadCodeInSwitch($phpcsFile, $next)) {
-            $expected = LayoutHelper::lineIndent($phpcsFile, $this->findStatementStart($phpcsFile, $previous));
+        if (self::isDeadCodeInSwitch($phpcsFile, $next)) {
+            $expected = LayoutHelper::lineIndent($phpcsFile, self::findStatementStart($phpcsFile, $previous));
             if ($found !== $expected) {
-                $this->reportIndent($phpcsFile, $next, $expected, $found);
+                self::reportIndent($phpcsFile, $next, $expected, $found);
             }
 
             return;
@@ -318,11 +318,11 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
      * @param int $ptr The position of the token.
      * @return bool True if the next code starts a statement.
      */
-    private function endsStatement(File $phpcsFile, int $ptr): bool
+    private static function endsStatement(File $phpcsFile, int $ptr): bool
     {
         $tokens = $phpcsFile->getTokens();
         if ($tokens[$ptr]['code'] === T_SEMICOLON) {
-            return !isset($tokens[$ptr]['nested_parenthesis']) || $this->isOutsideOwnParentheses($phpcsFile, $ptr);
+            return !isset($tokens[$ptr]['nested_parenthesis']) || self::isOutsideOwnParentheses($phpcsFile, $ptr);
         }
 
         return $tokens[$ptr]['code'] === T_CLOSE_CURLY_BRACKET
@@ -336,7 +336,7 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
      * @param int $ptr The position of the `;`.
      * @return bool True if no parenthesis opens inside the innermost scope around it.
      */
-    private function isOutsideOwnParentheses(File $phpcsFile, int $ptr): bool
+    private static function isOutsideOwnParentheses(File $phpcsFile, int $ptr): bool
     {
         $tokens = $phpcsFile->getTokens();
         $conditions = $tokens[$ptr]['conditions'];
@@ -433,7 +433,7 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
      * @param int $ptr The position of the line's first code.
      * @return bool True if it is.
      */
-    private function isDeadCodeInSwitch(File $phpcsFile, int $ptr): bool
+    private static function isDeadCodeInSwitch(File $phpcsFile, int $ptr): bool
     {
         $tokens = $phpcsFile->getTokens();
         $conditions = $tokens[$ptr]['conditions'];
@@ -455,7 +455,7 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
      * @param int $endPtr The position of the `;`.
      * @return int The position of the statement's first token.
      */
-    private function findStatementStart(File $phpcsFile, int $endPtr): int
+    private static function findStatementStart(File $phpcsFile, int $endPtr): int
     {
         $tokens = $phpcsFile->getTokens();
         $boundaries = [T_SEMICOLON, T_OPEN_CURLY_BRACKET, T_CLOSE_CURLY_BRACKET, T_COLON, T_OPEN_TAG];
@@ -481,14 +481,14 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $arrowPtr The position of the `=>`.
      */
-    private function checkWrappedArrayValue(File $phpcsFile, int $arrowPtr): void
+    private static function checkWrappedArrayValue(File $phpcsFile, int $arrowPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $value = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($arrowPtr + 1), null, true);
         if (
             $value === false || $tokens[$value]['line'] === $tokens[$arrowPtr]['line']
             || in_array($tokens[$value]['code'], [T_START_HEREDOC, T_START_NOWDOC], true)
-            || !LayoutHelper::startsLine($phpcsFile, $value) || !$this->isInArray($phpcsFile, $arrowPtr)
+            || !LayoutHelper::startsLine($phpcsFile, $value) || !self::isInArray($phpcsFile, $arrowPtr)
         ) {
             return;
         }
@@ -496,7 +496,7 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
         $expected = LayoutHelper::lineIndent($phpcsFile, $arrowPtr) + LayoutHelper::INDENT;
         $found = $tokens[$value]['column'] - 1;
         if ($found !== $expected) {
-            $this->reportIndent($phpcsFile, $value, $expected, $found);
+            self::reportIndent($phpcsFile, $value, $expected, $found);
         }
     }
 
@@ -507,7 +507,7 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
      * @param int $arrowPtr The position of the `=>`.
      * @return bool True if it is.
      */
-    private function isInArray(File $phpcsFile, int $arrowPtr): bool
+    private static function isInArray(File $phpcsFile, int $arrowPtr): bool
     {
         $tokens = $phpcsFile->getTokens();
         for ($i = ($arrowPtr - 1); $i >= 0; $i--) {
@@ -541,7 +541,7 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
      * @param int $expected The expected number of spaces.
      * @param int $found The number of spaces found.
      */
-    private function reportIndent(File $phpcsFile, int $ptr, int $expected, int $found): void
+    private static function reportIndent(File $phpcsFile, int $ptr, int $expected, int $found): void
     {
         $error = 'Line indented incorrectly; expected %s spaces, found %s spaces';
         FixerHelper::reportIndent($phpcsFile, $ptr, $expected, $error, 'Incorrect', [$expected, $found]);

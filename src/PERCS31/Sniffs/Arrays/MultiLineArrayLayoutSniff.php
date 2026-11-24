@@ -100,7 +100,7 @@ class MultiLineArrayLayoutSniff implements Sniff
             $this->checkOpeningBracket($phpcsFile, $stackPtr);
         }
 
-        $this->checkValues($phpcsFile, $stackPtr);
+        self::checkValues($phpcsFile, $stackPtr);
     }
 
     /**
@@ -206,10 +206,10 @@ class MultiLineArrayLayoutSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the array keyword or the opening bracket.
      */
-    private function checkValues(File $phpcsFile, int $stackPtr): void
+    private static function checkValues(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
-        if ($this->isForeachList($phpcsFile, $stackPtr)) {
+        if (self::isForeachList($phpcsFile, $stackPtr)) {
             return;
         }
 
@@ -219,7 +219,7 @@ class MultiLineArrayLayoutSniff implements Sniff
             return;
         }
 
-        $values = $this->findValues($phpcsFile, $stackPtr);
+        $values = self::findValues($phpcsFile, $stackPtr);
         if ($values === null) {
             return;
         }
@@ -248,7 +248,7 @@ class MultiLineArrayLayoutSniff implements Sniff
      * @param int $stackPtr The position of the array keyword or the opening bracket.
      * @return list<int>|null The positions, or null if every value has a key.
      */
-    private function findValues(File $phpcsFile, int $stackPtr): ?array
+    private static function findValues(File $phpcsFile, int $stackPtr): ?array
     {
         $values = [];
         $keys = 0;
@@ -279,7 +279,7 @@ class MultiLineArrayLayoutSniff implements Sniff
      * @param int $stackPtr The position of the array's opener.
      * @return bool True if it is.
      */
-    private function isForeachList(File $phpcsFile, int $stackPtr): bool
+    private static function isForeachList(File $phpcsFile, int $stackPtr): bool
     {
         return $phpcsFile->getTokens()[$stackPtr]['code'] === T_OPEN_SHORT_ARRAY
             && Context::inForeachCondition($phpcsFile, $stackPtr) === 'afterAs';

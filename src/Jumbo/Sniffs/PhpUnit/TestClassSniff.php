@@ -191,12 +191,12 @@ class TestClassSniff implements Sniff
         }
 
         $methods = PhpUnitHelper::findMethods($phpcsFile, $stackPtr);
-        $renames = $this->findRenames($phpcsFile, $methods);
-        $defaultClass = $this->findDefaultClass($phpcsFile, $stackPtr);
-        $this->processDocComment($phpcsFile, $stackPtr, $stackPtr, $renames, $defaultClass);
+        $renames = self::findRenames($phpcsFile, $methods);
+        $defaultClass = self::findDefaultClass($phpcsFile, $stackPtr);
+        self::processDocComment($phpcsFile, $stackPtr, $stackPtr, $renames, $defaultClass);
         foreach ($methods as $method) {
-            $this->processDocComment($phpcsFile, $stackPtr, $method, $renames, $defaultClass);
-            $this->processHookVisibility($phpcsFile, $method);
+            self::processDocComment($phpcsFile, $stackPtr, $method, $renames, $defaultClass);
+            self::processHookVisibility($phpcsFile, $method);
         }
     }
 
@@ -207,7 +207,7 @@ class TestClassSniff implements Sniff
      * @param list<int> $methods The positions of the class's methods.
      * @return array<string, string> Each method's name => its new name, for those that can be renamed.
      */
-    private function findRenames(File $phpcsFile, array $methods): array
+    private static function findRenames(File $phpcsFile, array $methods): array
     {
         $names = [];
         foreach ($methods as $method) {
@@ -218,7 +218,7 @@ class TestClassSniff implements Sniff
         foreach ($methods as $method) {
             $name = (string) $phpcsFile->getDeclarationName($method);
             $hasTest = false;
-            foreach ($this->findTags($phpcsFile, $method) as $tag) {
+            foreach (self::findTags($phpcsFile, $method) as $tag) {
                 $hasTest = $hasTest || strtolower($tag['name']) === 'test';
             }
 
@@ -238,9 +238,9 @@ class TestClassSniff implements Sniff
      * @param int $classPtr The position of the `class` keyword.
      * @return ?string The class name, or null if there's none.
      */
-    private function findDefaultClass(File $phpcsFile, int $classPtr): ?string
+    private static function findDefaultClass(File $phpcsFile, int $classPtr): ?string
     {
-        foreach ($this->findTags($phpcsFile, $classPtr) as $tag) {
+        foreach (self::findTags($phpcsFile, $classPtr) as $tag) {
             if (strtolower($tag['name']) === 'coversdefaultclass' && $tag['value'] !== '') {
                 return $tag['value'];
             }
@@ -257,7 +257,7 @@ class TestClassSniff implements Sniff
      * @return list<array{tag: int, name: string, value: string, lines: list<string>, last: int}> Each tag's position,
      *     its name without the `@`, its value on its own line, every line of its value, and its last line.
      */
-    private function findTags(File $phpcsFile, int $declaration): array
+    private static function findTags(File $phpcsFile, int $declaration): array
     {
         $opener = DocCommentHelper::findDocCommentOpenPointer($phpcsFile, $declaration);
         if ($opener === null) {
@@ -309,7 +309,7 @@ class TestClassSniff implements Sniff
      * @param array<string, string> $renames Each method marked `@test` that's renamed => its new name.
      * @param ?string $defaultClass The class `@coversDefaultClass` names, if any.
      */
-    private function processDocComment(
+    private static function processDocComment(
         File $phpcsFile,
         int $classPtr,
         int $declaration,
@@ -321,9 +321,9 @@ class TestClassSniff implements Sniff
         $attributes = [];
         $removeLines = [];
         $rename = null;
-        foreach ($this->findTags($phpcsFile, $declaration) as $tag) {
+        foreach (self::findTags($phpcsFile, $declaration) as $tag) {
             $name = strtolower($tag['name']);
-            if (!$this->isPhpUnitAnnotation($name)) {
+            if (!self::isPhpUnitAnnotation($name)) {
                 continue;
             }
 
@@ -332,7 +332,7 @@ class TestClassSniff implements Sniff
                 $methodName = (string) $phpcsFile->getDeclarationName($declaration);
                 $fixable = !$wrongPlace && (str_starts_with($methodName, 'test') || isset($renames[$methodName]));
                 $error = 'PHPUnit 12 ignores the @test annotation; start the method\'s name with "test" instead';
-                if ($this->report($phpcsFile, $error, $tag['tag'], self::CODE_TEST_ANNOTATION, $fixable)) {
+                if (self::report($phpcsFile, $error, $tag['tag'], self::CODE_TEST_ANNOTATION, $fixable)) {
                     $removeLines = [...$removeLines, ...range($tokens[$tag['tag']]['line'], $tag['last'])];
                     $rename = isset($renames[$methodName]) ? [$methodName => $renames[$methodName]] : null;
                 }
@@ -340,10 +340,10 @@ class TestClassSniff implements Sniff
                 continue;
             }
 
-            $new = $wrongPlace ? null : $this->toAttributes($name, $tag, $renames, $defaultClass);
+            $new = $wrongPlace ? null : self::toAttributes($name, $tag, $renames, $defaultClass);
             $error = 'PHPUnit 12 ignores the @%s annotation; use %s';
-            $data = [$tag['name'], $this->describe($new, $wrongPlace, $isMethod)];
-            $fix = $this->report($phpcsFile, $error, $tag['tag'], self::CODE_ANNOTATION, $new !== null, $data);
+            $data = [$tag['name'], self::describe($new, $wrongPlace, $isMethod)];
+            $fix = self::report($phpcsFile, $error, $tag['tag'], self::CODE_ANNOTATION, $new !== null, $data);
             if ($fix && $new !== null) {
                 $attributes = [...$attributes, ...$new];
                 $removeLines = [...$removeLines, ...range($tokens[$tag['tag']]['line'], $tag['last'])];
@@ -355,15 +355,15 @@ class TestClassSniff implements Sniff
         }
 
         $phpcsFile->fixer->beginChangeset();
-        $this->removeLines($phpcsFile, $declaration, $removeLines);
-        $this->insertAttributes($phpcsFile, $declaration, $attributes);
+        self::removeLines($phpcsFile, $declaration, $removeLines);
+        self::insertAttributes($phpcsFile, $declaration, $attributes);
         if ($rename !== null) {
             $namePtr = $phpcsFile->findNext(T_STRING, ($declaration + 1));
             if ($namePtr !== false) {
                 $phpcsFile->fixer->replaceToken($namePtr, reset($rename));
             }
 
-            $this->renameDependsAttributes($phpcsFile, $classPtr, $rename);
+            self::renameDependsAttributes($phpcsFile, $classPtr, $rename);
         }
 
         $phpcsFile->fixer->endChangeset();
@@ -377,7 +377,7 @@ class TestClassSniff implements Sniff
      * @param bool $isMethod Whether it's on a method, rather than the class.
      * @return string The description.
      */
-    private function describe(?array $attributes, bool $wrongPlace, bool $isMethod): string
+    private static function describe(?array $attributes, bool $wrongPlace, bool $isMethod): string
     {
         if ($wrongPlace) {
             return $isMethod ? 'an attribute on the class instead' : 'an attribute on a method instead';
@@ -408,7 +408,7 @@ class TestClassSniff implements Sniff
      * @param list<string> $data The message's values.
      * @return bool True if it's to be fixed now.
      */
-    private function report(
+    private static function report(
         File $phpcsFile,
         string $error,
         int $ptr,
@@ -431,7 +431,7 @@ class TestClassSniff implements Sniff
      * @param string $name The tag's lower-case name, without the `@`.
      * @return bool True if it is.
      */
-    private function isPhpUnitAnnotation(string $name): bool
+    private static function isPhpUnitAnnotation(string $name): bool
     {
         return isset(self::WITHOUT_ARGUMENTS[$name]) || isset(self::WITH_TEXT[$name])
             || isset(self::ENABLED_OR_DISABLED[$name]) || in_array($name, self::OTHERS, true);
@@ -446,27 +446,27 @@ class TestClassSniff implements Sniff
      * @param ?string $defaultClass The class `@coversDefaultClass` names, if any.
      * @return list<string>|null The attributes, which may be none, or null if its value can't be read.
      */
-    private function toAttributes(string $name, array $tag, array $renames, ?string $defaultClass): ?array
+    private static function toAttributes(string $name, array $tag, array $renames, ?string $defaultClass): ?array
     {
         $value = $tag['value'];
         $words = $value === '' ? [] : preg_split('/\s+/', $value);
         $words = is_array($words) ? $words : [];
 
         return match (true) {
-            isset(self::WITHOUT_ARGUMENTS[$name]) => [$this->attribute(self::WITHOUT_ARGUMENTS[$name])],
+            isset(self::WITHOUT_ARGUMENTS[$name]) => [self::attribute(self::WITHOUT_ARGUMENTS[$name])],
             isset(self::WITH_TEXT[$name]) => $value === ''
                 ? null
-                : [$this->attribute(self::WITH_TEXT[$name], self::quote($value))],
+                : [self::attribute(self::WITH_TEXT[$name], self::quote($value))],
             isset(self::ENABLED_OR_DISABLED[$name]) => in_array($value, ['enabled', 'disabled'], true)
-                ? [$this->attribute(self::ENABLED_OR_DISABLED[$name], $value === 'enabled' ? 'true' : 'false')]
+                ? [self::attribute(self::ENABLED_OR_DISABLED[$name], $value === 'enabled' ? 'true' : 'false')]
                 : null,
-            $name === 'covers', $name === 'uses' => $this->coversOrUses($name, $words, $defaultClass),
+            $name === 'covers', $name === 'uses' => self::coversOrUses($name, $words, $defaultClass),
             $name === 'coversdefaultclass' => [],
-            $name === 'dataprovider' => $this->dataProvider($words),
-            $name === 'depends' => $this->depends($words, $renames),
-            $name === 'requires' => $this->requires($words, $value),
-            $name === 'testwith' => $this->testWith($tag['lines']),
-            $name === 'excludestaticpropertyfrombackup' => $this->excludeStaticProperty($words),
+            $name === 'dataprovider' => self::dataProvider($words),
+            $name === 'depends' => self::depends($words, $renames),
+            $name === 'requires' => self::requires($words, $value),
+            $name === 'testwith' => self::testWith($tag['lines']),
+            $name === 'excludestaticpropertyfrombackup' => self::excludeStaticProperty($words),
             default => null,
         };
     }
@@ -477,13 +477,16 @@ class TestClassSniff implements Sniff
      * @param list<string> $lines The lines of its value, each a JSON array of arguments.
      * @return list<string>|null The attributes, or null if it has no value.
      */
-    private function testWith(array $lines): ?array
+    private static function testWith(array $lines): ?array
     {
         if ($lines === []) {
             return null;
         }
 
-        return array_map(fn(string $line): string => $this->attribute('TestWithJson', self::quote($line)), $lines);
+        return array_map(
+            static fn(string $line): string => self::attribute('TestWithJson', self::quote($line)),
+            $lines,
+        );
     }
 
     /**
@@ -492,7 +495,7 @@ class TestClassSniff implements Sniff
      * @param list<string> $words The words of its value: the class and the property.
      * @return list<string>|null The attribute, or null if the value can't be read.
      */
-    private function excludeStaticProperty(array $words): ?array
+    private static function excludeStaticProperty(array $words): ?array
     {
         if (count($words) !== 2) {
             return null;
@@ -500,7 +503,7 @@ class TestClassSniff implements Sniff
 
         $arguments = self::quote($words[0]) . ', ' . self::quote($words[1]);
 
-        return [$this->attribute('ExcludeStaticPropertyFromBackup', $arguments)];
+        return [self::attribute('ExcludeStaticPropertyFromBackup', $arguments)];
     }
 
     /**
@@ -511,7 +514,7 @@ class TestClassSniff implements Sniff
      * @param ?string $defaultClass The class `@coversDefaultClass` names, if any.
      * @return list<string>|null The attribute, or null if the value can't be read.
      */
-    private function coversOrUses(string $name, array $words, ?string $defaultClass): ?array
+    private static function coversOrUses(string $name, array $words, ?string $defaultClass): ?array
     {
         $prefix = $name === 'covers' ? 'Covers' : 'Uses';
         if (
@@ -531,14 +534,14 @@ class TestClassSniff implements Sniff
         }
 
         if ($member === '') {
-            return [$this->attribute("{$prefix}Class", "{$class}::class")];
+            return [self::attribute("{$prefix}Class", "{$class}::class")];
         }
 
         if ($class === '') {
-            return [$this->attribute("{$prefix}Function", self::quote($member))];
+            return [self::attribute("{$prefix}Function", self::quote($member))];
         }
 
-        return [$this->attribute("{$prefix}Method", "{$class}::class, " . self::quote($member))];
+        return [self::attribute("{$prefix}Method", "{$class}::class, " . self::quote($member))];
     }
 
     /**
@@ -547,7 +550,7 @@ class TestClassSniff implements Sniff
      * @param list<string> $words The words of its value.
      * @return list<string>|null The attribute, or null if the value can't be read.
      */
-    private function dataProvider(array $words): ?array
+    private static function dataProvider(array $words): ?array
     {
         $provider = rtrim($words[0] ?? '', '()');
         if (
@@ -557,10 +560,10 @@ class TestClassSniff implements Sniff
         }
 
         if ($match[1] === '') {
-            return [$this->attribute('DataProvider', self::quote($match[2]))];
+            return [self::attribute('DataProvider', self::quote($match[2]))];
         }
 
-        return [$this->attribute('DataProviderExternal', "{$match[1]}::class, " . self::quote($match[2]))];
+        return [self::attribute('DataProviderExternal', "{$match[1]}::class, " . self::quote($match[2]))];
     }
 
     /**
@@ -570,7 +573,7 @@ class TestClassSniff implements Sniff
      * @param array<string, string> $renames Each method marked `@test` that's renamed => its new name.
      * @return list<string>|null The attribute, or null if the value can't be read.
      */
-    private function depends(array $words, array $renames): ?array
+    private static function depends(array $words, array $renames): ?array
     {
         $suffix = '';
         if (count($words) === 2 && in_array($words[0], ['clone', 'shallowClone'], true)) {
@@ -585,14 +588,14 @@ class TestClassSniff implements Sniff
 
         [, $class, $method] = $match;
         if ($class === '') {
-            return [$this->attribute("Depends{$suffix}", self::quote($renames[$method] ?? $method))];
+            return [self::attribute("Depends{$suffix}", self::quote($renames[$method] ?? $method))];
         }
 
         if ($method === 'class') {
-            return [$this->attribute("DependsOnClass{$suffix}", "{$class}::class")];
+            return [self::attribute("DependsOnClass{$suffix}", "{$class}::class")];
         }
 
-        return [$this->attribute("DependsExternal{$suffix}", "{$class}::class, " . self::quote($method))];
+        return [self::attribute("DependsExternal{$suffix}", "{$class}::class, " . self::quote($method))];
     }
 
     /**
@@ -602,7 +605,7 @@ class TestClassSniff implements Sniff
      * @param string $value Its whole value.
      * @return list<string>|null The attribute, or null if the value can't be read.
      */
-    private function requires(array $words, string $value): ?array
+    private static function requires(array $words, string $value): ?array
     {
         $kind = $words[0] ?? '';
         if (count($words) < 2 || !isset(self::REQUIRES[$kind])) {
@@ -612,28 +615,28 @@ class TestClassSniff implements Sniff
         $rest = trim(substr($value, strlen($kind)));
         $attribute = self::REQUIRES[$kind];
         if ($kind === 'PHP' || $kind === 'PHPUnit') {
-            return [$this->attribute($attribute, self::quote(self::versionConstraint($rest)))];
+            return [self::attribute($attribute, self::quote(self::versionConstraint($rest)))];
         }
 
         if ($kind === 'function' && str_contains($words[1], '::')) {
             [$class, $method] = explode('::', $words[1], 2);
 
             return count($words) === 2
-                ? [$this->attribute('RequiresMethod', "{$class}::class, " . self::quote($method))]
+                ? [self::attribute('RequiresMethod', "{$class}::class, " . self::quote($method))]
                 : null;
         }
 
         if ($kind === 'extension' && count($words) === 3) {
             $arguments = self::quote($words[1]) . ', ' . self::quote(self::versionConstraint($words[2]));
 
-            return [$this->attribute($attribute, $arguments)];
+            return [self::attribute($attribute, $arguments)];
         }
 
         if ($kind === 'setting' && count($words) === 3) {
-            return [$this->attribute($attribute, self::quote($words[1]) . ', ' . self::quote($words[2]))];
+            return [self::attribute($attribute, self::quote($words[1]) . ', ' . self::quote($words[2]))];
         }
 
-        return count($words) === 2 ? [$this->attribute($attribute, self::quote($words[1]))] : null;
+        return count($words) === 2 ? [self::attribute($attribute, self::quote($words[1]))] : null;
     }
 
     /**
@@ -654,7 +657,7 @@ class TestClassSniff implements Sniff
      * @param ?string $arguments Its arguments' code, if any.
      * @return string The attribute's code.
      */
-    private function attribute(string $name, ?string $arguments = null): string
+    private static function attribute(string $name, ?string $arguments = null): string
     {
         return '#[' . self::ATTRIBUTES . $name . ($arguments === null ? '' : "({$arguments})") . ']';
     }
@@ -678,7 +681,7 @@ class TestClassSniff implements Sniff
      * @param int $declaration The position of the `class` or `function` keyword.
      * @param list<int> $removeLines The line numbers to remove.
      */
-    private function removeLines(File $phpcsFile, int $declaration, array $removeLines): void
+    private static function removeLines(File $phpcsFile, int $declaration, array $removeLines): void
     {
         $tokens = $phpcsFile->getTokens();
         $opener = (int) DocCommentHelper::findDocCommentOpenPointer($phpcsFile, $declaration);
@@ -726,7 +729,7 @@ class TestClassSniff implements Sniff
      * @param int $declaration The position of the `class` or `function` keyword.
      * @param list<string> $attributes The attributes' code.
      */
-    private function insertAttributes(File $phpcsFile, int $declaration, array $attributes): void
+    private static function insertAttributes(File $phpcsFile, int $declaration, array $attributes): void
     {
         $tokens = $phpcsFile->getTokens();
         $opener = (int) DocCommentHelper::findDocCommentOpenPointer($phpcsFile, $declaration);
@@ -735,7 +738,7 @@ class TestClassSniff implements Sniff
             return;
         }
 
-        $existing = $this->findExistingAttributes($phpcsFile, $start, $declaration);
+        $existing = self::findExistingAttributes($phpcsFile, $start, $declaration);
         $indent = str_repeat(' ', $tokens[$start]['column'] - 1);
         $content = '';
         foreach (array_unique($attributes) as $attribute) {
@@ -757,7 +760,7 @@ class TestClassSniff implements Sniff
      * @param int $declaration The position of the `class` or `function` keyword.
      * @return list<string> The attributes, each as its short name and arguments, without spaces.
      */
-    private function findExistingAttributes(File $phpcsFile, int $start, int $declaration): array
+    private static function findExistingAttributes(File $phpcsFile, int $start, int $declaration): array
     {
         $tokens = $phpcsFile->getTokens();
         $existing = [];
@@ -796,7 +799,7 @@ class TestClassSniff implements Sniff
      * @param int $classPtr The position of the `class` keyword.
      * @param array<string, string> $renames The method's name => its new name.
      */
-    private function renameDependsAttributes(File $phpcsFile, int $classPtr, array $renames): void
+    private static function renameDependsAttributes(File $phpcsFile, int $classPtr, array $renames): void
     {
         $tokens = $phpcsFile->getTokens();
         $closer = $tokens[$classPtr]['scope_closer'] ?? null;
@@ -835,7 +838,7 @@ class TestClassSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $method The position of the `function` keyword.
      */
-    private function processHookVisibility(File $phpcsFile, int $method): void
+    private static function processHookVisibility(File $phpcsFile, int $method): void
     {
         $name = (string) $phpcsFile->getDeclarationName($method);
         if (!in_array(strtolower($name), self::HOOKS, true)) {

@@ -80,7 +80,7 @@ class ValidConstantNameSniff extends GenericSniff
         if ($tokens[$stackPtr]['code'] === T_AS) {
             $aliasPtr = $this->checkGlobalConstants ? NamingHelper::findConstantAlias($phpcsFile, $stackPtr) : false;
             if ($aliasPtr !== false) {
-                $this->checkGlobalConstant($phpcsFile, $aliasPtr);
+                self::checkGlobalConstant($phpcsFile, $aliasPtr);
                 $this->checkSnakeCase($phpcsFile, $aliasPtr, $tokens[$aliasPtr]['content'], false);
             }
 
@@ -109,13 +109,13 @@ class ValidConstantNameSniff extends GenericSniff
 
         foreach (NamingHelper::findConstantNames($phpcsFile, $stackPtr) as $namePtr) {
             if ($isClassConstant || $this->checkGlobalConstants) {
-                $this->checkUnderscore($phpcsFile, $namePtr);
+                self::checkUnderscore($phpcsFile, $namePtr);
             }
 
             if ($isEnum) {
-                $this->checkEnumConstant($phpcsFile, $namePtr);
+                self::checkEnumConstant($phpcsFile, $namePtr);
             } elseif (!$isClassConstant && $this->checkGlobalConstants) {
-                $this->checkGlobalConstant($phpcsFile, $namePtr);
+                self::checkGlobalConstant($phpcsFile, $namePtr);
             }
 
             if ($isClassConstant || $this->checkGlobalConstants) {
@@ -161,7 +161,7 @@ class ValidConstantNameSniff extends GenericSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $namePtr The position of the name.
      */
-    private function checkUnderscore(File $phpcsFile, int $namePtr): void
+    private static function checkUnderscore(File $phpcsFile, int $namePtr): void
     {
         $name = $phpcsFile->getTokens()[$namePtr]['content'];
         if (str_starts_with($name, '_') && !str_starts_with($name, '__')) {
@@ -180,7 +180,7 @@ class ValidConstantNameSniff extends GenericSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $namePtr The position of the name.
      */
-    private function checkGlobalConstant(File $phpcsFile, int $namePtr): void
+    private static function checkGlobalConstant(File $phpcsFile, int $namePtr): void
     {
         $name = $phpcsFile->getTokens()[$namePtr]['content'];
         if (strtoupper($name) !== $name) {
@@ -199,7 +199,7 @@ class ValidConstantNameSniff extends GenericSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $namePtr The position of the constant's name.
      */
-    private function checkEnumConstant(File $phpcsFile, int $namePtr): void
+    private static function checkEnumConstant(File $phpcsFile, int $namePtr): void
     {
         $name = $phpcsFile->getTokens()[$namePtr]['content'];
         if (NamingHelper::isPascalCase($name)) {

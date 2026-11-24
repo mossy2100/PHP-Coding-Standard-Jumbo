@@ -189,7 +189,7 @@ class CompoundTypeSniff implements Sniff
 
         if ($code === T_OPEN_PARENTHESIS) {
             if (PropertyHookHelper::isInHookParameterList($phpcsFile, $stackPtr)) {
-                $this->checkHookTypeParentheses($phpcsFile, $stackPtr);
+                self::checkHookTypeParentheses($phpcsFile, $stackPtr);
             }
 
             return;
@@ -200,7 +200,7 @@ class CompoundTypeSniff implements Sniff
             return;
         }
 
-        $this->checkSpacing($phpcsFile, $stackPtr);
+        self::checkSpacing($phpcsFile, $stackPtr);
         $symbols = CompoundTypeHelper::findSymbols($phpcsFile, $stackPtr, $isHook);
 
         // Check each type once, from its first symbol.
@@ -209,7 +209,7 @@ class CompoundTypeSniff implements Sniff
         }
 
         [$typeStart, $typeEnd] = CompoundTypeHelper::findTypeBounds($phpcsFile, $stackPtr, $isHook);
-        $this->checkLines($phpcsFile, $typeStart, $typeEnd);
+        self::checkLines($phpcsFile, $typeStart, $typeEnd);
         $this->checkNull($phpcsFile, $typeStart, $typeEnd);
         $this->checkSorting($phpcsFile, $typeStart, $typeEnd);
     }
@@ -222,14 +222,14 @@ class CompoundTypeSniff implements Sniff
      * @param int $typeStart The position of the type's first token.
      * @param int $typeEnd The position of the type's last token.
      */
-    private function checkLines(File $phpcsFile, int $typeStart, int $typeEnd): void
+    private static function checkLines(File $phpcsFile, int $typeStart, int $typeEnd): void
     {
         $tokens = $phpcsFile->getTokens();
         [$topLevel, $grouped] = CompoundTypeHelper::splitSymbols($phpcsFile, $typeStart, $typeEnd);
 
         foreach ($grouped as $symbol) {
             if (LayoutHelper::startsLine($phpcsFile, $symbol)) {
-                $this->reportSplitIntersection($phpcsFile, $symbol);
+                self::reportSplitIntersection($phpcsFile, $symbol);
             }
         }
 
@@ -253,9 +253,9 @@ class CompoundTypeSniff implements Sniff
         }
         foreach ($topLevel as $symbol) {
             if (!LayoutHelper::startsLine($phpcsFile, $symbol)) {
-                $this->reportMultipleTypesOnLine($phpcsFile, $symbol, $error, $indent);
+                self::reportMultipleTypesOnLine($phpcsFile, $symbol, $error, $indent);
             } elseif (($tokens[$symbol]['column'] - 1) !== $indent) {
-                $this->reportIndent($phpcsFile, $symbol, $indent);
+                self::reportIndent($phpcsFile, $symbol, $indent);
             }
         }
     }
@@ -270,21 +270,21 @@ class CompoundTypeSniff implements Sniff
      */
     private function checkNull(File $phpcsFile, int $start, int $end): void
     {
-        $members = $this->findMembers($phpcsFile, $start, $end);
-        $nullIndex = $this->findNull($phpcsFile, $members);
+        $members = self::findMembers($phpcsFile, $start, $end);
+        $nullIndex = self::findNull($phpcsFile, $members);
         if ($nullIndex === null || count($members) < 2) {
             return;
         }
 
-        $fixable = $this->isFixable($phpcsFile, $start, $end);
-        $type = $this->typeText($phpcsFile, $start, $end);
+        $fixable = self::isFixable($phpcsFile, $start, $end);
+        $type = self::typeText($phpcsFile, $start, $end);
         $isPlaced = $this->isNullPlaced($nullIndex, count($members));
         if (!$isPlaced) {
             $error = 'null must be the %s type in a union; found "%s"';
             $data = [(string) $this->nullPosition, $type];
             $nullPtr = $members[$nullIndex][0];
-            if ($this->reportFixable($phpcsFile, $error, $nullPtr, self::CODE_NULL_POSITION, $fixable, $data)) {
-                $this->replaceType($phpcsFile, $start, $end, $this->canonicalText($phpcsFile, $members, true));
+            if (self::reportFixable($phpcsFile, $error, $nullPtr, self::CODE_NULL_POSITION, $fixable, $data)) {
+                self::replaceType($phpcsFile, $start, $end, $this->canonicalText($phpcsFile, $members, true));
             }
         }
 
@@ -292,7 +292,7 @@ class CompoundTypeSniff implements Sniff
             $other = $members[(1 - $nullIndex)];
             if ($other[0] === $other[1]) {
                 // Fix it once null is placed, so the two fixes don't clash.
-                $this->reportShortNullable($phpcsFile, $start, $end, $other[0], $type, $fixable && $isPlaced);
+                self::reportShortNullable($phpcsFile, $start, $end, $other[0], $type, $fixable && $isPlaced);
             }
         }
     }
@@ -310,7 +310,7 @@ class CompoundTypeSniff implements Sniff
             return;
         }
 
-        $members = $this->findMembers($phpcsFile, $start, $end);
+        $members = self::findMembers($phpcsFile, $start, $end);
         $sorted = $this->canonicalText($phpcsFile, $members, true);
         $unsorted = $this->canonicalText($phpcsFile, $members, false);
         if ($sorted === $unsorted) {
@@ -318,10 +318,10 @@ class CompoundTypeSniff implements Sniff
         }
 
         $error = 'The types in a compound type must be in alphabetical order; found "%s", expected "%s"';
-        $data = [$this->typeText($phpcsFile, $start, $end), $sorted];
-        $fixable = $this->isFixable($phpcsFile, $start, $end);
-        if ($this->reportFixable($phpcsFile, $error, $start, self::CODE_NOT_SORTED, $fixable, $data)) {
-            $this->replaceType($phpcsFile, $start, $end, $sorted);
+        $data = [self::typeText($phpcsFile, $start, $end), $sorted];
+        $fixable = self::isFixable($phpcsFile, $start, $end);
+        if (self::reportFixable($phpcsFile, $error, $start, self::CODE_NOT_SORTED, $fixable, $data)) {
+            self::replaceType($phpcsFile, $start, $end, $sorted);
         }
     }
 
@@ -355,10 +355,10 @@ class CompoundTypeSniff implements Sniff
         $texts = [];
         foreach ($members as [$first, $last]) {
             $text = GetTokensAsString::noEmpties($phpcsFile, $first, $last);
-            $texts[] = $sort ? $this->sortIntersection($text) : $text;
+            $texts[] = $sort ? self::sortIntersection($text) : $text;
         }
 
-        $nullIndex = $this->findNull($phpcsFile, $members);
+        $nullIndex = self::findNull($phpcsFile, $members);
         $others = array_values(array_filter($texts, static fn(string $text): bool => strtolower($text) !== 'null'));
         if ($sort) {
             $others = TypeSetHelper::sort($others, static fn(string $text): string => $text);
@@ -373,7 +373,7 @@ class CompoundTypeSniff implements Sniff
      * @param string $text The member's code, such as `B&A` or `(B&A)`.
      * @return string The code, sorted.
      */
-    private function sortIntersection(string $text): string
+    private static function sortIntersection(string $text): string
     {
         if (!str_contains($text, '&')) {
             return $text;
@@ -419,7 +419,7 @@ class CompoundTypeSniff implements Sniff
      * @param int $end The position of the type's last token.
      * @param string $code The new code.
      */
-    private function replaceType(File $phpcsFile, int $start, int $end, string $code): void
+    private static function replaceType(File $phpcsFile, int $start, int $end, string $code): void
     {
         $phpcsFile->fixer->beginChangeset();
         $phpcsFile->fixer->replaceToken($start, $code);
@@ -441,7 +441,7 @@ class CompoundTypeSniff implements Sniff
      * @param list<string> $data The message's values.
      * @return bool True if it's to be fixed now.
      */
-    private function reportFixable(
+    private static function reportFixable(
         File $phpcsFile,
         string $error,
         int $ptr,
@@ -465,7 +465,7 @@ class CompoundTypeSniff implements Sniff
      * @param int $symbol The position of the symbol that starts the line.
      * @param int $indent The number of spaces the line should be indented by.
      */
-    private function reportIndent(File $phpcsFile, int $symbol, int $indent): void
+    private static function reportIndent(File $phpcsFile, int $symbol, int $indent): void
     {
         $error = 'A line of a compound type split across lines is indented incorrectly; expected %s spaces but found '
             . '%s';
@@ -479,7 +479,7 @@ class CompoundTypeSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $symbol The position of the symbol.
      */
-    private function reportSplitIntersection(File $phpcsFile, int $symbol): void
+    private static function reportSplitIntersection(File $phpcsFile, int $symbol): void
     {
         $error = 'All intersections in a union segment must be on the same line';
         $prev = $phpcsFile->findPrevious(T_WHITESPACE, ($symbol - 1), null, true);
@@ -506,7 +506,7 @@ class CompoundTypeSniff implements Sniff
      * @param string $error The message.
      * @param int $indent The number of spaces to indent the new line by.
      */
-    private function reportMultipleTypesOnLine(File $phpcsFile, int $symbol, string $error, int $indent): void
+    private static function reportMultipleTypesOnLine(File $phpcsFile, int $symbol, string $error, int $indent): void
     {
         $fix = $phpcsFile->addFixableError($error, $symbol, self::CODE_MULTIPLE_TYPES_ON_LINE);
         if (!$fix) {
@@ -522,7 +522,7 @@ class CompoundTypeSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the symbol.
      */
-    private function checkSpacing(File $phpcsFile, int $stackPtr): void
+    private static function checkSpacing(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $before = $tokens[($stackPtr - 1)];
@@ -535,7 +535,7 @@ class CompoundTypeSniff implements Sniff
         $data = [$tokens[$stackPtr]['content']];
 
         if ($isLineEnd) {
-            $this->reportLineEnd($phpcsFile, $stackPtr, $hasSpaceBefore);
+            self::reportLineEnd($phpcsFile, $stackPtr, $hasSpaceBefore);
             return;
         }
 
@@ -572,7 +572,7 @@ class CompoundTypeSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $opener The position of the opening parenthesis.
      */
-    private function checkHookTypeParentheses(File $phpcsFile, int $opener): void
+    private static function checkHookTypeParentheses(File $phpcsFile, int $opener): void
     {
         $tokens = $phpcsFile->getTokens();
         $closer = $tokens[$opener]['parenthesis_closer'] ?? null;
@@ -611,7 +611,7 @@ class CompoundTypeSniff implements Sniff
      * @param int $stackPtr The position of the symbol.
      * @param bool $hasSpaceBefore Whether a space, on the same line, comes before the symbol.
      */
-    private function reportLineEnd(File $phpcsFile, int $stackPtr, bool $hasSpaceBefore): void
+    private static function reportLineEnd(File $phpcsFile, int $stackPtr, bool $hasSpaceBefore): void
     {
         $tokens = $phpcsFile->getTokens();
         $fix = $phpcsFile->addFixableError(
@@ -648,7 +648,7 @@ class CompoundTypeSniff implements Sniff
      * @param int $end The position of the type's last token.
      * @return list<array{int, int}> The first and last tokens of each member.
      */
-    private function findMembers(File $phpcsFile, int $start, int $end): array
+    private static function findMembers(File $phpcsFile, int $start, int $end): array
     {
         $tokens = $phpcsFile->getTokens();
         [$topLevel] = CompoundTypeHelper::splitSymbols($phpcsFile, $start, $end);
@@ -679,7 +679,7 @@ class CompoundTypeSniff implements Sniff
      * @param list<array{int, int}> $members The first and last tokens of each member.
      * @return ?int The member's index, or null if no member is `null`.
      */
-    private function findNull(File $phpcsFile, array $members): ?int
+    private static function findNull(File $phpcsFile, array $members): ?int
     {
         $tokens = $phpcsFile->getTokens();
         foreach ($members as $index => [$first, $last]) {
@@ -699,7 +699,7 @@ class CompoundTypeSniff implements Sniff
      * @param int $end The position of the type's last token.
      * @return bool True if it can.
      */
-    private function isFixable(File $phpcsFile, int $start, int $end): bool
+    private static function isFixable(File $phpcsFile, int $start, int $end): bool
     {
         $tokens = $phpcsFile->getTokens();
 
@@ -715,7 +715,7 @@ class CompoundTypeSniff implements Sniff
      * @param int $end The position of the type's last token.
      * @return string The type.
      */
-    private function typeText(File $phpcsFile, int $start, int $end): string
+    private static function typeText(File $phpcsFile, int $start, int $end): string
     {
         return GetTokensAsString::noEmpties($phpcsFile, $start, $end);
     }
@@ -730,7 +730,7 @@ class CompoundTypeSniff implements Sniff
      * @param string $type The type's text, for the message.
      * @param bool $fixable Whether to fix it.
      */
-    private function reportShortNullable(
+    private static function reportShortNullable(
         File $phpcsFile,
         int $start,
         int $end,
@@ -813,7 +813,7 @@ class CompoundTypeSniff implements Sniff
         $ptr = $annotation->getStartPointer();
         $printer = PhpDocParserHelper::getPrinter();
         $whole = $printer->print($node);
-        [$isSplit, $isSpaced] = $this->findDocSpacing($node, $docTokens);
+        [$isSplit, $isSpaced] = self::findDocSpacing($node, $docTokens);
         $fixable = !$isSplit;
         if ($isSplit) {
             $this->unfixable[spl_object_id($node)] = true;
@@ -823,16 +823,16 @@ class CompoundTypeSniff implements Sniff
         if ($isSpaced) {
             $this->spaced[spl_object_id($node)] = true;
             $error = 'Expected no space around the | and & in a compound type; found "%s"';
-            $data = [$this->docTypeSource($node, $docTokens)];
-            $fix = $this->reportFixable($phpcsFile, $error, $ptr, self::CODE_SPACE_AROUND_OPERATOR, $fixable, $data);
+            $data = [self::docTypeSource($node, $docTokens)];
+            $fix = self::reportFixable($phpcsFile, $error, $ptr, self::CODE_SPACE_AROUND_OPERATOR, $fixable, $data);
         }
 
         $texts = array_values(array_map(static fn(TypeNode $type): string => $printer->print($type), $node->types));
-        $nullIndex = $node instanceof UnionTypeNode ? $this->findDocNull($node->types) : null;
+        $nullIndex = $node instanceof UnionTypeNode ? self::findDocNull($node->types) : null;
         if ($nullIndex !== null && count($node->types) > 1 && !$this->isNullPlaced($nullIndex, count($node->types))) {
             $error = 'null must be the %s type in a union; found "%s"';
             $data = [(string) $this->nullPosition, $whole];
-            $fix = $this->reportFixable($phpcsFile, $error, $ptr, self::CODE_NULL_POSITION, $fixable, $data) || $fix;
+            $fix = self::reportFixable($phpcsFile, $error, $ptr, self::CODE_NULL_POSITION, $fixable, $data) || $fix;
         }
 
         $other = $nullIndex === null || count($node->types) !== 2 ? null : $node->types[(1 - $nullIndex)];
@@ -848,7 +848,7 @@ class CompoundTypeSniff implements Sniff
         $sorted = TypeSetHelper::sort($others, static fn(string $text): string => $text);
         if ($this->sortTypes && $sorted !== $others) {
             $error = 'The types in a compound type must be in alphabetical order; found "%s"';
-            $fix = $this->reportFixable($phpcsFile, $error, $ptr, self::CODE_NOT_SORTED, $fixable, [$whole]) || $fix;
+            $fix = self::reportFixable($phpcsFile, $error, $ptr, self::CODE_NOT_SORTED, $fixable, [$whole]) || $fix;
         }
 
         return $this->checkRedundantDocTypes($phpcsFile, $ptr, $node, $texts, $fixable) || $fix;
@@ -883,7 +883,7 @@ class CompoundTypeSniff implements Sniff
             if (isset($seen[$key])) {
                 $error = 'The type "%s" is repeated in "%s"';
                 $data = [$texts[$index], $whole];
-                $fix = $this->reportFixable(
+                $fix = self::reportFixable(
                     $phpcsFile,
                     $error,
                     $ptr,
@@ -917,7 +917,7 @@ class CompoundTypeSniff implements Sniff
      * @param list<array{string, int, int}> $docTokens The doc comment's tokens, as parsed.
      * @return array{bool, bool} Whether it's split, and whether it has a space around a symbol on a line.
      */
-    private function findDocSpacing(TypeNode $node, array $docTokens): array
+    private static function findDocSpacing(TypeNode $node, array $docTokens): array
     {
         $isSplit = false;
         $isSpaced = false;
@@ -946,7 +946,7 @@ class CompoundTypeSniff implements Sniff
      * @param list<array{string, int, int}> $docTokens The doc comment's tokens, as parsed.
      * @return string The code.
      */
-    private function docTypeSource(TypeNode $node, array $docTokens): string
+    private static function docTypeSource(TypeNode $node, array $docTokens): string
     {
         $start = $node->getAttribute(Attribute::START_INDEX);
         $end = $node->getAttribute(Attribute::END_INDEX);
@@ -968,7 +968,7 @@ class CompoundTypeSniff implements Sniff
      * @param array<TypeNode> $types The members.
      * @return ?int The member's index, or null if none is `null`.
      */
-    private function findDocNull(array $types): ?int
+    private static function findDocNull(array $types): ?int
     {
         foreach (array_values($types) as $index => $type) {
             if ($type instanceof IdentifierTypeNode && strtolower($type->name) === 'null') {
@@ -1006,7 +1006,7 @@ class CompoundTypeSniff implements Sniff
             $types = array_values($unique);
         }
 
-        $nullIndex = $node instanceof UnionTypeNode ? $this->findDocNull($types) : null;
+        $nullIndex = $node instanceof UnionTypeNode ? self::findDocNull($types) : null;
         $null = $nullIndex === null ? null : $types[$nullIndex];
         $others = array_values(array_filter($types, static fn(TypeNode $type): bool => $type !== $null));
         if ($this->sortTypes) {

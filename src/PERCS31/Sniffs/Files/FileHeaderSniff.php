@@ -85,7 +85,7 @@ class FileHeaderSniff extends Psr12Sniff
         // The header may carry on in the next PHP block, if no markup or `<?=` block comes first. Then an import after
         // that block's header is past it. Otherwise, an import after the markup or the `<?=` is.
         if (FileHeaderHelper::hasInlineDeclare($phpcsFile)) {
-            $output = $this->findOutput($phpcsFile, $stackPtr);
+            $output = self::findOutput($phpcsFile, $stackPtr);
             $nextTag = $phpcsFile->findNext(T_OPEN_TAG, ($stackPtr + 1));
             if ($nextTag !== false && ($output === null || $nextTag < $output)) {
                 $this->checkImportsAfterCode($phpcsFile, $nextTag);
@@ -104,7 +104,7 @@ class FileHeaderSniff extends Psr12Sniff
         }
 
         // Once the declare is reported, the rest of the header is left until it's moved, so the fixes don't clash.
-        if ($this->checkStrictTypesOnFirstLine($phpcsFile, $stackPtr)) {
+        if (self::checkStrictTypesOnFirstLine($phpcsFile, $stackPtr)) {
             return $phpcsFile->numTokens;
         }
 
@@ -135,7 +135,7 @@ class FileHeaderSniff extends Psr12Sniff
 
         foreach ($headerLines as $line) {
             if ($line['type'] === 'docblock' && is_int($line['start'])) {
-                $this->checkDocblockBlankLines($phpcsFile, $line['start']);
+                self::checkDocblockBlankLines($phpcsFile, $line['start']);
             }
         }
     }
@@ -148,7 +148,7 @@ class FileHeaderSniff extends Psr12Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $opener The position of the docblock's opening tag.
      */
-    private function checkDocblockBlankLines(File $phpcsFile, int $opener): void
+    private static function checkDocblockBlankLines(File $phpcsFile, int $opener): void
     {
         $tokens = $phpcsFile->getTokens();
         $closer = $tokens[$opener]['comment_closer'] ?? null;
@@ -203,8 +203,8 @@ class FileHeaderSniff extends Psr12Sniff
     public function getHeaderLines(File $phpcsFile, int $stackPtr): array
     {
         $tokens = $phpcsFile->getTokens();
-        $lines = $this->completeUseLines($phpcsFile, parent::getHeaderLines($phpcsFile, $stackPtr));
-        $lines = $this->includeTrailingComments($phpcsFile, $lines);
+        $lines = self::completeUseLines($phpcsFile, parent::getHeaderLines($phpcsFile, $stackPtr));
+        $lines = self::includeTrailingComments($phpcsFile, $lines);
 
         // Code on the first line's opening tag is reported by PSR12.Files.OpenTag, so the tag's blank line isn't.
         $next = $phpcsFile->findNext(T_WHITESPACE, ($stackPtr + 1), null, true);
@@ -240,7 +240,7 @@ class FileHeaderSniff extends Psr12Sniff
      * @param array<int, array<string, mixed>> $lines The header's lines, from the parent.
      * @return array<int, array<string, mixed>> The header's lines.
      */
-    private function completeUseLines(File $phpcsFile, array $lines): array
+    private static function completeUseLines(File $phpcsFile, array $lines): array
     {
         $tokens = $phpcsFile->getTokens();
         $index = array_key_last($lines);
@@ -288,7 +288,7 @@ class FileHeaderSniff extends Psr12Sniff
      * @param array<int, array<string, mixed>> $lines The header's lines.
      * @return array<int, array<string, mixed>> The header's lines.
      */
-    private function includeTrailingComments(File $phpcsFile, array $lines): array
+    private static function includeTrailingComments(File $phpcsFile, array $lines): array
     {
         $tokens = $phpcsFile->getTokens();
         foreach ($lines as $index => $line) {
@@ -367,7 +367,7 @@ class FileHeaderSniff extends Psr12Sniff
      * @return ?int The position of the first inline HTML token that isn't blank, or of the first `<?=` tag, or
      *     null if there's neither.
      */
-    private function findOutput(File $phpcsFile, int $stackPtr): ?int
+    private static function findOutput(File $phpcsFile, int $stackPtr): ?int
     {
         $tokens = $phpcsFile->getTokens();
         $output = $phpcsFile->findNext([T_INLINE_HTML, T_OPEN_TAG_WITH_ECHO], ($stackPtr + 1));
@@ -390,7 +390,7 @@ class FileHeaderSniff extends Psr12Sniff
      * @param int $stackPtr The position of the opening tag.
      * @return bool True if it was reported.
      */
-    private function checkStrictTypesOnFirstLine(File $phpcsFile, int $stackPtr): bool
+    private static function checkStrictTypesOnFirstLine(File $phpcsFile, int $stackPtr): bool
     {
         $tokens = $phpcsFile->getTokens();
         if ($stackPtr !== FileHeaderHelper::findFirstLineTag($phpcsFile) || !FileHeaderHelper::hasMarkup($phpcsFile)) {

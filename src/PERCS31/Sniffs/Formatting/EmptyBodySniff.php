@@ -77,7 +77,7 @@ class EmptyBodySniff implements Sniff
         assert(is_int($previous));
 
         // Once a closure is replaced with an arrow function, it has no body left to check.
-        if ($tokens[$stackPtr]['code'] === T_CLOSURE && $this->checkArrowFunction($phpcsFile, $stackPtr, $previous)) {
+        if ($tokens[$stackPtr]['code'] === T_CLOSURE && self::checkArrowFunction($phpcsFile, $stackPtr, $previous)) {
             return;
         }
 
@@ -87,7 +87,7 @@ class EmptyBodySniff implements Sniff
         }
 
         // `{}` can't follow a line comment on its line, so that's left to a person.
-        $fixable = !$this->isLineComment($phpcsFile, $previous);
+        $fixable = !self::isLineComment($phpcsFile, $previous);
         $message = 'An empty %s body %s be written as {} on the same line as the declaration, after a single space.';
         $code = $tokens[$stackPtr]['code'];
         $isMust = $this->strict || $code === T_CLOSURE || $code === T_ANON_CLASS;
@@ -119,7 +119,7 @@ class EmptyBodySniff implements Sniff
      * @param int $previous The position of the last token before the body's opening brace, other than whitespace.
      * @return bool True if it was fixed.
      */
-    private function checkArrowFunction(File $phpcsFile, int $stackPtr, int $previous): bool
+    private static function checkArrowFunction(File $phpcsFile, int $stackPtr, int $previous): bool
     {
         $tokens = $phpcsFile->getTokens();
         $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($stackPtr + 1), null, true);
@@ -186,7 +186,7 @@ class EmptyBodySniff implements Sniff
      * @param int $ptr The position of the token.
      * @return bool True if it is.
      */
-    private function isLineComment(File $phpcsFile, int $ptr): bool
+    private static function isLineComment(File $phpcsFile, int $ptr): bool
     {
         $token = $phpcsFile->getTokens()[$ptr];
 

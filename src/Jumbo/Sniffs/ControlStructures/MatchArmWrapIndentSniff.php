@@ -166,14 +166,14 @@ class MatchArmWrapIndentSniff implements Sniff
     {
         if (MatchHelper::hasSplitConditions($phpcsFile, $arm)) {
             foreach (MatchHelper::findConditions($phpcsFile, $arm) as $condition) {
-                $this->checkLine($phpcsFile, $condition, $arm['start'], 0);
+                self::checkLine($phpcsFile, $condition, $arm['start'], 0);
             }
 
             $this->checkArrowStartsLine($phpcsFile, $arm);
         }
 
-        $this->checkLine($phpcsFile, $arm['arrow'], $arm['start'], $this->indent);
-        $this->checkLine($phpcsFile, $value, $arm['start'], $this->indent);
+        self::checkLine($phpcsFile, $arm['arrow'], $arm['start'], $this->indent);
+        self::checkLine($phpcsFile, $value, $arm['start'], $this->indent);
     }
 
     /**
@@ -218,7 +218,7 @@ class MatchArmWrapIndentSniff implements Sniff
      * @param int $armStart The position of the arm's first token.
      * @param int $extra The spaces it's indented past the arm's first line: one indent, or none for a condition.
      */
-    private function checkLine(File $phpcsFile, int $stackPtr, int $armStart, int $extra): void
+    private static function checkLine(File $phpcsFile, int $stackPtr, int $armStart, int $extra): void
     {
         $tokens = $phpcsFile->getTokens();
         $firstOnLine = $phpcsFile->findFirstOnLine(T_WHITESPACE, $stackPtr, true);

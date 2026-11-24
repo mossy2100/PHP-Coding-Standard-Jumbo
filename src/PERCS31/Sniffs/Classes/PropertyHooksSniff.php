@@ -114,44 +114,44 @@ class PropertyHooksSniff implements Sniff
 
         [$opener, $closer] = $hookList;
 
-        $this->checkPromoted($phpcsFile, $stackPtr, $opener, $closer);
-        $this->checkOpener($phpcsFile, $opener);
-        $this->checkHookOrder($phpcsFile, $opener, $closer);
+        self::checkPromoted($phpcsFile, $stackPtr, $opener, $closer);
+        self::checkOpener($phpcsFile, $opener);
+        self::checkHookOrder($phpcsFile, $opener, $closer);
 
-        $this->checkHookParameters($phpcsFile, $opener, $closer);
+        self::checkHookParameters($phpcsFile, $opener, $closer);
 
-        $arrows = $this->findArrows($phpcsFile, $opener, $closer);
+        $arrows = self::findArrows($phpcsFile, $opener, $closer);
         $hasBlockBody = $phpcsFile->findNext(T_OPEN_CURLY_BRACKET, ($opener + 1), $closer) !== false;
         if ($arrows === [] && !$hasBlockBody) {
-            $this->checkBodiless($phpcsFile, $opener, $closer);
+            self::checkBodiless($phpcsFile, $opener, $closer);
             return;
         }
 
         foreach ($arrows as $arrow) {
-            $this->checkArrow($phpcsFile, $arrow);
+            self::checkArrow($phpcsFile, $arrow);
         }
 
-        $this->checkBodilessSemicolons($phpcsFile, $opener, $closer);
+        self::checkBodilessSemicolons($phpcsFile, $opener, $closer);
         $tokens = $phpcsFile->getTokens();
 
         // A property inside parentheses is a promoted constructor parameter.
         $isPromoted = isset($tokens[$stackPtr]['nested_parenthesis']);
-        $hasHookBodies = !$isPromoted && $this->checkHookBodies($phpcsFile, $opener, $closer);
+        $hasHookBodies = !$isPromoted && self::checkHookBodies($phpcsFile, $opener, $closer);
 
         // A list on one line with a `{}` body is long form too. Its closing brace moves in the same pass as the rest,
         // as ScopeIndent and ConsistentIndent can't agree on the indentation after a line with two closing braces.
         if ($hasHookBodies || $tokens[$opener]['line'] !== $tokens[$closer]['line']) {
             // A list of short hooks over several lines isn't inline, so each hook starts on its own line too.
             if (!$hasHookBodies && !$isPromoted) {
-                $this->checkHookStarts($phpcsFile, $opener, $closer);
+                self::checkHookStarts($phpcsFile, $opener, $closer);
             }
 
-            $this->checkLongFormCloser($phpcsFile, $opener, $closer);
+            self::checkLongFormCloser($phpcsFile, $opener, $closer);
             if (!$isPromoted) {
-                $this->checkBlankLinesBetweenHooks($phpcsFile, $opener, $closer);
+                self::checkBlankLinesBetweenHooks($phpcsFile, $opener, $closer);
             }
         } elseif ($arrows !== []) {
-            $this->checkInlineSpacing($phpcsFile, $opener, $closer);
+            self::checkInlineSpacing($phpcsFile, $opener, $closer);
         }
     }
 
@@ -166,7 +166,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $opener The position of the hook list's opening brace.
      * @param int $closer The position of the hook list's closing brace.
      */
-    private function checkPromoted(File $phpcsFile, int $stackPtr, int $opener, int $closer): void
+    private static function checkPromoted(File $phpcsFile, int $stackPtr, int $opener, int $closer): void
     {
         // A property inside parentheses is a promoted constructor parameter.
         $tokens = $phpcsFile->getTokens();
@@ -195,7 +195,7 @@ class PropertyHooksSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $opener The position of the hook list's opening brace.
      */
-    private function checkOpener(File $phpcsFile, int $opener): void
+    private static function checkOpener(File $phpcsFile, int $opener): void
     {
         $tokens = $phpcsFile->getTokens();
         $previous = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($opener - 1), null, true);
@@ -234,7 +234,7 @@ class PropertyHooksSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $arrow The position of the `=>`.
      */
-    private function checkArrow(File $phpcsFile, int $arrow): void
+    private static function checkArrow(File $phpcsFile, int $arrow): void
     {
         $tokens = $phpcsFile->getTokens();
         $name = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($arrow - 1), null, true);
@@ -281,7 +281,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $opener The position of the hook list's opening brace.
      * @param int $closer The position of the hook list's closing brace.
      */
-    private function checkLongFormCloser(File $phpcsFile, int $opener, int $closer): void
+    private static function checkLongFormCloser(File $phpcsFile, int $opener, int $closer): void
     {
         $tokens = $phpcsFile->getTokens();
         $previous = $phpcsFile->findPrevious(T_WHITESPACE, ($closer - 1), $opener, true);
@@ -304,7 +304,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $opener The position of the hook list's opening brace.
      * @param int $closer The position of the hook list's closing brace.
      */
-    private function checkHookParameters(File $phpcsFile, int $opener, int $closer): void
+    private static function checkHookParameters(File $phpcsFile, int $opener, int $closer): void
     {
         $tokens = $phpcsFile->getTokens();
         foreach (PropertyHookHelper::parseHooks($phpcsFile, $opener, $closer) ?? [] as $hook) {
@@ -319,7 +319,7 @@ class PropertyHooksSniff implements Sniff
             }
 
             if ($parenOpener !== ($hook['namePtr'] + 1)) {
-                $this->reportHookParameterSpace(
+                self::reportHookParameterSpace(
                     $phpcsFile,
                     $hook['namePtr'],
                     $parenOpener,
@@ -332,7 +332,7 @@ class PropertyHooksSniff implements Sniff
             if ($tokens[$first]['code'] === T_WHITESPACE && !str_contains($tokens[$first]['content'], "\n")) {
                 $next = $phpcsFile->findNext(T_WHITESPACE, $first, null, true);
                 if ($next !== false && $next !== $parenCloser) {
-                    $this->reportHookParameterSpace(
+                    self::reportHookParameterSpace(
                         $phpcsFile,
                         $parenOpener,
                         $next,
@@ -346,7 +346,7 @@ class PropertyHooksSniff implements Sniff
             $previous = $phpcsFile->findPrevious(T_WHITESPACE, $last, null, true);
             $isSameLine = $previous !== false && $tokens[$previous]['line'] === $tokens[$parenCloser]['line'];
             if ($tokens[$last]['code'] === T_WHITESPACE && $isSameLine && $previous !== $parenOpener) {
-                $this->reportHookParameterSpace(
+                self::reportHookParameterSpace(
                     $phpcsFile,
                     $previous,
                     $parenCloser,
@@ -366,7 +366,7 @@ class PropertyHooksSniff implements Sniff
      * @param string $error The message.
      * @param string $code The error code.
      */
-    private function reportHookParameterSpace(
+    private static function reportHookParameterSpace(
         File $phpcsFile,
         int $before,
         int $after,
@@ -390,7 +390,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $opener The position of the hook list's opening brace.
      * @param int $closer The position of the hook list's closing brace.
      */
-    private function checkBlankLinesBetweenHooks(File $phpcsFile, int $opener, int $closer): void
+    private static function checkBlankLinesBetweenHooks(File $phpcsFile, int $opener, int $closer): void
     {
         $tokens = $phpcsFile->getTokens();
         $hooks = PropertyHookHelper::parseHooks($phpcsFile, $opener, $closer) ?? [];
@@ -403,7 +403,7 @@ class PropertyHooksSniff implements Sniff
             }
 
             if (LayoutHelper::countBlankLinesBetween($phpcsFile, $previousEnd, $start) > 1) {
-                $this->reportTooManyBlankLines($phpcsFile, $previousEnd, $start);
+                self::reportTooManyBlankLines($phpcsFile, $previousEnd, $start);
             }
 
             $previousEnd = $hook['end'];
@@ -417,7 +417,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $previousEnd The position of the end of the first hook.
      * @param int $start The position of the start of the second hook.
      */
-    private function reportTooManyBlankLines(File $phpcsFile, int $previousEnd, int $start): void
+    private static function reportTooManyBlankLines(File $phpcsFile, int $previousEnd, int $start): void
     {
         $error = 'There must be no more than one blank line between hooks';
         $isFixable = $phpcsFile->findNext(T_WHITESPACE, ($previousEnd + 1), $start, true) === false;
@@ -436,7 +436,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $opener The position of the hook list's opening brace.
      * @param int $closer The position of the hook list's closing brace.
      */
-    private function checkInlineSpacing(File $phpcsFile, int $opener, int $closer): void
+    private static function checkInlineSpacing(File $phpcsFile, int $opener, int $closer): void
     {
         $first = $phpcsFile->findNext(T_WHITESPACE, ($opener + 1), $closer, true);
         $last = $phpcsFile->findPrevious(T_WHITESPACE, ($closer - 1), $opener, true);
@@ -470,7 +470,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $opener The position of the hook list's opening brace.
      * @param int $closer The position of the hook list's closing brace.
      */
-    private function checkBodiless(File $phpcsFile, int $opener, int $closer): void
+    private static function checkBodiless(File $phpcsFile, int $opener, int $closer): void
     {
         $tokens = $phpcsFile->getTokens();
         $operations = [];
@@ -503,7 +503,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $opener The position of the hook list's opening brace.
      * @param int $closer The position of the hook list's closing brace.
      */
-    private function checkBodilessSemicolons(File $phpcsFile, int $opener, int $closer): void
+    private static function checkBodilessSemicolons(File $phpcsFile, int $opener, int $closer): void
     {
         $tokens = $phpcsFile->getTokens();
         for ($i = ($opener + 1); $i < $closer; $i++) {
@@ -550,7 +550,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $closer The position of the hook list's closing brace.
      * @return bool True if the list has a `{}` body.
      */
-    private function checkHookBodies(File $phpcsFile, int $opener, int $closer): bool
+    private static function checkHookBodies(File $phpcsFile, int $opener, int $closer): bool
     {
         $hooks = PropertyHookHelper::parseHooks($phpcsFile, $opener, $closer) ?? [];
         $bodies = array_values(array_filter(array_column($hooks, 'bodyOpener'), is_int(...)));
@@ -561,12 +561,12 @@ class PropertyHooksSniff implements Sniff
         }
 
         $hookIndent = LayoutHelper::lineIndent($phpcsFile, $opener) + LayoutHelper::INDENT;
-        $this->checkHookStarts($phpcsFile, $opener, $closer);
+        self::checkHookStarts($phpcsFile, $opener, $closer);
 
         foreach ($bodies as $body) {
-            $this->checkHookBrace($phpcsFile, $body);
+            self::checkHookBrace($phpcsFile, $body);
 
-            $this->checkHookBody($phpcsFile, $body, $hookIndent);
+            self::checkHookBody($phpcsFile, $body, $hookIndent);
         }
 
         return true;
@@ -579,13 +579,13 @@ class PropertyHooksSniff implements Sniff
      * @param int $opener The position of the hook list's opening brace.
      * @param int $closer The position of the hook list's closing brace.
      */
-    private function checkHookStarts(File $phpcsFile, int $opener, int $closer): void
+    private static function checkHookStarts(File $phpcsFile, int $opener, int $closer): void
     {
         // Where a hook can end, so another can start: the list's opening brace, a `;`, or a body's closing brace.
         $hooks = PropertyHookHelper::parseHooks($phpcsFile, $opener, $closer) ?? [];
         $hookIndent = LayoutHelper::lineIndent($phpcsFile, $opener) + LayoutHelper::INDENT;
         foreach ([$opener, ...array_column($hooks, 'end')] as $boundary) {
-            $this->checkHookStart($phpcsFile, $boundary, $closer, $hookIndent);
+            self::checkHookStart($phpcsFile, $boundary, $closer, $hookIndent);
         }
     }
 
@@ -597,7 +597,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $closer The position of the hook list's closing brace.
      * @param int $hookIndent The number of spaces a hook is indented.
      */
-    private function checkHookStart(File $phpcsFile, int $boundary, int $closer, int $hookIndent): void
+    private static function checkHookStart(File $phpcsFile, int $boundary, int $closer, int $hookIndent): void
     {
         $tokens = $phpcsFile->getTokens();
         $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($boundary + 1), $closer, true);
@@ -623,7 +623,7 @@ class PropertyHooksSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $bodyOpener The position of the hook's opening brace.
      */
-    private function checkHookBrace(File $phpcsFile, int $bodyOpener): void
+    private static function checkHookBrace(File $phpcsFile, int $bodyOpener): void
     {
         $tokens = $phpcsFile->getTokens();
         $previous = $phpcsFile->findPrevious(T_WHITESPACE, ($bodyOpener - 1), null, true);
@@ -652,7 +652,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $bodyOpener The position of the hook's opening brace.
      * @param int $hookIndent The number of spaces a hook is indented.
      */
-    private function checkHookBody(File $phpcsFile, int $bodyOpener, int $hookIndent): void
+    private static function checkHookBody(File $phpcsFile, int $bodyOpener, int $hookIndent): void
     {
         $tokens = $phpcsFile->getTokens();
         $bodyCloser = $tokens[$bodyOpener]['bracket_closer'] ?? null;
@@ -707,7 +707,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $opener The position of the hook list's opening brace.
      * @param int $closer The position of the hook list's closing brace.
      */
-    private function checkHookOrder(File $phpcsFile, int $opener, int $closer): void
+    private static function checkHookOrder(File $phpcsFile, int $opener, int $closer): void
     {
         $hooks = PropertyHookHelper::parseHooks($phpcsFile, $opener, $closer);
         if ($hooks === null) {
@@ -731,7 +731,7 @@ class PropertyHooksSniff implements Sniff
         $error = 'The get hook must come before the set hook';
         $setHook = $hooks[$setIndex];
         $getHook = $hooks[$getIndex];
-        $isFixable = !$this->hasCommentBetweenHooks($phpcsFile, $opener, $closer, $hooks);
+        $isFixable = !self::hasCommentBetweenHooks($phpcsFile, $opener, $closer, $hooks);
         $code = self::CODE_HOOK_ORDER;
         if (!FixerHelper::addFixableErrorIf($phpcsFile, $isFixable, $error, $setHook['namePtr'], $code)) {
             return;
@@ -760,7 +760,7 @@ class PropertyHooksSniff implements Sniff
      *     bodyOpener: ?int}> $hooks The hooks.
      * @return bool True if there's a comment between, before or after the hooks.
      */
-    private function hasCommentBetweenHooks(File $phpcsFile, int $opener, int $closer, array $hooks): bool
+    private static function hasCommentBetweenHooks(File $phpcsFile, int $opener, int $closer, array $hooks): bool
     {
         $from = $opener + 1;
         foreach ([...$hooks, ['start' => $closer, 'end' => $closer]] as $hook) {
@@ -782,7 +782,7 @@ class PropertyHooksSniff implements Sniff
      * @param int $closer The position of the hook list's closing brace.
      * @return list<int> The positions.
      */
-    private function findArrows(File $phpcsFile, int $opener, int $closer): array
+    private static function findArrows(File $phpcsFile, int $opener, int $closer): array
     {
         $hooks = PropertyHookHelper::parseHooks($phpcsFile, $opener, $closer) ?? [];
 

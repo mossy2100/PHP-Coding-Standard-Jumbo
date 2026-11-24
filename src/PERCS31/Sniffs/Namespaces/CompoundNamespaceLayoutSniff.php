@@ -74,8 +74,8 @@ class CompoundNamespaceLayoutSniff implements Sniff
         }
 
         if ($tokens[$closer]['line'] === $tokens[$stackPtr]['line']) {
-            $this->checkNoSpace($phpcsFile, ($stackPtr + 1), 'after the opening', self::CODE_SPACE_AFTER_OPEN_BRACE);
-            $this->checkNoSpace($phpcsFile, ($closer - 1), 'before the closing', self::CODE_SPACE_BEFORE_CLOSE_BRACE);
+            self::checkNoSpace($phpcsFile, ($stackPtr + 1), 'after the opening', self::CODE_SPACE_AFTER_OPEN_BRACE);
+            self::checkNoSpace($phpcsFile, ($closer - 1), 'before the closing', self::CODE_SPACE_BEFORE_CLOSE_BRACE);
 
             return;
         }
@@ -99,18 +99,18 @@ class CompoundNamespaceLayoutSniff implements Sniff
 
             $error = $i === $stackPtr ? $first : $other;
             $code = $i === $stackPtr ? self::CODE_FIRST_NAME_LINE : self::CODE_NAME_NOT_ON_OWN_LINE;
-            $this->checkStartsLine($phpcsFile, $i, $name, $nameIndent, $error, $code);
+            self::checkStartsLine($phpcsFile, $i, $name, $nameIndent, $error, $code);
         }
 
         $last = $phpcsFile->findPrevious(T_WHITESPACE, ($closer - 1), $stackPtr, true);
         if ($last !== false) {
             $error = 'The closing brace of a compound namespace split across lines must be on a line of its own';
             $closerIndent = str_repeat(' ', $indent);
-            $this->checkStartsLine($phpcsFile, $last, $closer, $closerIndent, $error, self::CODE_CLOSER_LINE);
+            self::checkStartsLine($phpcsFile, $last, $closer, $closerIndent, $error, self::CODE_CLOSER_LINE);
         }
 
-        $this->checkNameIndents($phpcsFile, $stackPtr, $closer, strlen($nameIndent));
-        $this->checkBlankLines($phpcsFile, $stackPtr, $closer);
+        self::checkNameIndents($phpcsFile, $stackPtr, $closer, strlen($nameIndent));
+        self::checkBlankLines($phpcsFile, $stackPtr, $closer);
     }
 
     /**
@@ -121,7 +121,7 @@ class CompoundNamespaceLayoutSniff implements Sniff
      * @param int $opener The position of the group's `{`.
      * @param int $closer The position of the group's `}`.
      */
-    private function checkBlankLines(File $phpcsFile, int $opener, int $closer): void
+    private static function checkBlankLines(File $phpcsFile, int $opener, int $closer): void
     {
         for ($i = ($opener + 1); $i < $closer; $i++) {
             if (!LayoutHelper::isBlankLine($phpcsFile, $i)) {
@@ -144,7 +144,7 @@ class CompoundNamespaceLayoutSniff implements Sniff
      * @param int $closer The position of the group's `}`.
      * @param int $expected The number of spaces a name's line is indented by.
      */
-    private function checkNameIndents(File $phpcsFile, int $opener, int $closer, int $expected): void
+    private static function checkNameIndents(File $phpcsFile, int $opener, int $closer, int $expected): void
     {
         $tokens = $phpcsFile->getTokens();
         for ($i = ($opener + 1); $i < $closer; $i++) {
@@ -171,7 +171,7 @@ class CompoundNamespaceLayoutSniff implements Sniff
      * @param string $where Where the space is, for the message.
      * @param string $code The error's code.
      */
-    private function checkNoSpace(File $phpcsFile, int $space, string $where, string $code): void
+    private static function checkNoSpace(File $phpcsFile, int $space, string $where, string $code): void
     {
         if ($phpcsFile->getTokens()[$space]['code'] !== T_WHITESPACE) {
             return;
@@ -194,7 +194,7 @@ class CompoundNamespaceLayoutSniff implements Sniff
      * @param string $error The message.
      * @param string $code The error's code.
      */
-    private function checkStartsLine(
+    private static function checkStartsLine(
         File $phpcsFile,
         int $previous,
         int $ptr,

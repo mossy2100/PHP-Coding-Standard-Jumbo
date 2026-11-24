@@ -96,13 +96,13 @@ class RequireSingleLineStatementSniff implements Sniff
 
         // A `case` label runs to its colon. Anything else runs from the statement's start to its semicolon.
         $isCase = $tokens[$stackPtr]['code'] === T_CASE;
-        $start = $isCase ? $stackPtr : $this->findStart($phpcsFile, $stackPtr);
+        $start = $isCase ? $stackPtr : self::findStart($phpcsFile, $stackPtr);
         $end = $isCase ? ($tokens[$stackPtr]['scope_opener'] ?? null) : $stackPtr;
         if (
             !is_int($end) || $tokens[$start]['line'] === $tokens[$end]['line']
             || in_array($tokens[$start]['code'], [T_USE, T_NAMESPACE, T_DECLARE], true)
-            || $phpcsFile->findNext(T_FUNCTION, $start, $end) !== false || $this->isChain($phpcsFile, $start, $end)
-            || !$this->hasOwnLineBreak($phpcsFile, $start, $end)
+            || $phpcsFile->findNext(T_FUNCTION, $start, $end) !== false || self::isChain($phpcsFile, $start, $end)
+            || !self::hasOwnLineBreak($phpcsFile, $start, $end)
         ) {
             return;
         }
@@ -200,7 +200,7 @@ class RequireSingleLineStatementSniff implements Sniff
 
         $collapsed = SingleLineHelper::collapse($phpcsFile, $start, $end, $this->maxLineLength);
         if ($collapsed !== null && $this->report($phpcsFile, $start, $end, $collapsed) && $closer !== null) {
-            $this->shiftLines($phpcsFile, $start, $end, $closer);
+            self::shiftLines($phpcsFile, $start, $end, $closer);
         }
     }
 
@@ -215,7 +215,7 @@ class RequireSingleLineStatementSniff implements Sniff
      * @param int $end The position of the part's last token.
      * @param int $closer The closer of the multi-line brackets or body after the part.
      */
-    private function shiftLines(File $phpcsFile, int $start, int $end, int $closer): void
+    private static function shiftLines(File $phpcsFile, int $start, int $end, int $closer): void
     {
         $tokens = $phpcsFile->getTokens();
         $firstOnLine = $phpcsFile->findFirstOnLine(T_WHITESPACE, $start, true);
@@ -255,7 +255,7 @@ class RequireSingleLineStatementSniff implements Sniff
      * @param int $stackPtr The position of the semicolon.
      * @return int The position of the first token.
      */
-    private function findStart(File $phpcsFile, int $stackPtr): int
+    private static function findStart(File $phpcsFile, int $stackPtr): int
     {
         $tokens = $phpcsFile->getTokens();
         for ($i = ($stackPtr - 1); $i >= 0; $i--) {
@@ -271,7 +271,7 @@ class RequireSingleLineStatementSniff implements Sniff
                 continue;
             }
 
-            if ($code === T_CLOSE_CURLY_BRACKET && $this->isExpressionBody($phpcsFile, $i)) {
+            if ($code === T_CLOSE_CURLY_BRACKET && self::isExpressionBody($phpcsFile, $i)) {
                 $i = $tokens[$i]['bracket_opener'];
                 continue;
             }
@@ -294,7 +294,7 @@ class RequireSingleLineStatementSniff implements Sniff
      * @param int $closer The position of the closing brace.
      * @return bool True if the statement carries on before it.
      */
-    private function isExpressionBody(File $phpcsFile, int $closer): bool
+    private static function isExpressionBody(File $phpcsFile, int $closer): bool
     {
         $tokens = $phpcsFile->getTokens();
         $opener = $tokens[$closer]['bracket_opener'] ?? null;
@@ -322,7 +322,7 @@ class RequireSingleLineStatementSniff implements Sniff
      * @param int $end The position of the semicolon or `case` label's colon.
      * @return bool True if it's a chain written one method per line.
      */
-    private function isChain(File $phpcsFile, int $start, int $end): bool
+    private static function isChain(File $phpcsFile, int $start, int $end): bool
     {
         $tokens = $phpcsFile->getTokens();
         $count = 0;
@@ -349,7 +349,7 @@ class RequireSingleLineStatementSniff implements Sniff
      * @param int $end The position of the semicolon or `case` label's colon.
      * @return bool True if it has one.
      */
-    private function hasOwnLineBreak(File $phpcsFile, int $start, int $end): bool
+    private static function hasOwnLineBreak(File $phpcsFile, int $start, int $end): bool
     {
         $tokens = $phpcsFile->getTokens();
         $line = $tokens[$start]['line'];
@@ -367,7 +367,7 @@ class RequireSingleLineStatementSniff implements Sniff
                 $line = $tokens[$i]['line'];
             }
 
-            $closer = $this->findOwnSniffCloser($phpcsFile, $i);
+            $closer = self::findOwnSniffCloser($phpcsFile, $i);
             if ($closer !== null && $closer < $end) {
                 $i = $closer;
                 $line = $tokens[$closer]['line'];
@@ -384,7 +384,7 @@ class RequireSingleLineStatementSniff implements Sniff
      * @param int $stackPtr The position of the token.
      * @return ?int The position of the closer, or null if the token doesn't open one.
      */
-    private function findOwnSniffCloser(File $phpcsFile, int $stackPtr): ?int
+    private static function findOwnSniffCloser(File $phpcsFile, int $stackPtr): ?int
     {
         $tokens = $phpcsFile->getTokens();
         if ($tokens[$stackPtr]['code'] === T_OPEN_SHORT_ARRAY) {

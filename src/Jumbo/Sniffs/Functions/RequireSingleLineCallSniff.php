@@ -30,7 +30,7 @@ class RequireSingleLineCallSniff extends SlevomatSniff
      */
     public function process(File $phpcsFile, int $stringPointer): void
     {
-        if ($this->ignoreWithComplexParameter && $this->hasBracedArgument($phpcsFile, $stringPointer)) {
+        if ($this->ignoreWithComplexParameter && self::hasBracedArgument($phpcsFile, $stringPointer)) {
             return;
         }
 
@@ -44,7 +44,7 @@ class RequireSingleLineCallSniff extends SlevomatSniff
      * @param int $stringPointer The position of the call's name.
      * @return bool True if one is between the call's parentheses.
      */
-    private function hasBracedArgument(File $phpcsFile, int $stringPointer): bool
+    private static function hasBracedArgument(File $phpcsFile, int $stringPointer): bool
     {
         $tokens = $phpcsFile->getTokens();
         $opener = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($stringPointer + 1), null, true);

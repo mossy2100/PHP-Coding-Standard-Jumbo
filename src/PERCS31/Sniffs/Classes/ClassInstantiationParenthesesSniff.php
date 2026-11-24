@@ -69,9 +69,9 @@ class ClassInstantiationParenthesesSniff implements Sniff
     public function process(File $phpcsFile, int $stackPtr): void
     {
         if ($phpcsFile->getTokens()[$stackPtr]['code'] === T_NEW) {
-            $this->checkDynamicClass($phpcsFile, $stackPtr);
+            self::checkDynamicClass($phpcsFile, $stackPtr);
         } else {
-            $this->checkGrouping($phpcsFile, $stackPtr);
+            self::checkGrouping($phpcsFile, $stackPtr);
         }
     }
 
@@ -81,7 +81,7 @@ class ClassInstantiationParenthesesSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the opening parenthesis.
      */
-    private function checkGrouping(File $phpcsFile, int $stackPtr): void
+    private static function checkGrouping(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $closer = $tokens[$stackPtr]['parenthesis_closer'] ?? null;
@@ -153,7 +153,7 @@ class ClassInstantiationParenthesesSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of `new`.
      */
-    private function checkDynamicClass(File $phpcsFile, int $stackPtr): void
+    private static function checkDynamicClass(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $opener = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($stackPtr + 1), null, true);

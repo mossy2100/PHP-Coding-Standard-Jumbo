@@ -30,7 +30,7 @@ class UnusedUsesSniff extends SlevomatSniff
      */
     public function process(File $phpcsFile, int $openTagPointer): void
     {
-        if ($this->hasMiscasedKeyword($phpcsFile)) {
+        if (self::hasMiscasedKeyword($phpcsFile)) {
             return;
         }
 
@@ -43,7 +43,7 @@ class UnusedUsesSniff extends SlevomatSniff
      * @param File $phpcsFile The file being scanned.
      * @return bool True if a keyword such as `Function` or `CONST` follows `use`.
      */
-    private function hasMiscasedKeyword(File $phpcsFile): bool
+    private static function hasMiscasedKeyword(File $phpcsFile): bool
     {
         $tokens = $phpcsFile->getTokens();
         $usePtr = $phpcsFile->findNext(T_USE, 0);

@@ -58,10 +58,10 @@ class MatchArmPlacementSniff implements Sniff
 
         foreach (MatchHelper::findArms($phpcsFile, $opener, $closer) as $arm) {
             if ($arm['end'] !== null) {
-                $this->checkNextArm($phpcsFile, $arm['end'], $closer);
+                self::checkNextArm($phpcsFile, $arm['end'], $closer);
             }
 
-            $this->checkConditions($phpcsFile, $arm);
+            self::checkConditions($phpcsFile, $arm);
         }
     }
 
@@ -72,7 +72,7 @@ class MatchArmPlacementSniff implements Sniff
      * @param int $comma The position of the comma that ends the previous arm.
      * @param int $closer The position of the match's closing brace.
      */
-    private function checkNextArm(File $phpcsFile, int $comma, int $closer): void
+    private static function checkNextArm(File $phpcsFile, int $comma, int $closer): void
     {
         $tokens = $phpcsFile->getTokens();
         $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($comma + 1), $closer, true);
@@ -96,7 +96,7 @@ class MatchArmPlacementSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param array{start: int, arrow: int, end: ?int} $arm The arm, as MatchHelper::findArms() returns it.
      */
-    private function checkConditions(File $phpcsFile, array $arm): void
+    private static function checkConditions(File $phpcsFile, array $arm): void
     {
         if (!MatchHelper::hasSplitConditions($phpcsFile, $arm)) {
             return;

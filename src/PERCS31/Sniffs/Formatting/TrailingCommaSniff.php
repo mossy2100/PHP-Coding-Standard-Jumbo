@@ -84,14 +84,14 @@ class TrailingCommaSniff implements Sniff
         $tokens = $phpcsFile->getTokens();
         $code = $tokens[$stackPtr]['code'];
         if (in_array($code, self::LISTS_OTHER_SNIFFS_CHECK, true)) {
-            $this->checkCommaBeforeComment($phpcsFile, $stackPtr);
+            self::checkCommaBeforeComment($phpcsFile, $stackPtr);
             return;
         }
 
         if ($code === T_OPEN_PARENTHESIS) {
             $closer = $tokens[$stackPtr]['parenthesis_closer'] ?? null;
-            if (is_int($closer) && $this->isExpressionCall($phpcsFile, $stackPtr)) {
-                $this->checkArguments($phpcsFile, $stackPtr, $closer, 'function call argument list');
+            if (is_int($closer) && self::isExpressionCall($phpcsFile, $stackPtr)) {
+                self::checkArguments($phpcsFile, $stackPtr, $closer, 'function call argument list');
             }
 
             return;
@@ -99,7 +99,7 @@ class TrailingCommaSniff implements Sniff
 
         if ($code === T_ANON_CLASS || $code === T_CLONE || $code === T_EXIT) {
             $kind = $code === T_ANON_CLASS ? 'anonymous class' : strtolower($tokens[$stackPtr]['content']) . '()';
-            $this->processArguments($phpcsFile, $stackPtr, "{$kind} argument list");
+            self::processArguments($phpcsFile, $stackPtr, "{$kind} argument list");
             return;
         }
 
@@ -123,10 +123,10 @@ class TrailingCommaSniff implements Sniff
         }
 
         if ($kind === 'match') {
-            $this->checkMatchConditions($phpcsFile, $opener, $closer);
+            self::checkMatchConditions($phpcsFile, $opener, $closer);
         }
 
-        $this->checkList($phpcsFile, $opener, $closer, $kind, $tokens[$opener]['line'] !== $tokens[$closer]['line']);
+        self::checkList($phpcsFile, $opener, $closer, $kind, $tokens[$opener]['line'] !== $tokens[$closer]['line']);
     }
 
     /**
@@ -136,7 +136,7 @@ class TrailingCommaSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the token that starts the list, or owns its brackets.
      */
-    private function checkCommaBeforeComment(File $phpcsFile, int $stackPtr): void
+    private static function checkCommaBeforeComment(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $code = $tokens[$stackPtr]['code'];
@@ -183,7 +183,7 @@ class TrailingCommaSniff implements Sniff
      * @param int $stackPtr The position of the `class`, `clone`, `exit` or `die` keyword.
      * @param string $kind The kind of list, for the error message.
      */
-    private function processArguments(File $phpcsFile, int $stackPtr, string $kind): void
+    private static function processArguments(File $phpcsFile, int $stackPtr, string $kind): void
     {
         $tokens = $phpcsFile->getTokens();
         if ($tokens[$stackPtr]['code'] === T_CLONE) {
@@ -206,7 +206,7 @@ class TrailingCommaSniff implements Sniff
             }
         }
 
-        $this->checkArguments($phpcsFile, $opener, $closer, $kind);
+        self::checkArguments($phpcsFile, $opener, $closer, $kind);
     }
 
     /**
@@ -217,7 +217,7 @@ class TrailingCommaSniff implements Sniff
      * @param int $opener The position of the opening parenthesis.
      * @return bool True if it's such a call, and not a first-class callable.
      */
-    private function isExpressionCall(File $phpcsFile, int $opener): bool
+    private static function isExpressionCall(File $phpcsFile, int $opener): bool
     {
         $tokens = $phpcsFile->getTokens();
         $before = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($opener - 1), null, true);
@@ -248,7 +248,7 @@ class TrailingCommaSniff implements Sniff
      * @param int $closer The position of the closing parenthesis.
      * @param string $kind The kind of list, for the error message.
      */
-    private function checkArguments(File $phpcsFile, int $opener, int $closer, string $kind): void
+    private static function checkArguments(File $phpcsFile, int $opener, int $closer, string $kind): void
     {
         $tokens = $phpcsFile->getTokens();
 
@@ -260,7 +260,7 @@ class TrailingCommaSniff implements Sniff
             return;
         }
 
-        $this->checkList($phpcsFile, $opener, $closer, $kind, $isSplit);
+        self::checkList($phpcsFile, $opener, $closer, $kind, $isSplit);
     }
 
     /**
@@ -271,7 +271,7 @@ class TrailingCommaSniff implements Sniff
      * @param int $opener The position of the `match` body's opening brace.
      * @param int $closer The position of the `match` body's closing brace.
      */
-    private function checkMatchConditions(File $phpcsFile, int $opener, int $closer): void
+    private static function checkMatchConditions(File $phpcsFile, int $opener, int $closer): void
     {
         $tokens = $phpcsFile->getTokens();
         foreach (MatchHelper::findArms($phpcsFile, $opener, $closer) as $arm) {
@@ -312,7 +312,7 @@ class TrailingCommaSniff implements Sniff
      * @param string $kind The kind of list, for the error message.
      * @param bool $isSplit Whether the list is split across lines.
      */
-    private function checkList(File $phpcsFile, int $opener, int $closer, string $kind, bool $isSplit): void
+    private static function checkList(File $phpcsFile, int $opener, int $closer, string $kind, bool $isSplit): void
     {
         $tokens = $phpcsFile->getTokens();
         $last = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($closer - 1), $opener, true);

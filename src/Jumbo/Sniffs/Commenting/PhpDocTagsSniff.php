@@ -281,7 +281,7 @@ class PhpDocTagsSniff implements Sniff
     {
         $tokens = $phpcsFile->getTokens();
         if ($tokens[$stackPtr]['code'] === T_COMMENT) {
-            $this->processBlockComment($phpcsFile, $stackPtr);
+            self::processBlockComment($phpcsFile, $stackPtr);
             return;
         }
 
@@ -306,12 +306,12 @@ class PhpDocTagsSniff implements Sniff
             $this->processLine($phpcsFile, $first, $last);
         }
 
-        $function = $this->findFunction($phpcsFile, $stackPtr);
+        $function = self::findFunction($phpcsFile, $stackPtr);
         if ($function !== null) {
-            $this->processFunctionTags($phpcsFile, $stackPtr, $function);
+            self::processFunctionTags($phpcsFile, $stackPtr, $function);
         }
 
-        $this->processVarTags($phpcsFile, $stackPtr);
+        self::processVarTags($phpcsFile, $stackPtr);
     }
 
     /**
@@ -320,7 +320,7 @@ class PhpDocTagsSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the comment.
      */
-    private function processBlockComment(File $phpcsFile, int $stackPtr): void
+    private static function processBlockComment(File $phpcsFile, int $stackPtr): void
     {
         $content = $phpcsFile->getTokens()[$stackPtr]['content'];
         if (preg_match('~^/\*(?!\*)\s*@var\s~', $content) !== 1 || !str_contains($content, '*/')) {
@@ -339,10 +339,10 @@ class PhpDocTagsSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $opener The position of the docblock's `/**`.
      */
-    private function processVarTags(File $phpcsFile, int $opener): void
+    private static function processVarTags(File $phpcsFile, int $opener): void
     {
         $tokens = $phpcsFile->getTokens();
-        [$nativeType, $isDeclaration] = $this->findVarTarget($phpcsFile, $opener);
+        [$nativeType, $isDeclaration] = self::findVarTarget($phpcsFile, $opener);
         foreach ($tokens[$opener]['comment_tags'] as $tag) {
             $lower = strtolower(substr($tokens[$tag]['content'], 1));
             if ((self::ALIASES[$lower] ?? $lower) !== 'var') {
@@ -352,7 +352,7 @@ class PhpDocTagsSniff implements Sniff
             $stringPtr = $tag + 2;
             $hasValue = ($tokens[$stringPtr]['code'] ?? null) === T_DOC_COMMENT_STRING
                 && $tokens[$stringPtr]['line'] === $tokens[$tag]['line'];
-            [$value, $trailing] = $hasValue ? $this->splitValue($phpcsFile, $stringPtr) : ['', ''];
+            [$value, $trailing] = $hasValue ? self::splitValue($phpcsFile, $stringPtr) : ['', ''];
             if (trim($value) === '') {
                 $phpcsFile->addError('The @%s tag must have a type', $tag, self::CODE_MISSING_TYPE, ['var']);
                 continue;
@@ -374,13 +374,13 @@ class PhpDocTagsSniff implements Sniff
             }
 
             if ($nativeType !== '') {
-                $this->checkType($phpcsFile, $tag, $node->type, $nativeType, self::CODE_VAR_TYPE_MISMATCH);
+                self::checkType($phpcsFile, $tag, $node->type, $nativeType, self::CODE_VAR_TYPE_MISMATCH);
             }
 
-            $this->checkVarLayout($phpcsFile, $tag, $stringPtr, $node, $lexTokens, $isDeclaration);
+            self::checkVarLayout($phpcsFile, $tag, $stringPtr, $node, $lexTokens, $isDeclaration);
         }
 
-        $this->checkOneLineSpacing($phpcsFile, $opener);
+        self::checkOneLineSpacing($phpcsFile, $opener);
     }
 
     /**
@@ -390,7 +390,7 @@ class PhpDocTagsSniff implements Sniff
      * @param int $opener The position of the docblock's `/**`.
      * @return array{string, bool} The declaration's native type, if any, and whether it's a property or constant.
      */
-    private function findVarTarget(File $phpcsFile, int $opener): array
+    private static function findVarTarget(File $phpcsFile, int $opener): array
     {
         $tokens = $phpcsFile->getTokens();
         $conditions = $tokens[$opener]['conditions'];
@@ -429,7 +429,7 @@ class PhpDocTagsSniff implements Sniff
      * @param list<array{string, int, int}> $lexTokens The value's tokens.
      * @param bool $isDeclaration Whether it's on a property or constant.
      */
-    private function checkVarLayout(
+    private static function checkVarLayout(
         File $phpcsFile,
         int $tag,
         int $stringPtr,
@@ -438,8 +438,8 @@ class PhpDocTagsSniff implements Sniff
         bool $isDeclaration,
     ): void {
         $tokens = $phpcsFile->getTokens();
-        [$value, $trailing] = $this->splitValue($phpcsFile, $stringPtr);
-        $type = $this->typeSource($node->type, $lexTokens);
+        [$value, $trailing] = self::splitValue($phpcsFile, $stringPtr);
+        $type = self::typeSource($node->type, $lexTokens);
         if ($type === null || !str_starts_with($value, $type)) {
             return;
         }
@@ -480,7 +480,7 @@ class PhpDocTagsSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $opener The position of the docblock's `/**`.
      */
-    private function checkOneLineSpacing(File $phpcsFile, int $opener): void
+    private static function checkOneLineSpacing(File $phpcsFile, int $opener): void
     {
         $tokens = $phpcsFile->getTokens();
         $closer = $tokens[$opener]['comment_closer'];
@@ -527,7 +527,7 @@ class PhpDocTagsSniff implements Sniff
      * @param int $stringPtr The position of the value.
      * @return array{string, string} The value, and the space after it, which is kept as it is.
      */
-    private function splitValue(File $phpcsFile, int $stringPtr): array
+    private static function splitValue(File $phpcsFile, int $stringPtr): array
     {
         $tokens = $phpcsFile->getTokens();
         $content = $tokens[$stringPtr]['content'];
@@ -548,7 +548,7 @@ class PhpDocTagsSniff implements Sniff
      * @param list<array{string, int, int}> $lexTokens The value's tokens.
      * @return ?string The code, or null if the parser gave no position.
      */
-    private function typeSource(TypeNode $type, array $lexTokens): ?string
+    private static function typeSource(TypeNode $type, array $lexTokens): ?string
     {
         $start = $type->getAttribute(Attribute::START_INDEX);
         $end = $type->getAttribute(Attribute::END_INDEX);
@@ -569,7 +569,7 @@ class PhpDocTagsSniff implements Sniff
      * @param int $opener The position of the docblock's `/**`.
      * @return ?int The position of the `function` keyword, or null if the docblock isn't for one.
      */
-    private function findFunction(File $phpcsFile, int $opener): ?int
+    private static function findFunction(File $phpcsFile, int $opener): ?int
     {
         $tokens = $phpcsFile->getTokens();
         $skip = [T_WHITESPACE, T_STATIC, T_FINAL, T_ABSTRACT, ...array_keys(Tokens::SCOPE_MODIFIERS)];
@@ -600,7 +600,7 @@ class PhpDocTagsSniff implements Sniff
      * @param int $opener The position of the docblock's `/**`.
      * @param int $function The position of the `function` keyword.
      */
-    private function processFunctionTags(File $phpcsFile, int $opener, int $function): void
+    private static function processFunctionTags(File $phpcsFile, int $opener, int $function): void
     {
         try {
             $parameters = [];
@@ -625,8 +625,8 @@ class PhpDocTagsSniff implements Sniff
             $stringPtr = $tag + 2;
             $hasValue = ($tokens[$stringPtr]['code'] ?? null) === T_DOC_COMMENT_STRING
                 && $tokens[$stringPtr]['line'] === $tokens[$tag]['line'];
-            $value = $hasValue ? $this->splitValue($phpcsFile, $stringPtr)[0] : '';
-            if ($name === 'return' && $hasValue && $this->checkSelfReference($phpcsFile, $stringPtr, $value)) {
+            $value = $hasValue ? self::splitValue($phpcsFile, $stringPtr)[0] : '';
+            if ($name === 'return' && $hasValue && self::checkSelfReference($phpcsFile, $stringPtr, $value)) {
                 continue;
             }
 
@@ -642,13 +642,13 @@ class PhpDocTagsSniff implements Sniff
             }
 
             if ($node instanceof ParamTagValueNode || $node instanceof TypelessParamTagValueNode) {
-                $this->checkParamName($phpcsFile, $tag, $node->parameterName, $parameters, $seen);
+                self::checkParamName($phpcsFile, $tag, $node->parameterName, $parameters, $seen);
             }
 
             if ($node instanceof ParamTagValueNode && isset($parameters[$node->parameterName])) {
                 $parameter = $parameters[$node->parameterName];
                 if (!$node->isVariadic && $parameter['variable_length'] !== true && $parameter['type_hint'] !== '') {
-                    $this->checkType(
+                    self::checkType(
                         $phpcsFile,
                         $tag,
                         $node->type,
@@ -659,11 +659,11 @@ class PhpDocTagsSniff implements Sniff
             }
 
             if ($node instanceof ReturnTagValueNode && $returnType !== '') {
-                $this->checkType($phpcsFile, $tag, $node->type, $returnType, self::CODE_RETURN_TYPE_MISMATCH);
+                self::checkType($phpcsFile, $tag, $node->type, $returnType, self::CODE_RETURN_TYPE_MISMATCH);
             }
 
             if ($hasValue && ($node instanceof ParamTagValueNode || $node instanceof ReturnTagValueNode)) {
-                $this->checkSpacing($phpcsFile, $tag, $stringPtr, $node, $lexTokens);
+                self::checkSpacing($phpcsFile, $tag, $stringPtr, $node, $lexTokens);
             }
         }
     }
@@ -676,7 +676,7 @@ class PhpDocTagsSniff implements Sniff
      * @param string $value The value.
      * @return bool True if it was reported.
      */
-    private function checkSelfReference(File $phpcsFile, int $stringPtr, string $value): bool
+    private static function checkSelfReference(File $phpcsFile, int $stringPtr, string $value): bool
     {
         if (preg_match('/^(@?this|[@$]self)(?=\s|$)/', $value, $match) !== 1) {
             return false;
@@ -701,8 +701,13 @@ class PhpDocTagsSniff implements Sniff
      * @param array<string, mixed> $parameters The function's parameters, by name.
      * @param array<string, true> $seen The parameters already documented.
      */
-    private function checkParamName(File $phpcsFile, int $tag, string $variable, array $parameters, array &$seen): void
-    {
+    private static function checkParamName(
+        File $phpcsFile,
+        int $tag,
+        string $variable,
+        array $parameters,
+        array &$seen,
+    ): void {
         if (!isset($parameters[$variable])) {
             $error = 'The @param tag for %s matches no parameter';
             $phpcsFile->addError($error, $tag, self::CODE_UNKNOWN_PARAM, [$variable]);
@@ -731,8 +736,13 @@ class PhpDocTagsSniff implements Sniff
      * @param string $nativeType The native type.
      * @param string $code The error code.
      */
-    private function checkType(File $phpcsFile, int $tag, TypeNode $docType, string $nativeType, string $code): void
-    {
+    private static function checkType(
+        File $phpcsFile,
+        int $tag,
+        TypeNode $docType,
+        string $nativeType,
+        string $code,
+    ): void {
         if (DocTypeMatchHelper::matches($docType, $nativeType) !== false) {
             return;
         }
@@ -750,7 +760,7 @@ class PhpDocTagsSniff implements Sniff
      * @param ParamTagValueNode|ReturnTagValueNode $node The value, as parsed.
      * @param list<array{string, int, int}> $lexTokens The value's tokens.
      */
-    private function checkSpacing(
+    private static function checkSpacing(
         File $phpcsFile,
         int $tag,
         int $stringPtr,
@@ -758,8 +768,8 @@ class PhpDocTagsSniff implements Sniff
         array $lexTokens,
     ): void {
         $tokens = $phpcsFile->getTokens();
-        [$value, $trailing] = $this->splitValue($phpcsFile, $stringPtr);
-        $type = $this->typeSource($node->type, $lexTokens);
+        [$value, $trailing] = self::splitValue($phpcsFile, $stringPtr);
+        $type = self::typeSource($node->type, $lexTokens);
         if ($type === null || !str_starts_with($value, $type)) {
             return;
         }
@@ -804,7 +814,7 @@ class PhpDocTagsSniff implements Sniff
             $text .= $tokens[$i]['content'];
         }
 
-        $fixed = $this->fixInlineFormat($phpcsFile, $first, $text);
+        $fixed = self::fixInlineFormat($phpcsFile, $first, $text);
         if ($tokens[$first]['code'] === T_DOC_COMMENT_TAG) {
             $fixed = $this->fixBlockTagName($phpcsFile, $first, $fixed);
         }
@@ -831,7 +841,7 @@ class PhpDocTagsSniff implements Sniff
      * @param string $text The line's text.
      * @return string The text, fixed.
      */
-    private function fixInlineFormat(File $phpcsFile, int $stackPtr, string $text): string
+    private static function fixInlineFormat(File $phpcsFile, int $stackPtr, string $text): string
     {
         $pattern = '/(?:@\{+|\{+\h*@)\h*(' . implode('|', self::INLINE_TAGS) . ')\b([^}]*)\}+/i';
         $callback = static function (array $matches) use ($phpcsFile, $stackPtr): string {
@@ -867,11 +877,11 @@ class PhpDocTagsSniff implements Sniff
 
         $name = $matches[1];
         $expected = $this->expectedName($name);
-        if ($expected === null || $this->isImported($phpcsFile, $stackPtr, $name)) {
+        if ($expected === null || self::isImported($phpcsFile, $stackPtr, $name)) {
             return $text;
         }
 
-        if (!$this->reportName($phpcsFile, $stackPtr, $name, $expected)) {
+        if (!self::reportName($phpcsFile, $stackPtr, $name, $expected)) {
             return $text;
         }
 
@@ -891,7 +901,7 @@ class PhpDocTagsSniff implements Sniff
     {
         $callback = function (array $matches) use ($phpcsFile, $stackPtr): string {
             $expected = $this->expectedName($matches[1]);
-            if ($expected === null || !$this->reportName($phpcsFile, $stackPtr, $matches[1], $expected)) {
+            if ($expected === null || !self::reportName($phpcsFile, $stackPtr, $matches[1], $expected)) {
                 return $matches[0];
             }
 
@@ -924,7 +934,7 @@ class PhpDocTagsSniff implements Sniff
      * @param string $expected The expected name, without the `@`.
      * @return bool Whether to fix it.
      */
-    private function reportName(File $phpcsFile, int $stackPtr, string $name, string $expected): bool
+    private static function reportName(File $phpcsFile, int $stackPtr, string $name, string $expected): bool
     {
         if (isset(self::ALIASES[strtolower($name)])) {
             $error = 'Expected @%s; found the alias @%s';
@@ -945,7 +955,7 @@ class PhpDocTagsSniff implements Sniff
      * @param string $name The tag's name, without the `@`.
      * @return bool True if the name is imported.
      */
-    private function isImported(File $phpcsFile, int $stackPtr, string $name): bool
+    private static function isImported(File $phpcsFile, int $stackPtr, string $name): bool
     {
         $useStatements = UseStatementHelper::getUseStatementsForPointer($phpcsFile, $stackPtr);
 

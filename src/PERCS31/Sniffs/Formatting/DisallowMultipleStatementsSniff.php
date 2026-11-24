@@ -34,21 +34,21 @@ class DisallowMultipleStatementsSniff extends GenericSniff
      */
     public function process(File $phpcsFile, int $stackPtr): void
     {
-        if ($this->isInPromotedPropertyHook($phpcsFile, $stackPtr)) {
+        if (self::isInPromotedPropertyHook($phpcsFile, $stackPtr)) {
             return;
         }
 
         $prev = $phpcsFile->findPrevious(T_SEMICOLON, ($stackPtr - 1));
         if (
-            $prev !== false && $this->endsHookOperation($phpcsFile, $stackPtr)
-            && $this->endsHookOperation($phpcsFile, $prev)
+            $prev !== false && self::endsHookOperation($phpcsFile, $stackPtr)
+            && self::endsHookOperation($phpcsFile, $prev)
         ) {
             return;
         }
 
         parent::process($phpcsFile, $stackPtr);
 
-        $this->checkStatementAfter($phpcsFile, $stackPtr);
+        self::checkStatementAfter($phpcsFile, $stackPtr);
     }
 
     /**
@@ -58,7 +58,7 @@ class DisallowMultipleStatementsSniff extends GenericSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $semicolonPtr The position of the semicolon.
      */
-    private function checkStatementAfter(File $phpcsFile, int $semicolonPtr): void
+    private static function checkStatementAfter(File $phpcsFile, int $semicolonPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $line = $tokens[$semicolonPtr]['line'];
@@ -109,7 +109,7 @@ class DisallowMultipleStatementsSniff extends GenericSniff
      * @param int $semicolonPtr The position of the semicolon.
      * @return bool True if it's inside a function's parameter list, and inside a property's hook list there.
      */
-    private function isInPromotedPropertyHook(File $phpcsFile, int $semicolonPtr): bool
+    private static function isInPromotedPropertyHook(File $phpcsFile, int $semicolonPtr): bool
     {
         $tokens = $phpcsFile->getTokens();
         foreach (array_keys($tokens[$semicolonPtr]['nested_parenthesis'] ?? []) as $opener) {
@@ -129,7 +129,7 @@ class DisallowMultipleStatementsSniff extends GenericSniff
      * @param int $semicolonPtr The position of the semicolon.
      * @return bool True if the semicolon follows `get` or `set` inside a property's hook list.
      */
-    private function endsHookOperation(File $phpcsFile, int $semicolonPtr): bool
+    private static function endsHookOperation(File $phpcsFile, int $semicolonPtr): bool
     {
         $keyword = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($semicolonPtr - 1), null, true);
 

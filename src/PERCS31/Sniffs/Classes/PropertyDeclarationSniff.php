@@ -48,7 +48,7 @@ class PropertyDeclarationSniff extends Psr2Sniff
         }
 
         parent::processMemberVar($phpcsFile, $stackPtr);
-        $this->checkUnderscore($phpcsFile, $stackPtr, $phpcsFile->getTokens());
+        self::checkUnderscore($phpcsFile, $stackPtr, $phpcsFile->getTokens());
     }
 
     /**
@@ -58,7 +58,7 @@ class PropertyDeclarationSniff extends Psr2Sniff
      * @param int $stackPtr The position of the property token.
      * @param array<int, array<string, mixed>> $tokens The token stack.
      */
-    private function checkUnderscore(File $phpcsFile, int $stackPtr, array $tokens): void
+    private static function checkUnderscore(File $phpcsFile, int $stackPtr, array $tokens): void
     {
         $content = $tokens[$stackPtr]['content'];
         assert(is_string($content));
@@ -83,8 +83,8 @@ class PropertyDeclarationSniff extends Psr2Sniff
             isset($tokens[$stackPtr]['nested_parenthesis'])
             && PropertyHookHelper::isPropertyVariable($phpcsFile, $stackPtr)
         ) {
-            $this->checkUnderscore($phpcsFile, $stackPtr, $tokens);
-            $this->checkPromotedVisibility($phpcsFile, $stackPtr);
+            self::checkUnderscore($phpcsFile, $stackPtr, $tokens);
+            self::checkPromotedVisibility($phpcsFile, $stackPtr);
         }
     }
 
@@ -96,7 +96,7 @@ class PropertyDeclarationSniff extends Psr2Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the parameter's variable.
      */
-    private function checkPromotedVisibility(File $phpcsFile, int $stackPtr): void
+    private static function checkPromotedVisibility(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         for ($i = ($stackPtr - 1); $i > 0; $i--) {

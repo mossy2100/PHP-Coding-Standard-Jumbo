@@ -96,10 +96,10 @@ class ControlStructureSpacingSniff extends Psr12Sniff
 
         $next = $tokens[($opener + 2)]['code'] ?? null;
         if ($next !== T_COMMENT) {
-            $this->checkSpace($phpcsFile, $stackPtr, ($opener + 1), 'after the opening', self::CODE_SPACE_AFTER_OPEN);
+            self::checkSpace($phpcsFile, $stackPtr, ($opener + 1), 'after the opening', self::CODE_SPACE_AFTER_OPEN);
         }
 
-        $this->checkSpace($phpcsFile, $stackPtr, ($closer - 1), 'before the closing', self::CODE_SPACE_BEFORE_CLOSE);
+        self::checkSpace($phpcsFile, $stackPtr, ($closer - 1), 'before the closing', self::CODE_SPACE_BEFORE_CLOSE);
     }
 
     /**
@@ -111,7 +111,7 @@ class ControlStructureSpacingSniff extends Psr12Sniff
     private function processSplitLayout(File $phpcsFile, int $stackPtr): void
     {
         parent::process($phpcsFile, $stackPtr);
-        $this->checkCloseParenthesis($phpcsFile, $stackPtr);
+        self::checkCloseParenthesis($phpcsFile, $stackPtr);
     }
 
     /**
@@ -121,7 +121,7 @@ class ControlStructureSpacingSniff extends Psr12Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the control structure's keyword.
      */
-    private function checkCloseParenthesis(File $phpcsFile, int $stackPtr): void
+    private static function checkCloseParenthesis(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $opener = $tokens[$stackPtr]['parenthesis_opener'] ?? null;
@@ -177,7 +177,7 @@ class ControlStructureSpacingSniff extends Psr12Sniff
      * @param string $where Where the space is, for the message.
      * @param string $code The error code.
      */
-    private function checkSpace(File $phpcsFile, int $stackPtr, int $space, string $where, string $code): void
+    private static function checkSpace(File $phpcsFile, int $stackPtr, int $space, string $where, string $code): void
     {
         $tokens = $phpcsFile->getTokens();
         if (
@@ -229,7 +229,7 @@ class ControlStructureSpacingSniff extends Psr12Sniff
             }
         }
 
-        $this->checkVariablesOnAsLine($phpcsFile, $as, $closer);
+        self::checkVariablesOnAsLine($phpcsFile, $as, $closer);
     }
 
     /**
@@ -240,7 +240,7 @@ class ControlStructureSpacingSniff extends Psr12Sniff
      * @param int $as The position of `as`.
      * @param int $closer The position of the header's `)`.
      */
-    private function checkVariablesOnAsLine(File $phpcsFile, int $as, int $closer): void
+    private static function checkVariablesOnAsLine(File $phpcsFile, int $as, int $closer): void
     {
         $tokens = $phpcsFile->getTokens();
         $last = $phpcsFile->findPrevious(T_WHITESPACE, ($closer - 1), $as, true);

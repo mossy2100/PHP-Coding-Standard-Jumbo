@@ -122,8 +122,8 @@ class AttributeLayoutSniff implements Sniff
             return;
         }
 
-        $this->checkJoined($phpcsFile, $stackPtr);
-        $this->checkBlankLineBefore($phpcsFile, $stackPtr);
+        self::checkJoined($phpcsFile, $stackPtr);
+        self::checkBlankLineBefore($phpcsFile, $stackPtr);
         $closerPtr = $tokens[$stackPtr]['attribute_closer'];
         $targetPtr = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($closerPtr + 1), null, true);
 
@@ -131,27 +131,27 @@ class AttributeLayoutSniff implements Sniff
             return;
         }
 
-        $this->checkBeforeTarget($phpcsFile, $stackPtr, $closerPtr, $targetPtr);
+        self::checkBeforeTarget($phpcsFile, $stackPtr, $closerPtr, $targetPtr);
 
         // An anonymous class's attributes are checked together, from the first one.
-        $anonClassPtr = $this->findAnonClass($phpcsFile, $stackPtr);
+        $anonClassPtr = self::findAnonClass($phpcsFile, $stackPtr);
         if ($anonClassPtr !== null) {
             $newPtr = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
             if ($newPtr !== false && $tokens[$newPtr]['code'] === T_NEW) {
-                $this->processAnonClass($phpcsFile, $newPtr, $anonClassPtr);
+                self::processAnonClass($phpcsFile, $newPtr, $anonClassPtr);
             }
 
             return;
         }
 
-        $this->checkStartsLine($phpcsFile, $stackPtr);
+        self::checkStartsLine($phpcsFile, $stackPtr);
 
         // Another attribute follows, so the last one in the group is checked against the target. In a single-line
         // list, the blocks stay inline, each followed by a single space.
         if ($tokens[$targetPtr]['code'] === T_ATTRIBUTE) {
             if (AttributeHelper::findSingleLineListOpener($phpcsFile, $stackPtr) !== null) {
                 $error = 'Expected 1 space between attribute blocks in a single-line list';
-                $this->checkInlineSpacing($phpcsFile, $closerPtr, $targetPtr, $error, self::CODE_BLOCK_SPACING);
+                self::checkInlineSpacing($phpcsFile, $closerPtr, $targetPtr, $error, self::CODE_BLOCK_SPACING);
             }
 
             return;
@@ -159,8 +159,8 @@ class AttributeLayoutSniff implements Sniff
 
         $isGroup = AttributeHelper::findFirstAttribute($phpcsFile, $stackPtr) !== $stackPtr;
 
-        if ($this->isClosure($phpcsFile, $targetPtr)) {
-            $this->processClosure($phpcsFile, $stackPtr, $closerPtr, $targetPtr);
+        if (self::isClosure($phpcsFile, $targetPtr)) {
+            self::processClosure($phpcsFile, $stackPtr, $closerPtr, $targetPtr);
             return;
         }
 
@@ -169,14 +169,14 @@ class AttributeLayoutSniff implements Sniff
         }
 
         // A hook with no body in braces can share a line with one attribute block, but not with two or more.
-        $isInlineTarget = $this->isHookWithoutBlock($phpcsFile, $targetPtr);
+        $isInlineTarget = self::isHookWithoutBlock($phpcsFile, $targetPtr);
         if ($isInlineTarget && !$isGroup) {
-            $this->checkSameLineSpacing($phpcsFile, $closerPtr, $targetPtr);
+            self::checkSameLineSpacing($phpcsFile, $closerPtr, $targetPtr);
             return;
         }
 
         if ($isInlineTarget) {
-            $this->reportTargetOnSameLine($phpcsFile, $stackPtr, $closerPtr, $targetPtr);
+            self::reportTargetOnSameLine($phpcsFile, $stackPtr, $closerPtr, $targetPtr);
             return;
         }
 
@@ -185,7 +185,7 @@ class AttributeLayoutSniff implements Sniff
         if ($listOpener !== null) {
             $listCloser = $tokens[$listOpener]['parenthesis_closer'];
             if ($tokens[$listOpener]['line'] === $tokens[$listCloser]['line']) {
-                $this->checkParameterSpacing($phpcsFile, $closerPtr, $targetPtr);
+                self::checkParameterSpacing($phpcsFile, $closerPtr, $targetPtr);
                 return;
             }
         }
@@ -217,7 +217,7 @@ class AttributeLayoutSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the attribute block's opener.
      */
-    private function checkStartsLine(File $phpcsFile, int $stackPtr): void
+    private static function checkStartsLine(File $phpcsFile, int $stackPtr): void
     {
         $isFirst = AttributeHelper::findFirstAttribute($phpcsFile, $stackPtr) === $stackPtr;
         if (!$isFirst || LayoutHelper::startsLine($phpcsFile, $stackPtr)) {
@@ -237,8 +237,8 @@ class AttributeLayoutSniff implements Sniff
         }
 
         if (
-            $targetPtr === false || $this->isClosure($phpcsFile, $targetPtr)
-            || $this->isHookWithoutBlock($phpcsFile, $targetPtr)
+            $targetPtr === false || self::isClosure($phpcsFile, $targetPtr)
+            || self::isHookWithoutBlock($phpcsFile, $targetPtr)
             || AttributeHelper::findParameterListOpener($phpcsFile, $stackPtr) !== null
         ) {
             return;
@@ -266,7 +266,7 @@ class AttributeLayoutSniff implements Sniff
      * @param int $closerPtr The position of the last attribute block's closer.
      * @param int $targetPtr The position of the target's first token.
      */
-    private function reportTargetOnSameLine(File $phpcsFile, int $stackPtr, int $closerPtr, int $targetPtr): void
+    private static function reportTargetOnSameLine(File $phpcsFile, int $stackPtr, int $closerPtr, int $targetPtr): void
     {
         $error = 'With two or more attribute blocks, the target must be on the line after them.';
         $isFixable = $phpcsFile->findNext(Tokens::COMMENT_TOKENS, ($closerPtr + 1), $targetPtr) === false;
@@ -288,7 +288,7 @@ class AttributeLayoutSniff implements Sniff
      * @param int $targetPtr The position of the first token after the attributes.
      * @return bool True if it's such a hook, with or without `final` or `&` before its name.
      */
-    private function isHookWithoutBlock(File $phpcsFile, int $targetPtr): bool
+    private static function isHookWithoutBlock(File $phpcsFile, int $targetPtr): bool
     {
         $tokens = $phpcsFile->getTokens();
         $skip = Tokens::EMPTY_TOKENS + [
@@ -329,7 +329,7 @@ class AttributeLayoutSniff implements Sniff
      * @param int $closerPtr The position of the attribute block's closer.
      * @param int $targetPtr The position of the first token after the attributes.
      */
-    private function checkBeforeTarget(File $phpcsFile, int $stackPtr, int $closerPtr, int $targetPtr): void
+    private static function checkBeforeTarget(File $phpcsFile, int $stackPtr, int $closerPtr, int $targetPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $isParameter = AttributeHelper::findParameterListOpener($phpcsFile, $stackPtr) !== null;
@@ -388,7 +388,7 @@ class AttributeLayoutSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the attribute block's opener.
      */
-    private function checkBlankLineBefore(File $phpcsFile, int $stackPtr): void
+    private static function checkBlankLineBefore(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $previous = $phpcsFile->findPrevious(T_WHITESPACE, ($stackPtr - 1), null, true);
@@ -419,10 +419,10 @@ class AttributeLayoutSniff implements Sniff
      * @param int $closerPtr The position of the attribute block's closer.
      * @param int $targetPtr The position of the first token of the parameter.
      */
-    private function checkParameterSpacing(File $phpcsFile, int $closerPtr, int $targetPtr): void
+    private static function checkParameterSpacing(File $phpcsFile, int $closerPtr, int $targetPtr): void
     {
         $error = 'Expected 1 space between an attribute and its parameter';
-        $this->checkInlineSpacing($phpcsFile, $closerPtr, $targetPtr, $error, self::CODE_PARAMETER_SPACING);
+        self::checkInlineSpacing($phpcsFile, $closerPtr, $targetPtr, $error, self::CODE_PARAMETER_SPACING);
     }
 
     /**
@@ -432,7 +432,7 @@ class AttributeLayoutSniff implements Sniff
      * @param int $newPtr The position of `new`.
      * @param int $anonClassPtr The position of `class`, or of `readonly` before it.
      */
-    private function processAnonClass(File $phpcsFile, int $newPtr, int $anonClassPtr): void
+    private static function processAnonClass(File $phpcsFile, int $newPtr, int $anonClassPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $indent = str_repeat(' ', LayoutHelper::lineIndent($phpcsFile, $newPtr) + LayoutHelper::INDENT);
@@ -448,7 +448,7 @@ class AttributeLayoutSniff implements Sniff
 
             $closer = $tokens[$i]['attribute_closer'];
             $blocks[] = $phpcsFile->getTokensAsString($i, ($closer - $i + 1));
-            $isValid = $isValid && $this->startsLineAt($phpcsFile, $i, $previous, strlen($indent));
+            $isValid = $isValid && self::startsLineAt($phpcsFile, $i, $previous, strlen($indent));
 
             // The first block starts on the line after `new`, or after comments on the lines between, but not after a
             // blank line.
@@ -460,7 +460,7 @@ class AttributeLayoutSniff implements Sniff
             $i = $closer;
         }
 
-        $isValid = $isValid && $this->startsLineAt($phpcsFile, $anonClassPtr, $previous, strlen($indent));
+        $isValid = $isValid && self::startsLineAt($phpcsFile, $anonClassPtr, $previous, strlen($indent));
         if ($isValid) {
             return;
         }
@@ -495,7 +495,7 @@ class AttributeLayoutSniff implements Sniff
      * @param int $indent The number of spaces expected before the token.
      * @return bool True if the token is laid out that way.
      */
-    private function startsLineAt(File $phpcsFile, int $ptr, int $previousPtr, int $indent): bool
+    private static function startsLineAt(File $phpcsFile, int $ptr, int $previousPtr, int $indent): bool
     {
         $tokens = $phpcsFile->getTokens();
 
@@ -515,21 +515,21 @@ class AttributeLayoutSniff implements Sniff
      * @param int $closerPtr The position of the last attribute block's closer.
      * @param int $targetPtr The position of the closure's first token.
      */
-    private function processClosure(File $phpcsFile, int $stackPtr, int $closerPtr, int $targetPtr): void
+    private static function processClosure(File $phpcsFile, int $stackPtr, int $closerPtr, int $targetPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $firstPtr = AttributeHelper::findFirstAttribute($phpcsFile, $stackPtr);
-        $arguments = $this->findCallArguments($phpcsFile, $firstPtr);
+        $arguments = self::findCallArguments($phpcsFile, $firstPtr);
         if ($arguments === null && $firstPtr !== $stackPtr) {
             if ($tokens[$targetPtr]['line'] === $tokens[$closerPtr]['line']) {
-                $this->reportTargetOnSameLine($phpcsFile, $stackPtr, $closerPtr, $targetPtr);
+                self::reportTargetOnSameLine($phpcsFile, $stackPtr, $closerPtr, $targetPtr);
             }
 
             return;
         }
 
         if ($arguments === null) {
-            $this->checkSameLineSpacing($phpcsFile, $closerPtr, $targetPtr);
+            self::checkSameLineSpacing($phpcsFile, $closerPtr, $targetPtr);
             return;
         }
 
@@ -541,8 +541,8 @@ class AttributeLayoutSniff implements Sniff
         }
 
         if (!LayoutHelper::isSplitList($phpcsFile, $listOpener, $listCloser)) {
-            $this->checkInlineSpacing($phpcsFile, $closerPtr, $targetPtr, 'In a single-line argument list, a '
-                . 'closure\'s attribute must be inline, after a single space', self::CODE_CLOSURE_SPACING);
+            self::checkInlineSpacing($phpcsFile, $closerPtr, $targetPtr, 'In a single-line argument list, a closure\'s '
+                . 'attribute must be inline, after a single space', self::CODE_CLOSURE_SPACING);
             return;
         }
 
@@ -592,12 +592,12 @@ class AttributeLayoutSniff implements Sniff
      * @param int $closerPtr The position of the last attribute block's closer.
      * @param int $targetPtr The position of the target's first token.
      */
-    private function checkSameLineSpacing(File $phpcsFile, int $closerPtr, int $targetPtr): void
+    private static function checkSameLineSpacing(File $phpcsFile, int $closerPtr, int $targetPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         if ($tokens[$targetPtr]['line'] === $tokens[$closerPtr]['line']) {
             $error = 'Expected 1 space between an attribute and its target on the same line';
-            $this->checkInlineSpacing($phpcsFile, $closerPtr, $targetPtr, $error, self::CODE_SAME_LINE_SPACING);
+            self::checkInlineSpacing($phpcsFile, $closerPtr, $targetPtr, $error, self::CODE_SAME_LINE_SPACING);
         }
     }
 
@@ -610,7 +610,7 @@ class AttributeLayoutSniff implements Sniff
      * @param string $error The error message.
      * @param string $code The error code.
      */
-    private function checkInlineSpacing(
+    private static function checkInlineSpacing(
         File $phpcsFile,
         int $closerPtr,
         int $targetPtr,
@@ -628,7 +628,7 @@ class AttributeLayoutSniff implements Sniff
      * @return array<int|string, array<string, int|string>>|null The call's arguments, as PHPCSUtils'
      *     PassedParameters::getParameters() gives them, or null if the closure isn't one of them.
      */
-    private function findCallArguments(File $phpcsFile, int $attributePtr): ?array
+    private static function findCallArguments(File $phpcsFile, int $attributePtr): ?array
     {
         $opener = Parentheses::getLastOpener($phpcsFile, $attributePtr);
         if ($opener === false) {
@@ -660,7 +660,7 @@ class AttributeLayoutSniff implements Sniff
      * @param int $targetPtr The position of the first token after the attributes.
      * @return bool True for `function`, `fn`, or `static` before either.
      */
-    private function isClosure(File $phpcsFile, int $targetPtr): bool
+    private static function isClosure(File $phpcsFile, int $targetPtr): bool
     {
         $tokens = $phpcsFile->getTokens();
         if ($tokens[$targetPtr]['code'] === T_STATIC) {
@@ -681,7 +681,7 @@ class AttributeLayoutSniff implements Sniff
      * @return ?int The position of `class`, or of `readonly` before it, where the rest of the declaration starts.
      *   Null if the attribute isn't on an anonymous class.
      */
-    private function findAnonClass(File $phpcsFile, int $attributePtr): ?int
+    private static function findAnonClass(File $phpcsFile, int $attributePtr): ?int
     {
         $tokens = $phpcsFile->getTokens();
         $next = $attributePtr;
@@ -708,7 +708,7 @@ class AttributeLayoutSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the attribute block's opener.
      */
-    private function checkJoined(File $phpcsFile, int $stackPtr): void
+    private static function checkJoined(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $closer = $tokens[$stackPtr]['attribute_closer'] ?? null;

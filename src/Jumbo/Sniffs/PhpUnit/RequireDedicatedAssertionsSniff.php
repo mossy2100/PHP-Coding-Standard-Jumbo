@@ -71,7 +71,7 @@ class RequireDedicatedAssertionsSniff extends AssertPrimitivesSniff
         }
 
         $this->assertSameUsage($phpcsFile, $stackPtr);
-        $this->checkDedicatedAssertions($phpcsFile, $stackPtr);
+        self::checkDedicatedAssertions($phpcsFile, $stackPtr);
     }
 
     /**
@@ -98,7 +98,7 @@ class RequireDedicatedAssertionsSniff extends AssertPrimitivesSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the `function` keyword.
      */
-    private function checkDedicatedAssertions(File $phpcsFile, int $stackPtr): void
+    private static function checkDedicatedAssertions(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
         $opener = $tokens[$stackPtr]['scope_opener'] ?? null;
@@ -110,7 +110,7 @@ class RequireDedicatedAssertionsSniff extends AssertPrimitivesSniff
         for ($i = ($opener + 1); $i < $closer; $i++) {
             $name = strtolower($tokens[$i]['content']);
             if ($tokens[$i]['code'] === T_STRING && ($name === 'asserttrue' || $name === 'assertfalse')) {
-                $this->checkAssertion($phpcsFile, $i, $name === 'asserttrue');
+                self::checkAssertion($phpcsFile, $i, $name === 'asserttrue');
             }
         }
     }
@@ -122,7 +122,7 @@ class RequireDedicatedAssertionsSniff extends AssertPrimitivesSniff
      * @param int $methodPtr The position of the assertion's name.
      * @param bool $isTrue Whether it's `assertTrue()`.
      */
-    private function checkAssertion(File $phpcsFile, int $methodPtr, bool $isTrue): void
+    private static function checkAssertion(File $phpcsFile, int $methodPtr, bool $isTrue): void
     {
         $tokens = $phpcsFile->getTokens();
         $operator = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($methodPtr - 1), null, true);
@@ -135,7 +135,7 @@ class RequireDedicatedAssertionsSniff extends AssertPrimitivesSniff
         $opener = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($methodPtr + 1), null, true);
         if (
             $operator === false || $object === false || $opener === false
-            || !$this->isOwnCall($tokens, $operator, $object)
+            || !self::isOwnCall($tokens, $operator, $object)
         ) {
             return;
         }
@@ -184,7 +184,7 @@ class RequireDedicatedAssertionsSniff extends AssertPrimitivesSniff
      * @param int $object The position of what comes before it.
      * @return bool True if it is.
      */
-    private function isOwnCall(array $tokens, int $operator, int $object): bool
+    private static function isOwnCall(array $tokens, int $operator, int $object): bool
     {
         if ($tokens[$operator]['code'] === T_OBJECT_OPERATOR) {
             return $tokens[$object]['code'] === T_VARIABLE && $tokens[$object]['content'] === '$this';
