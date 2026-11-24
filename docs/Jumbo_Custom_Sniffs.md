@@ -983,9 +983,13 @@ Sets the layout of a multi-line PHP block in a file with markup. This is a fork 
 - With markup before `<?php`, the code is indented one level past that line.
 - `?>` is level with the line `<?php` is on. Markup may follow it.
 - A tag on one line is exempt, such as `<?php foo(); ?>` or `<?php declare(strict_types=1) ?>`, unless it's empty, as
-  in `<?php ?>`. A last block with no `?>` is exempt too.
+  in `<?php ?>`, or only echoes. A last block with no `?>` is exempt too.
 - An empty block is removed, whether it's on one line or several.
-- A short echo tag must be on one line.
+- A short echo tag must be on one line, with no semicolon before its `?>`, which is redundant there:
+  `<?= $x; ?>` becomes `<?= $x ?>` (`ShortEchoSemicolon`).
+- A tag on one line that holds only an `echo` becomes a short echo tag: `<?php echo $x; ?>` becomes `<?= $x ?>`
+  (`ShortEchoTag`), as php-cs-fixer's `echo_tag_syntax` does with `format: short`. A tag with more stays `<?php`, as
+  `Universal.PHP.OneStatementInShortEchoTag` requires. `<?=` is always available, since PHP 5.4.
 - A blank line just inside the tags is allowed.
 
 **Why:** PER doesn't set this layout. The PERCS31 standard allows the code level with the tags, or one level past them.

@@ -21,6 +21,8 @@ class EmbeddedPhpUnitTest extends AbstractSniffTestCase
     {
         return match ($testFile) {
             'EmbeddedPhpUnitTest.inc' => [
+                // A semicolon in a short echo tag.
+                20 => 1,
                 // The code one level past the tags, on the first line and a later one.
                 29 => 1,
                 30 => 1,
@@ -52,6 +54,8 @@ class EmbeddedPhpUnitTest extends AbstractSniffTestCase
                 2 => 1,
             ],
             'EmbeddedPhpUnitTest.6.inc' => [
+                // A tag on one line that only echoes.
+                17 => 1,
                 // Code on the opening tag's line.
                 33 => 1,
                 // The code level with the markup's line, or two levels past it.
@@ -67,6 +71,8 @@ class EmbeddedPhpUnitTest extends AbstractSniffTestCase
                 53 => 1,
                 55 => 1,
             ],
+            // A semicolon in a short echo tag, and tags that only echo.
+            'EmbeddedPhpUnitTest.7.inc' => [7 => 1, 8 => 1, 9 => 1, 10 => 1],
             default => [],
         };
     }

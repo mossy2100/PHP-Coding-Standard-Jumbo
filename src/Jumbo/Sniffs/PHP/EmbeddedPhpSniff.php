@@ -7,7 +7,10 @@
  * change from upstream is marked with a "Jumbo:" comment:
  * - A file's first opening tag is only skipped if nothing comes before it, so a file with one block is checked.
  * - A tag on one line is only checked for being empty, as PER's own <?php declare(strict_types=1) ?> has no semicolon.
- * - A short echo tag over several lines is reported, with no fix.
+ * - A short echo tag over several lines is reported, with no fix. One on one line can't end with a semicolon, as
+ *   ShortEchoSemicolon, as it's redundant there.
+ * - A tag on one line that holds only an echo statement is reported as ShortEchoTag, and becomes a short echo tag:
+ *   `<?php echo $x; ?>` to `<?= $x ?>`.
  * - A blank line just inside the tags is allowed.
  * - Every statement directly in the block is checked for too much indent, not just the first.
  * - A closing tag on its own line must be level with the opening tag. PERCS31.WhiteSpace.ScopeIndent doesn't check it.
@@ -64,9 +67,16 @@ class EmbeddedPhpSniff implements Sniff
         if ($tokens[$stackPtr]['code'] === T_OPEN_TAG_WITH_ECHO) {
             if ($closeTag !== false && $tokens[$stackPtr]['line'] !== $tokens[$closeTag]['line']) {
                 $phpcsFile->addError('A short echo tag must be on one line', $stackPtr, 'MultiLineEcho');
+            } elseif ($closeTag !== false) {
+                $this->checkShortEchoSemicolon($phpcsFile, $closeTag);
             }
 
             return;
+        }
+
+        // Jumbo: a tag on one line that only echoes becomes a short echo tag.
+        if ($closeTag !== false && $tokens[$stackPtr]['line'] === $tokens[$closeTag]['line']) {
+            $this->checkShortEchoTag($phpcsFile, $stackPtr, $closeTag);
         }
 
         // Jumbo: a tag on one line is only checked for being empty.
@@ -75,6 +85,74 @@ class EmbeddedPhpSniff implements Sniff
         } elseif ($phpcsFile->findNext(T_WHITESPACE, ($stackPtr + 1), $closeTag, true) === false) {
             $this->reportEmptyTagSet($phpcsFile, $stackPtr, $closeTag);
         }
+    }
+
+
+    /**
+     * Report a semicolon before the closing tag of a short echo tag, and remove it. Jumbo only.
+     *
+     * @param \PHP_CodeSniffer\Files\File $phpcsFile The file being scanned.
+     * @param int                         $closeTag  The position of the closing tag.
+     *
+     * @return void
+     */
+    private function checkShortEchoSemicolon(File $phpcsFile, int $closeTag)
+    {
+        $tokens    = $phpcsFile->getTokens();
+        $semicolon = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($closeTag - 1), null, true);
+        if ($semicolon === false || $tokens[$semicolon]['code'] !== T_SEMICOLON) {
+            return;
+        }
+
+        $error = 'A short echo tag needs no semicolon before its ?>';
+        if ($phpcsFile->addFixableError($error, $semicolon, 'ShortEchoSemicolon') === true) {
+            $phpcsFile->fixer->replaceToken($semicolon, '');
+        }
+    }
+
+
+    /**
+     * Report a tag on one line that holds only an echo statement, and make it a short echo tag. Jumbo only.
+     *
+     * @param \PHP_CodeSniffer\Files\File $phpcsFile The file being scanned.
+     * @param int                         $stackPtr  The position of the opening tag.
+     * @param int                         $closeTag  The position of the closing tag.
+     *
+     * @return void
+     */
+    private function checkShortEchoTag(File $phpcsFile, int $stackPtr, int $closeTag)
+    {
+        $tokens = $phpcsFile->getTokens();
+        $echo   = $phpcsFile->findNext(T_WHITESPACE, ($stackPtr + 1), $closeTag, true);
+        if ($echo === false || $tokens[$echo]['code'] !== T_ECHO) {
+            return;
+        }
+
+        // A single statement: no semicolon before the last code, and none or one at the end.
+        $last      = $phpcsFile->findPrevious(T_WHITESPACE, ($closeTag - 1), $echo, true);
+        $semicolon = $phpcsFile->findNext(T_SEMICOLON, ($echo + 1), $closeTag);
+        if ($last === false || ($semicolon !== false && $semicolon !== $last)
+            || $phpcsFile->findNext(Tokens::COMMENT_TOKENS, ($stackPtr + 1), $closeTag) !== false
+        ) {
+            return;
+        }
+
+        $error = 'A tag that only echoes must be a short echo tag, as in <?= $x ?>';
+        if ($phpcsFile->addFixableError($error, $stackPtr, 'ShortEchoTag') === false) {
+            return;
+        }
+
+        $phpcsFile->fixer->beginChangeset();
+        $phpcsFile->fixer->replaceToken($stackPtr, '<?= ');
+        for ($i = ($stackPtr + 1); $i < $phpcsFile->findNext(T_WHITESPACE, ($echo + 1), $closeTag, true); $i++) {
+            $phpcsFile->fixer->replaceToken($i, '');
+        }
+
+        if ($semicolon !== false) {
+            $phpcsFile->fixer->replaceToken($semicolon, '');
+        }
+
+        $phpcsFile->fixer->endChangeset();
     }
 
 

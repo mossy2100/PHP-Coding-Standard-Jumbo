@@ -1,0 +1,10 @@
+<?php declare(strict_types=1) ?>
+<!-- Valid: a short echo tag, a tag with another statement, and two statements. -->
+<p><?= $x ?></p>
+<p><?php run(); ?></p>
+<p><?php echo $a; echo $b; ?></p>
+<!-- Invalid: a semicolon in a short echo tag, and tags that only echo. -->
+<p><?= $x; ?></p>
+<p><?php echo $x; ?></p>
+<p><?php echo $x ?></p>
+<p><?php echo $a, $b; ?></p>

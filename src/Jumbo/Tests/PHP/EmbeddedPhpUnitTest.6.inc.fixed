@@ -14,7 +14,7 @@
         }
     ?></p>
 </div>
-<p><?php echo 'b'; ?></p>
+<p><?= 'b' ?></p>
 <p><?php
     echo 'c';
 ?>
