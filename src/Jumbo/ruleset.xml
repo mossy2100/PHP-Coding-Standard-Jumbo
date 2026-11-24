@@ -694,9 +694,10 @@
     <rule ref="Generic.Commenting.DocComment.LongNotCapital"/>
     <rule ref="Generic.Commenting.DocComment.ShortNotCapital"/>
     <rule ref="Generic.Commenting.DocComment.SpacingBetween"/>
-    <!-- SpacingBeforeTags, ParamNotFirst, ParamGroup and TagsNotGrouped are replaced by Jumbo.Commenting.PhpDocTags,
-         which allows an @see in the description, and only requires the @param tags together and in order, then
-         @return, then @throws, so a tag such as @see or @todo can be anywhere -->
+    <rule ref="Generic.Commenting.DocComment.SpacingBeforeTags"/>
+    <!-- ParamNotFirst, ParamGroup and TagsNotGrouped are replaced by Jumbo.Commenting.PhpDocTags, which only requires
+         the @param tags together and in order, then @return, then @throws, so a tag such as @see or @todo can be
+         anywhere -->
     <rule ref="Generic.Commenting.DocComment.SpacingAfterTagGroup"/>
 
     <!-- /** and */, not /*** or **/, and nothing after the /** of a multi-line doc comment -->

@@ -3,9 +3,9 @@
 class TagLayout
 {
     /**
-     * Allowed: an @see after the description, and @todo and @see tags anywhere.
-     * @see https://www.php.net/manual/en/function.uasort.php
+     * Allowed: an @see as the first tag, and @todo, @fixme and @see tags anywhere.
      *
+     * @see https://www.php.net/manual/en/function.uasort.php
      * @todo Make it faster.
      * @param int $a The value.
      * @param int $b The other value.
@@ -20,31 +20,13 @@ class TagLayout
     }
 
     /**
-     * Allowed: an inline @see, and an @see in its own paragraph.
+     * Allowed: an inline @see.
      *
      * Like {@see https://www.php.net/manual/en/function.uasort.php uasort()}, but returns a copy.
-     *
-     * @see https://www.php.net/manual/en/function.usort.php
      *
      * @param int $a The value.
      */
     public function two(int $a): void
-    {
-    }
-
-    /**
-     * Allowed: an @see that starts the tags.
-     *
-     * @see https://www.php.net/manual/en/function.usort.php
-     * @var int
-     */
-    public int $three = 1;
-
-    /**
-     * Reported: no blank line before the tags.
-     * @param int $a The value.
-     */
-    public function four(int $a): void
     {
     }
 
@@ -56,18 +38,18 @@ class TagLayout
      * @return int The result.
      * @param int $a The value.
      */
-    public function five(int $a, int $b): int
+    public function three(int $a, int $b): int
     {
     }
 
     /**
-     * Reported: no blank line between an @see in the description and the tags, and a blank line between @param tags.
-     * @see https://www.php.net/manual/en/function.uasort.php
+     * Reported: a blank line between @param tags.
+     *
      * @param int $a The value.
      *
      * @param int $b The other value.
      */
-    public function six(int $a, int $b): void
+    public function four(int $a, int $b): void
     {
     }
 }

@@ -61,9 +61,6 @@ use Throwable;
  *   - ParamsNotTogether: the `@param` tags next to each other, with no other tag or blank line between them.
  *   - ReturnNotAfterParams: the `@return` tag after the `@param` tags.
  *   - ThrowsNotAfterReturn: each `@throws` tag after the `@return` and `@param` tags.
- * - SpacingBeforeTags: exactly one blank line before the first tag, fixed. An `@see` straight after the description,
- *   as in `This is like uasort().` then `@see https://www.php.net/uasort`, is part of it, not the first tag. From
- *   Generic.Commenting.DocComment, which reads such an `@see` as the first tag.
  *
  * Block tags and inline tags are both checked. A block tag that a `use` statement imports, such as a Doctrine or JMS
  * annotation, is left alone, as is a name followed by `(` or `\`. Text that only looks like a tag, in the middle of a
@@ -106,8 +103,6 @@ class PhpDocTagsSniff implements Sniff
     public const string CODE_VAR_NAME_ORDER = 'VarNameOrder';
 
     public const string CODE_VAR_IN_BLOCK_COMMENT = 'VarInBlockComment';
-
-    public const string CODE_SPACING_BEFORE_TAGS = 'SpacingBeforeTags';
 
     public const string CODE_PARAM_ORDER = 'ParamOrder';
 
@@ -330,7 +325,7 @@ class PhpDocTagsSniff implements Sniff
         }
 
         self::processVarTags($phpcsFile, $stackPtr);
-        self::checkTagLayout($phpcsFile, $stackPtr);
+        self::checkTagOrder($phpcsFile, $tokens[$stackPtr]['comment_tags']);
     }
 
     /**
@@ -1021,107 +1016,12 @@ class PhpDocTagsSniff implements Sniff
     // region Tag layout
 
     /**
-     * Check where a doc comment's tags are: one blank line before the first, the `@param` tags first, and the tags of
-     * each name together. The `@see` tags before any other tag are part of the description, and left out, unless they
-     * start the tags: a blank line before them, and the next tag on the line straight after them.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $opener The position of the doc comment's opener.
-     */
-    private static function checkTagLayout(File $phpcsFile, int $opener): void
-    {
-        $tokens = $phpcsFile->getTokens();
-        $tags = $tokens[$opener]['comment_tags'];
-        $seeCount = 0;
-        while (isset($tags[$seeCount]) && strtolower($tokens[$tags[$seeCount]]['content']) === '@see') {
-            $seeCount++;
-        }
-
-        if ($seeCount === count($tags)) {
-            return;
-        }
-
-        $isDescription = $seeCount > 0 && self::isDescriptionSee($phpcsFile, $opener, $tags[0], $tags[$seeCount]);
-        $tags = $isDescription ? array_slice($tags, $seeCount) : $tags;
-        self::checkSpacingBeforeTags($phpcsFile, $opener, $tags[0], $isDescription);
-        self::checkTagOrder($phpcsFile, $tags);
-    }
-
-    /**
-     * Check whether the `@see` tags at the start of a doc comment's tags are part of its description: straight after
-     * a line of it, or followed by a blank line or more text, not straight by another tag.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $opener The position of the doc comment's opener.
-     * @param int $firstSee The position of the first `@see`.
-     * @param int $nextTag The position of the first tag after the `@see` tags.
-     * @return bool True if they are.
-     */
-    private static function isDescriptionSee(File $phpcsFile, int $opener, int $firstSee, int $nextTag): bool
-    {
-        $tokens = $phpcsFile->getTokens();
-        $before = (int) $phpcsFile->findPrevious(
-            [T_DOC_COMMENT_WHITESPACE, T_DOC_COMMENT_STAR],
-            ($firstSee - 1),
-            $opener,
-            true,
-        );
-        $isAttached = $tokens[$before]['code'] !== T_DOC_COMMENT_OPEN_TAG
-            && $tokens[$before]['line'] === $tokens[$firstSee]['line'] - 1;
-        $end = (int) $phpcsFile->findPrevious([T_DOC_COMMENT_STRING, T_DOC_COMMENT_TAG], ($nextTag - 1), $firstSee);
-
-        return $isAttached || $tokens[$nextTag]['line'] !== $tokens[$end]['line'] + 1;
-    }
-
-    /**
-     * Report a first tag without exactly one blank line before it, and fix it.
-     *
-     * After an `@see` in the description, more than one blank line is
-     * Generic.Commenting.DocComment.SpacingAfterTagGroup's to report, as it ends that tag group, so only a missing
-     * one is reported here. Both fixing it would add two blank lines.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $opener The position of the doc comment's opener.
-     * @param int $firstTag The position of the first tag.
-     * @param bool $afterSee Whether an `@see` in the description comes before it.
-     */
-    private static function checkSpacingBeforeTags(File $phpcsFile, int $opener, int $firstTag, bool $afterSee): void
-    {
-        $tokens = $phpcsFile->getTokens();
-        $previous = (int) $phpcsFile->findPrevious(
-            [T_DOC_COMMENT_WHITESPACE, T_DOC_COMMENT_STAR],
-            ($firstTag - 1),
-            $opener,
-            true,
-        );
-        $gap = $tokens[$firstTag]['line'] - $tokens[$previous]['line'];
-        if ($tokens[$previous]['code'] === T_DOC_COMMENT_OPEN_TAG || $gap === 2 || ($afterSee && $gap > 2)) {
-            return;
-        }
-
-        $error = 'There must be exactly one blank line before the tags in a doc comment';
-        if (!$phpcsFile->addFixableError($error, $firstTag, self::CODE_SPACING_BEFORE_TAGS)) {
-            return;
-        }
-
-        $phpcsFile->fixer->beginChangeset();
-        for ($i = ($previous + 1); $i < $firstTag && $tokens[$i]['line'] !== $tokens[$firstTag]['line']; $i++) {
-            $phpcsFile->fixer->replaceToken($i, '');
-        }
-
-        $indent = str_repeat(' ', $tokens[$opener]['column']);
-        $eol = $phpcsFile->eolChar;
-        $phpcsFile->fixer->addContent($previous, "{$eol}{$indent}*{$eol}");
-        $phpcsFile->fixer->endChangeset();
-    }
-
-    /**
      * Report `@param` tags that aren't together, a `@return` before a `@param`, and a `@throws` before either.
      *
      * Every other tag can be anywhere.
      *
      * @param File $phpcsFile The file being scanned.
-     * @param array<int, int> $tags The positions of the tags, without any in the description, from index 0.
+     * @param array<int, int> $tags The positions of the tags.
      */
     private static function checkTagOrder(File $phpcsFile, array $tags): void
     {

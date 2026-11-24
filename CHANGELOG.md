@@ -613,8 +613,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   `Generic.Commenting.DocComment`'s `ParamNotFirst`, `ParamGroup` and `TagsNotGrouped`. No tag has to be in any place,
   so `@see`, `@todo` and the rest can go anywhere, except that the `@param` tags must be together
   (`ParamsNotTogether`) and in the order of the parameters (`ParamOrder`), then `@return` (`ReturnNotAfterParams`),
-  then `@throws` (`ThrowsNotAfterReturn`). None is fixed. An `@see` straight after the description is part of it, so
-  `SpacingBeforeTags`, now also PhpDocTags', checks the blank line before the next tag.
+  then `@throws` (`ThrowsNotAfterReturn`). None is fixed.
 - **Class members, in Jumbo (breaking).** The new `Jumbo.Classes.ClassMembers` checks a class's members against its
   header: `private`, not `protected`, in a final class that extends no class and uses no trait (`ProtectedToPrivate`),
   `static` for a private method that doesn't use `$this`, with its calls changed to `self::` (`StaticPrivateMethod`),

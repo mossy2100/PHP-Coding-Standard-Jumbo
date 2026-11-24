@@ -19,19 +19,11 @@ class PhpDocTagsUnitTest extends AbstractSniffTestCase
      */
     protected function getErrorList(string $testFile = ''): array
     {
-        // Where the tags are: @see in the description, and other tags anywhere, are allowed.
+        // Where the tags are: other tags are allowed anywhere.
         if ($testFile === 'PhpDocTagsUnitTest.4.inc') {
-            return [
-                // No blank line before the tags.
-                45 => 1,
-                // @throws before @return, @return before a @param, and a @param out of order and apart.
-                55 => 1,
-                56 => 1,
-                57 => 2,
-                // No blank line after an @see in the description, and a blank line between @param tags.
-                66 => 1,
-                68 => 1,
-            ];
+            // @throws before @return, @return before a @param, a @param out of order and apart, and a blank line
+            // between @param tags.
+            return [37 => 1, 38 => 1, 39 => 2, 50 => 1];
         }
 
         // @var tags.

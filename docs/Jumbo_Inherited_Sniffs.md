@@ -215,16 +215,17 @@ compare signatures, so an override that only widens visibility or narrows a type
 
 ## Generic.Commenting.DocComment
 
-Checks a doc comment's layout. Jumbo includes five codes, each by name, so codes added upstream stay out:
+Checks a doc comment's layout. Jumbo includes six codes, each by name, so codes added upstream stay out:
 
 - `ShortNotCapital` and `LongNotCapital`: the summary and the description start with a capital letter. Code at the
   start can go in backticks.
-- `SpacingAfter`, `SpacingBetween` and `SpacingAfterTagGroup`: one blank line between the summary and the
-  description, and after each group of tags, and none after the last line.
+- `SpacingAfter`, `SpacingBetween`, `SpacingBeforeTags` and `SpacingAfterTagGroup`: one blank line between the
+  summary, the description and the tags, and after each group of tags, and none after the last line. An `@see` that
+  isn't inline is a tag, so it has a blank line before it, as in the description then a blank line then `@see`.
 
-`SpacingBeforeTags`, `ParamNotFirst`, `ParamGroup` and `TagsNotGrouped` are replaced by
-[`Jumbo.Commenting.PhpDocTags`](Jumbo_Custom_Sniffs.md#jumbocommentingphpdoctags), which allows an `@see` in the
-description, and only requires the `@param` tags together and in order, then `@return`, then `@throws`.
+`ParamNotFirst`, `ParamGroup` and `TagsNotGrouped` are replaced by
+[`Jumbo.Commenting.PhpDocTags`](Jumbo_Custom_Sniffs.md#jumbocommentingphpdoctags), which only requires the `@param`
+tags together and in order, then `@return`, then `@throws`.
 
 A one-line doc comment isn't checked, a doc comment needn't start with a summary (an inline `@var`), and an empty one
 is `SlevomatCodingStandard.Commenting.EmptyComment`'s.

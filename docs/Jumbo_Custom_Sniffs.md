@@ -342,7 +342,6 @@ every `@var` tag.
 | `VarName`              | A property's or constant's `@var` names the variable, which is redundant        |
 | `VarNameOrder`         | An inline `@var` has the name before the type, as in `@var $a int`              |
 | `VarInBlockComment`    | An inline `@var` is in a `/* */` comment, which tools ignore                    |
-| `SpacingBeforeTags`    | The first tag hasn't exactly one blank line before it                           |
 | `ParamOrder`           | The `@param` tags aren't in the order of the parameters. Not fixed              |
 | `ParamsNotTogether`    | Another tag or a blank line is between `@param` tags. Not fixed                 |
 | `ReturnNotAfterParams` | A `@return` comes before a `@param`. Not fixed                                  |
@@ -393,28 +392,9 @@ every `@var` tag.
   `SlevomatCodingStandard.PHP.RequireExplicitAssertion`, where it can be.
 
 - **Where the tags are:** no tag has to be in any place, so `@see`, `@todo`, `@fixme` and the rest can go where they
-  read best. Only the `@param` tags must be together and in order, then `@return`, then `@throws`. These replace
-  `Generic.Commenting.DocComment`'s `ParamNotFirst`, `ParamGroup` and `TagsNotGrouped`, which put the `@param` tags
-  first and every tag with the others of its name.
-- **`@see` in the description:** an `@see` straight after the description, or in its own paragraph, is part of it,
-  not the first tag, so `SpacingBeforeTags` checks the blank line before the tag after it. Both of these are allowed:
-
-  ```php
-  /**
-   * Like uasort(), but returns a new Dictionary.
-   * @see https://www.php.net/manual/en/function.uasort.php
-   *
-   * @param callable $fn The comparison function.
-   */
-  ```
-
-  ```php
-  /**
-   * Like {@see https://www.php.net/manual/en/function.uasort.php uasort()}, but returns a new Dictionary.
-   *
-   * @param callable $fn The comparison function.
-   */
-  ```
+  read best, including first. Only the `@param` tags must be together and in order, then `@return`, then `@throws`.
+  These replace `Generic.Commenting.DocComment`'s `ParamNotFirst`, `ParamGroup` and `TagsNotGrouped`, which put the
+  `@param` tags first and every tag with the others of its name.
 
 **Why:** PER Coding Style 3.1 has no rule for docblocks, so this is an extra rule. It replaces
 `SlevomatCodingStandard.Commenting.AnnotationName`, whose block tag check skips every tag in a file with a `namespace`
