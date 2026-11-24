@@ -7,9 +7,9 @@ namespace Jumbo\Tests\Commenting;
 use PHP_CodeSniffer\Tests\Standards\AbstractSniffTestCase;
 
 /**
- * Unit tests for Jumbo.Commenting.NormalizePhpDocTags sniff.
+ * Unit tests for Jumbo.Commenting.PhpDocTags sniff.
  */
-class NormalizePhpDocTagsUnitTest extends AbstractSniffTestCase
+class PhpDocTagsUnitTest extends AbstractSniffTestCase
 {
     /**
      * Returns the lines where errors should occur.

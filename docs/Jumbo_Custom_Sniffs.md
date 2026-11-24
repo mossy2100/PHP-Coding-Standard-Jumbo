@@ -16,7 +16,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.Classes.RequireSingleLineMethodSignature`           | A short signature on one line, skipping a promoted hook         | Yes     |
 | `Jumbo.Commenting.BlockComment`                            | A block comment's indents, and the spaces around one on a line  | Yes     |
 | `Jumbo.Commenting.DisallowHashComments`                    | `//` for a comment, not `#`, except `#region` and `#endregion`  | Yes     |
-| `Jumbo.Commenting.NormalizePhpDocTags`                     | Docblock tag names in their usual case, with no aliases         | Yes     |
+| `Jumbo.Commenting.PhpDocTags`                              | Docblock tag names in their usual case, with no aliases         | Yes     |
 | `Jumbo.Commenting.TrailingComment`                         | One space between code and a `//` comment after it              | Yes     |
 | `Jumbo.ControlStructures.HeaderLayout`                     | A header on one line if it fits, else split with its condition  | Yes     |
 | `Jumbo.ControlStructures.LanguageConstructWithParentheses` | No `echo('x')`, allowing `exit()` and `die()`                   | Yes     |
@@ -251,7 +251,7 @@ const DAY = 86400;
 
 ---
 
-## Jumbo.Commenting.NormalizePhpDocTags
+## Jumbo.Commenting.PhpDocTags
 
 Normalizes docblock tag names, and the format of inline tags.
 

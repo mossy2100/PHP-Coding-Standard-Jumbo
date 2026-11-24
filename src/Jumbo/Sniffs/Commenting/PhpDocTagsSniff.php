@@ -34,7 +34,7 @@ use SlevomatCodingStandard\Helpers\UseStatementHelper;
  * @copyright Fabien Potencier and Dariusz Rumiński (the inline format check)
  * @license   MIT
  */
-class NormalizePhpDocTagsSniff implements Sniff
+class PhpDocTagsSniff implements Sniff
 {
     public const string CODE_CASING = 'Casing';
 
