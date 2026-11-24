@@ -195,6 +195,8 @@
     <rule ref="SlevomatCodingStandard.Namespaces.DisallowGroupUse"/>
     <rule ref="SlevomatCodingStandard.Namespaces.MultipleUsesPerLine"/>
     <rule ref="SlevomatCodingStandard.Namespaces.NamespaceDeclaration"/>
+    <!-- A namespace's name in ASCII, so no two names look the same -->
+    <rule ref="Jumbo.NamingConventions.ValidNamespaceName"/>
     <rule ref="SlevomatCodingStandard.Namespaces.ReferenceUsedNamesOnly"/>
     <rule ref="SlevomatCodingStandard.Namespaces.RequireOneNamespaceInFile"/>
     <!-- Replaced by Jumbo.Namespaces.UnusedUses, which waits while a use keyword is miscased (Slevomat bug) -->

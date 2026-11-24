@@ -27,6 +27,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.Functions.RequireSingleLineCall`                    | A call that fits is on one line, skipping a class or `match`    | Yes     |
 | `Jumbo.Functions.RequireSingleLineSignature`               | A split function or closure signature fits on a line            | Yes     |
 | `Jumbo.Namespaces.UnusedUses`                              | No unused `use` statements, safe with a miscased `use Function` | Yes     |
+| `Jumbo.NamingConventions.ValidNamespaceName`               | A namespace's name in ASCII                                     | No      |
 | `Jumbo.NamingConventions.ValidVariableName`                | No leading underscore on a variable or parameter in a class     | No      |
 | `Jumbo.PHP.DisallowInvisibleCharacters`                    | No invisible characters, such as a tab or zero-width space      | Mostly  |
 | `Jumbo.Operators.IncrementStyle`                           | `$i++;`, not `++$i;`, where the value isn't used                | Yes     |
@@ -808,6 +809,33 @@ next pass the import is read correctly. Everything else is left to the parent. I
 check.
 
 **Auto-fixable:** yes, as the parent.
+
+---
+
+## Jumbo.NamingConventions.ValidNamespaceName
+
+Requires a namespace's name to be in ASCII, as `NonAscii`.
+
+**Why:** PER Coding Style 3.1 has no rule for this, so this is an extra rule. PHP accepts any byte from `\x80` in a
+name, so any Unicode character, including invisible ones and look-alike letters, such as a Cyrillic `а` for a Latin
+`a`, and two names can look the same and be different. An accent can also be one character or a letter and a
+combining mark. Jumbo's other naming sniffs already reject a non-ASCII class, function, method, property, constant or
+variable name, as their case patterns only allow ASCII; this covers a namespace. It widens php-cs-fixer's
+`no_homoglyph_names`.
+
+**Auto-fixable:** no. There's no safe transliteration, and renaming one use of a namespace breaks the others.
+
+**Good:**
+
+```php
+namespace Vendor\Cafe;
+```
+
+**Bad:**
+
+```php
+namespace Vendor\Café;
+```
 
 ---
 
