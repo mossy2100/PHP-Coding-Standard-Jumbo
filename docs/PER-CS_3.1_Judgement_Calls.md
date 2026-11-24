@@ -595,6 +595,33 @@ try {
 
 ---
 
+### Compound Types in Doc Comments
+
+**Issue:** [Section 2.5](https://www.php-fig.org/per/coding-style/#25-keywords-and-types) sets rules for compound types:
+
+> If one of the ORed conditions is `null`, it MUST be the last item in the list.
+>
+> A union of a single simple type with `null` SHOULD be abbreviated using the `?` alternate syntax: `?T`.
+
+It also says there's no space around `|` and `&`, and how a split type's lines are laid out. Its examples are all native
+types, and the spec has no rules for doc comments, so it's unclear whether these cover a type in a `@param`, `@return`
+or `@var` tag.
+
+**Decision:** They do. A compound type in a doc comment follows the same rules as a native one:
+
+```php
+/**
+ * @param int|null $a Reported: use ?int.
+ * @param string|int|null $b Right.
+ * @return null|list<int> Reported: null must be last.
+ */
+```
+
+**Why:** The rules are about compound types, not native ones, and make no exception for doc comments. A doc type is the
+same type, written where PHP doesn't parse it.
+
+---
+
 ### Magic Constants
 
 **Issue:** [Section 2.5](https://www.php-fig.org/per/coding-style/#25-keywords-and-types) says "All PHP reserved keywords and types MUST be in lower case". PHP's list of reserved keywords
@@ -1787,6 +1814,24 @@ split, the closure's attribute follows the rule for a single-line list, inline. 
 
 ---
 
+### A Call Over the Line Length
+
+**Issue:** [Section 4.7](https://www.php-fig.org/per/coding-style/#47-method-and-function-calls) says:
+
+> Argument lists MAY be split across multiple lines, where each subsequent line is indented once. When doing so, the
+> first item in the list MUST be on the next line, and there MUST be only one argument per line.
+
+[Section 2.3](https://www.php-fig.org/per/coding-style/#23-lines) says "The soft limit on line length MUST be 120
+characters." Neither says that a call on one line too long for that limit must be split.
+
+**Decision:** A call on one line that takes its line over 120 characters is a warning, as the limit is soft (see
+[Line Length](#line-length)). The fix splits its argument list as section 4.7 describes, one argument per line. An
+argument still too long for the limit is then split by its own rules, such as an expression's or a string's.
+
+**Why:** Splitting the list is the way the spec gives to bring a call within the limit.
+
+---
+
 ## 4.9 Property Hooks
 
 ### Hook Layout
@@ -2403,6 +2448,30 @@ $message = sprintf(
 
 ---
 
+### A Statement Over the Line Length
+
+**Issue:** [Section 6.4](https://www.php-fig.org/per/coding-style/#64-operators-placement) says:
+
+> A statement that includes an operator MAY be split across multiple lines, where each subsequent line is indented once.
+> When doing so, the operator MUST be placed at the beginning of the new line; ternaries MUST occupy 3 lines, never 2.
+
+[Section 2.3](https://www.php-fig.org/per/coding-style/#23-lines) says "The soft limit on line length MUST be 120
+characters." Neither says that a statement too long for that limit must be split, nor which of its operators to split
+it before.
+
+**Decision:** A statement that takes its line over 120 characters is a warning, as the limit is soft (see
+[Line Length](#line-length)). The fix splits it before its loosest operators first, with as many operands on each line
+as fit, each new line starting with the operator and indented once. Its parts are split outermost first: an array or
+call in it is only split (see [A Call Over the Line Length](#a-call-over-the-line-length) and
+[An Array Over the Line Length](#an-array-over-the-line-length)) if it still doesn't fit in the space its line leaves it
+once the statement is split on its operators. Strings aren't split; the spec says nothing about that, so it's left to
+Jumbo.
+
+**Why:** Splitting before operators is the way the spec gives to bring a statement within the limit. Splitting before
+the loosest operators first keeps the parts that bind most tightly together on a line.
+
+---
+
 ### Operators in Grouping Parentheses
 
 **Issue:** Split operators get "each subsequent line is indented once", and a split condition's lines are "indented at
@@ -2859,6 +2928,25 @@ $handlers = [
 ```
 
 **Why:** The attribute is part of the value, and neither placement breaks a rule.
+
+---
+
+### An Array Over the Line Length
+
+**Issue:** [Section 11](https://www.php-fig.org/per/coding-style/#11-arrays) says:
+
+> Array declarations MAY be split across multiple lines, where each subsequent line is indented once. When doing so,
+> the first value in the array MUST be on the next line, and there MUST be only one value per line.
+
+[Section 2.3](https://www.php-fig.org/per/coding-style/#23-lines) says "The soft limit on line length MUST be 120
+characters." Neither says that an array on one line too long for that limit must be split.
+
+**Decision:** An array on one line that takes its line over 120 characters is a warning, as the limit is soft (see
+[Line Length](#line-length)). The fix splits it as section 11 describes, one value per line, with the opening bracket
+left at the end of its line. The outermost array is split first; a nested array still too long is split after. A
+value still too long for the limit is then split by its own rules, such as an expression's or a string's.
+
+**Why:** Splitting the declaration is the way the spec gives to bring an array within the limit.
 
 ---
 
