@@ -2131,10 +2131,11 @@ enum Suit: string
 
 **Configuration:**
 
-| Property                | Type | Default | Description                                                                    |
-| ----------------------- | ---- | ------- | ------------------------------------------------------------------------------ |
-| `checkGlobalConstants`  | bool | false   | Check a global constant, and an alias of a constant, too.                      |
-| `requireUpperSnakeCase` | bool | false   | Require strict UPPER_SNAKE_CASE of a constant in upper case.                   |
+| Property                | Type | Default | Description                                                  |
+| ----------------------- | ---- | ------- | ------------------------------------------------------------ |
+| `checkGlobalConstants`  | bool | false   | Check a global constant, and an alias of a constant, too.    |
+| `requireUpperSnakeCase` | bool | false   | Require strict UPPER_SNAKE_CASE of a constant in upper case. |
+
 ---
 
 ## PERCS31.NamingConventions.ValidEnumCaseName
