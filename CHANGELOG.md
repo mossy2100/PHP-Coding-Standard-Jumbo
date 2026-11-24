@@ -629,6 +629,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
+- **`PERCS31.NamingConventions.UpperCaseConstantName` merged into `ValidConstantName` (breaking).**
+  `PERCS31.NamingConventions.ValidConstantName` now makes both checks: the case, with the old sniff's codes
+  (`ConstantNotUpperCase`, `ConstantNotUpperSnakeCase`, `EnumConstantNotPascalCase` and `EnumConstantInvalidCase`)
+  and properties (`checkGlobalConstants` and `requireUpperSnakeCase`), and the leading underscore, as `Underscore`.
+  Change any reference to `PERCS31.NamingConventions.UpperCaseConstantName`, in a ruleset or a `phpcs:ignore`, to
+  `PERCS31.NamingConventions.ValidConstantName`.
 - **`key => value` pairs, in Jumbo (breaking).** `Jumbo.Formatting.ExpressionFormat` now lays out an array element or a
   `match` arm with one condition as one expression. One too long for its line is split at the value's own operators,
   keeping `key =>` on the first line. Otherwise, a value that fits on a line of its own goes there, starting with `=>`,

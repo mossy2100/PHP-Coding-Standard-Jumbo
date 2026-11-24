@@ -94,16 +94,14 @@ The complete [PERCS31](PERCS31.md) standard is included, which is built on PSR-1
 - `PERCS31.Operators.UnaryOperatorSpacing` also disallows whitespace after a prefix unary `+`, `-`, `!`, `~` and `@`,
   as in `- $a` and `! $a`. PERCS31 only checks the reference `&` with it, as PER leaves the others
   undefined. Each has its own property, such as `checkNotOperator`, and Jumbo sets them all to `true`.
-- `PERCS31.NamingConventions.UpperCaseConstantName` has `checkGlobalConstants` set to `true`, so a global constant, from
-  `const` or `define()`, and an alias of a constant, must be in UPPER_CASE. PERCS31 doesn't check this, as PER doesn't
-  require it.
-- `PERCS31.NamingConventions.UpperCaseConstantName` also has `requireUpperSnakeCase` set to `true`, so a constant in
+- `PERCS31.NamingConventions.ValidConstantName` has `checkGlobalConstants` set to `true`, so a global constant, from
+  `const` or `define()`, and an alias of a constant, must be in UPPER_CASE, and one from a `const` statement can't start
+  with a single underscore. PERCS31 doesn't check these, as PER doesn't require them.
+- `PERCS31.NamingConventions.ValidConstantName` also has `requireUpperSnakeCase` set to `true`, so a constant in
   upper case must be in strict UPPER_SNAKE_CASE: words of capitals and digits, separated by single underscores. That
   covers class constants, global constants from `const` or `define()`, and an enum constant that isn't in PascalCase.
   So `__HIDDEN`, `TWO__WORDS` and `TRAILING_` are reported, as `ConstantNotUpperSnakeCase`. PERCS31 allows them.
-- `PERCS31.NamingConventions.ValidConstantName` has `checkGlobalConstants` set to `true`, so a global constant from a
-  `const` statement can't start with a single underscore either. PERCS31 only checks a class constant.
-- `PERCS31.NamingConventions.UpperCaseConstantName`'s `EnumConstantNotPascalCase` warning has a severity of 4, not 5, so
+- `PERCS31.NamingConventions.ValidConstantName`'s `EnumConstantNotPascalCase` warning has a severity of 4, not 5, so
   it's hidden by default, as Jumbo uses UPPER_CASE for every constant. Run `phpcs --warning-severity=4` to see
   it.
 

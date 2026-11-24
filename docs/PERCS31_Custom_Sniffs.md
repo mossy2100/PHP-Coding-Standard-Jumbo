@@ -41,9 +41,8 @@ sniff that conflicts with PER Coding Style. Each section gives the reason.
 | `PERCS31.Functions.RequireTrailingCommaInCall`             | A trailing comma in a split call, but not after `foo(...)`'s `...`      | Yes     |
 | `PERCS31.Namespaces.CompoundNamespaceLayout`               | A compound namespace's layout: on one line, or one name per line        | Yes     |
 | `PERCS31.NamingConventions.AcronymCasing`                  | A warning for an acronym in capitals in a name                          | No      |
-| `PERCS31.NamingConventions.UpperCaseConstantName`          | Constants in UPPER_CASE, or PascalCase in an enum                       | No      |
 | `PERCS31.NamingConventions.ValidClassName`                 | Classes, interfaces, traits and enums in PascalCase                     | No      |
-| `PERCS31.NamingConventions.ValidConstantName`              | No leading underscore on a constant                                     | No      |
+| `PERCS31.NamingConventions.ValidConstantName`              | Constants in UPPER_CASE, or PascalCase in an enum, with no `_` prefix   | No      |
 | `PERCS31.NamingConventions.ValidEnumCaseName`              | Enum cases in PascalCase                                                | No      |
 | `PERCS31.Operators.OperatorPlacement`                      | A wrapped operator starts its line, and a split ternary takes three     | Yes     |
 | `PERCS31.Operators.OperatorSpacing`                        | At least one space around binary operators, including `\|>`             | Yes     |
@@ -2034,79 +2033,6 @@ class HTTPClient
 
 ---
 
-## PERCS31.NamingConventions.UpperCaseConstantName
-
-Requires class constant names in UPPER_CASE, except in an enum, where PascalCase is also allowed, and recommended. This
-replaces `Generic.NamingConventions.UpperCaseConstantName`.
-
-**Why:** PSR-1, which PER Coding Style builds on, requires class constants in UPPER_CASE, and the Generic sniff applies
-that to every constant. [PER Coding Style 3.1, Section 9](https://www.php-fig.org/per/coding-style/#9-enumerations) says constants in an enum MAY use either PascalCase or
-UPPER_CASE, and PascalCase is RECOMMENDED. So for an enum constant:
-
-- PascalCase passes, as [`ValidClassName`](#percs31namingconventionsvalidclassname) defines it.
-- UPPER_CASE gets an `EnumConstantNotPascalCase` warning. A name with no lower-case letter, such as `OK` or `A`, is
-  UPPER_CASE.
-- Anything else, such as camelCase or `Default_Colour`, gets an `EnumConstantInvalidCase` error.
-
-A global constant, from `const` or `define()`, isn't checked by default, as neither PSR-1 nor PER has a rule for it. Set
-`checkGlobalConstants` to require UPPER_CASE of these, and of an alias of a constant, as in `use const Foo\BAR as BAZ;`.
-It reports them with the `ConstantNotUpperCase` code:
-
-```xml
-<rule ref="PERCS31.NamingConventions.UpperCaseConstantName">
-    <properties>
-        <property name="checkGlobalConstants" value="true"/>
-    </properties>
-</rule>
-```
-
-Set `requireUpperSnakeCase` to require strict UPPER_SNAKE_CASE of every constant in upper case that the sniff checks:
-words of capitals and digits, separated by single underscores. So `__HIDDEN`, `TWO__WORDS` and `TRAILING_` are reported,
-as `ConstantNotUpperSnakeCase`. PER has no such rule, so it's off by default. The [Jumbo standard](Jumbo.md) turns it on. A single
-leading underscore on a `const` is left to [`ValidConstantName`](#percs31namingconventionsvalidconstantname).
-
-Other class, interface and trait constants are left to the parent.
-
-**Auto-fixable:** no.
-
-**Good:**
-
-```php
-const MAX_RETRIES = 3;
-
-enum Suit: string
-{
-    case Hearts = 'h';
-
-    public const string DefaultColour = 'red';
-}
-```
-
-**Bad:**
-
-```php
-class Retry
-{
-    public const int maxRetries = 3;
-}
-
-enum Suit: string
-{
-    case Hearts = 'h';
-
-    public const string defaultColour = 'red';
-}
-```
-
-**Configuration:**
-
-| Property                | Type | Default | Description                                                           |
-| ----------------------- | ---- | ------- | --------------------------------------------------------------------- |
-| `checkGlobalConstants`  | bool | false   | Require UPPER_CASE for a global constant, and an alias of a constant. |
-| `requireUpperSnakeCase` | bool | false   | Require strict UPPER_SNAKE_CASE of a constant in upper case.          |
-
----
-
 ## PERCS31.NamingConventions.ValidClassName
 
 Requires class, interface, trait and enum names to be in PascalCase: a capital first letter, only letters and digits,
@@ -2142,42 +2068,73 @@ interface JSON {}
 
 ## PERCS31.NamingConventions.ValidConstantName
 
-Disallows a class constant name that starts with an underscore. A double underscore, as in `__A`, passes, as section 4.3
-says "a single underscore", and it passes on a method.
+Checks constant names: class constants in UPPER_CASE, except in an enum, where PascalCase is also allowed, and
+recommended, and no constant name with a single leading underscore. This replaces
+`Generic.NamingConventions.UpperCaseConstantName`.
 
-A global constant isn't checked by default, as the rule is about showing visibility, which only a class constant has.
-Set `checkGlobalConstants` to check a `const` statement at file scope too, as the [Jumbo standard](Jumbo.md) does. A constant made
-with `define()` isn't checked.
+**The case.** PSR-1, which PER Coding Style builds on, requires class constants in UPPER_CASE, and the Generic sniff
+applies that to every constant. [PER Coding Style 3.1, Section 9](https://www.php-fig.org/per/coding-style/#9-enumerations) says constants in an enum MAY use either PascalCase or
+UPPER_CASE, and PascalCase is RECOMMENDED. So for an enum constant:
 
-**Why:** [PER Coding Style 3.1, Section 4.3](https://www.php-fig.org/per/coding-style/#43-properties-and-constants) says constant names MUST NOT start with an underscore.
-`Generic.NamingConventions.UpperCaseConstantName` only checks the case, so `const _HIDDEN = 1;` passes it.
+- PascalCase passes, as [`ValidClassName`](#percs31namingconventionsvalidclassname) defines it.
+- UPPER_CASE gets an `EnumConstantNotPascalCase` warning. A name with no lower-case letter, such as `OK` or `A`, is
+  UPPER_CASE.
+- Anything else, such as camelCase or `Default_Colour`, gets an `EnumConstantInvalidCase` error.
+
+Other class, interface and trait constants are left to the parent, as `ClassConstantNotUpperCase`.
+
+**The underscore.** [PER Coding Style 3.1, Section 4.3](https://www.php-fig.org/per/coding-style/#43-properties-and-constants) says constant names MUST NOT be prefixed with a single underscore,
+reported as `Underscore`. A double underscore, as in `__A`, passes, as section 4.3 says "a single underscore", and it
+passes on a method.
+
+**Global constants.** A global constant isn't checked by default, as neither PSR-1 nor PER has a rule for it, and the
+underscore rule is about showing visibility, which only a class constant has. Set `checkGlobalConstants` to check one:
+UPPER_CASE for a constant from `const` or `define()`, and for an alias of a constant, as in `use const Foo\BAR as BAZ;`,
+reported as `ConstantNotUpperCase`, and no leading underscore on one from `const`. The [Jumbo standard](Jumbo.md) turns it on.
+
+**UPPER_SNAKE_CASE.** Set `requireUpperSnakeCase` to require strict UPPER_SNAKE_CASE of every constant in upper case
+that the sniff checks: words of capitals and digits, separated by single underscores. So `__HIDDEN`, `TWO__WORDS` and
+`TRAILING_` are reported, as `ConstantNotUpperSnakeCase`. A single leading underscore on a `const` is only reported as
+`Underscore`. PER has no such rule, so it's off by default. The Jumbo standard turns it on.
 
 **Auto-fixable:** no. Renaming a constant is a refactor, not a fix.
 
 **Good:**
 
 ```php
-final class Config
+const MAX_RETRIES = 3;
+
+enum Suit: string
 {
-    public const int LIMIT = 10;
+    case Hearts = 'h';
+
+    public const string DefaultColour = 'red';
 }
 ```
 
 **Bad:**
 
 ```php
-final class Config
+class Retry
 {
+    public const int maxRetries = 3;
     public const int _LIMIT = 10;
+}
+
+enum Suit: string
+{
+    case Hearts = 'h';
+
+    public const string defaultColour = 'red';
 }
 ```
 
 **Configuration:**
 
-| Property               | Type | Default | Description                                             |
-| ---------------------- | ---- | ------- | ------------------------------------------------------- |
-| `checkGlobalConstants` | bool | false   | Check a global constant, from a `const` statement, too. |
-
+| Property                | Type | Default | Description                                                                    |
+| ----------------------- | ---- | ------- | ------------------------------------------------------------------------------ |
+| `checkGlobalConstants`  | bool | false   | Check a global constant, and an alias of a constant, too.                      |
+| `requireUpperSnakeCase` | bool | false   | Require strict UPPER_SNAKE_CASE of a constant in upper case.                   |
 ---
 
 ## PERCS31.NamingConventions.ValidEnumCaseName

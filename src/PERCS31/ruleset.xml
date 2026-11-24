@@ -334,11 +334,9 @@
          keyword (9). -->
     <rule ref="PERCS31.Classes.ConstantDeclaration"/>
 
-    <!-- No leading underscore on a constant (4.3) -->
+    <!-- Class constants in UPPER_CASE (PSR-1), except in an enum, where a warning recommends PascalCase (9), and no
+         leading underscore on a constant (4.3) -->
     <rule ref="PERCS31.NamingConventions.ValidConstantName"/>
-
-    <!-- Class constants in UPPER_CASE (PSR-1), except in an enum, where a warning recommends PascalCase (9) -->
-    <rule ref="PERCS31.NamingConventions.UpperCaseConstantName"/>
 
     <!-- One property per statement (4.3) -->
     <rule ref="SlevomatCodingStandard.Classes.DisallowMultiPropertyDefinition"/>

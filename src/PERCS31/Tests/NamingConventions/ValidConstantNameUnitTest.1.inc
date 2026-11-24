@@ -55,7 +55,7 @@ enum LowerSuit: string
 
 // === GLOBAL CONSTANTS, WHEN CHECKED ===
 
-// phpcs:set PERCS31.NamingConventions.UpperCaseConstantName checkGlobalConstants true
+// phpcs:set PERCS31.NamingConventions.ValidConstantName checkGlobalConstants true
 const CHECKED_LIMIT = 1;
 define('CHECKED_DEFINED', 2);
 const checkedLimit = 1;
@@ -78,7 +78,7 @@ class CheckedTrait
 
 use const Foo\BAR as checkedAlias;
 use Foo\{const BAZ as checkedGroupAlias, Qux};
-// phpcs:set PERCS31.NamingConventions.UpperCaseConstantName checkGlobalConstants false
+// phpcs:set PERCS31.NamingConventions.ValidConstantName checkGlobalConstants false
 
 enum SeveralConstants
 {
@@ -101,14 +101,14 @@ enum HoldsClosure
 }
 
 // With requireUpperSnakeCase on, a constant in upper case must be in strict UPPER_SNAKE_CASE.
-// phpcs:set PERCS31.NamingConventions.UpperCaseConstantName requireUpperSnakeCase true
-// phpcs:set PERCS31.NamingConventions.UpperCaseConstantName checkGlobalConstants true
+// phpcs:set PERCS31.NamingConventions.ValidConstantName requireUpperSnakeCase true
+// phpcs:set PERCS31.NamingConventions.ValidConstantName checkGlobalConstants true
 const STRICT_VALID = 1;
 const HTTP_2 = 2;
 const __DOUBLE_LEADING = 3;
 const TWO__WORDS = 4;
 const TRAILING_ = 5;
-const _SINGLE_LEADING = 6; // Left to ValidConstantName.
+const _SINGLE_LEADING = 6; // The Underscore check only.
 define('_DEFINED_LEADING', 7);
 define('DEFINED__TWO', 8);
 define('DEFINED_VALID', 9);
@@ -129,5 +129,5 @@ enum StrictEnum
     public const UPPER_NAME = 2;
     public const UPPER__NAME = 3;
 }
-// phpcs:set PERCS31.NamingConventions.UpperCaseConstantName checkGlobalConstants false
-// phpcs:set PERCS31.NamingConventions.UpperCaseConstantName requireUpperSnakeCase false
+// phpcs:set PERCS31.NamingConventions.ValidConstantName checkGlobalConstants false
+// phpcs:set PERCS31.NamingConventions.ValidConstantName requireUpperSnakeCase false

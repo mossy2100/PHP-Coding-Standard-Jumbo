@@ -838,8 +838,8 @@ class RulesetUnitTest extends TestCase
      */
     public function testEnumConstantCaseWarningNeedsWarningSeverity4InJumbo(): void
     {
-        $fixture = dirname(__DIR__, 2) . '/PERCS31/Tests/NamingConventions/UpperCaseConstantNameUnitTest.inc';
-        $args = ['-s', '--standard=Jumbo', '--sniffs=PERCS31.NamingConventions.UpperCaseConstantName', $fixture];
+        $fixture = dirname(__DIR__, 2) . '/PERCS31/Tests/NamingConventions/ValidConstantNameUnitTest.1.inc';
+        $args = ['-s', '--standard=Jumbo', '--sniffs=PERCS31.NamingConventions.ValidConstantName', $fixture];
         $default = $this->runTool('phpcs', ['--report=emacs', ...$args]);
         $severity4 = $this->runTool('phpcs', ['--report=emacs', '--warning-severity=4', ...$args]);
 
@@ -971,7 +971,7 @@ class RulesetUnitTest extends TestCase
         $source = "<?php\n\nconst TWO__WORDS = 1;\n\ndefine('_LEADING', 2);\n\nclass Holder\n{\n    public const "
             . "__HIDDEN = 3;\n    public const VALID_NAME = 4;\n}\n";
         $file = $this->copyToTempFile(null, $source);
-        $sniff = '--sniffs=PERCS31.NamingConventions.UpperCaseConstantName';
+        $sniff = '--sniffs=PERCS31.NamingConventions.ValidConstantName';
         $reports = [];
 
         try {

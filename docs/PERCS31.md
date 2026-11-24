@@ -51,7 +51,7 @@ The complete [PSR-12](https://www.php-fig.org/psr/psr-12/) standard is included.
   **Squiz.ControlStructures.LowercaseDeclaration** and **Squiz.Functions.LowercaseFunctionKeywords** are excluded, as it
   reports every keyword they do, so an upper-case `IF` or `FUNCTION` was reported twice.
 - **Generic.PHP.LowerCaseType**, by [`PERCS31.PHP.CanonicalTypes`](PERCS31_Custom_Sniffs.md#percs31phpcanonicaltypes), which also checks a `set` hook's parameter type, an enum's type and doc types.
-- **Generic.NamingConventions.UpperCaseConstantName**, from PSR-1, by [`PERCS31.NamingConventions.UpperCaseConstantName`](PERCS31_Custom_Sniffs.md#percs31namingconventionsuppercaseconstantname),
+- **Generic.NamingConventions.UpperCaseConstantName**, from PSR-1, by [`PERCS31.NamingConventions.ValidConstantName`](PERCS31_Custom_Sniffs.md#percs31namingconventionsvalidconstantname),
   which allows PascalCase for an enum constant.
 - **PSR12.Classes.ClosingBrace**, by [`PERCS31.Formatting.AfterClosingBrace`](PERCS31_Custom_Sniffs.md#percs31formattingafterclosingbrace), which checks every closing brace.
 - **PSR12.Classes.OpeningBraceSpace**, by [`PERCS31.Classes.ClassDeclaration`](PERCS31_Custom_Sniffs.md#percs31classesclassdeclaration), which doesn't report a blank line after an

@@ -6,28 +6,57 @@ namespace PERCS31\Sniffs\NamingConventions;
 
 use PERCS31\Helpers\NamingHelper;
 use PHP_CodeSniffer\Files\File;
-use PHP_CodeSniffer\Sniffs\Sniff;
+use PHP_CodeSniffer\Standards\Generic\Sniffs\NamingConventions\UpperCaseConstantNameSniff as GenericSniff;
 use PHPCSUtils\Utils\Scopes;
+use PHPCSUtils\Utils\TextStrings;
 
 /**
- * Disallows a constant name that starts with an underscore.
+ * Checks constant names: class constants in UPPER_CASE, except in an enum, where PascalCase is also allowed, and
+ * recommended, and no single leading underscore.
  *
- * PER Coding Style 3.1, section 4.3, says constant names MUST NOT be prefixed with a single underscore. A double
- * underscore, as in `__A`, is allowed, as PSR2.Methods.MethodDeclaration reads the same rule for methods.
- * Generic.NamingConventions.UpperCaseConstantName only checks the case, so `const _HIDDEN = 1;` passes it.
+ * PER Coding Style 3.1, section 4.3, says constant names MUST NOT be prefixed with a single underscore, reported as
+ * Underscore. A double underscore, as in `__A`, is allowed, as PSR2.Methods.MethodDeclaration reads the same rule for
+ * methods. The rule is about showing visibility, which only a class constant has, so a global constant is only checked
+ * with checkGlobalConstants on, and a constant made with `define()` isn't checked for it.
  *
- * The rule is about showing visibility, which only a class constant has, so a global constant isn't checked by
- * default. Set checkGlobalConstants to check a `const` statement at file scope too, as the Jumbo standard does. A
- * constant made with `define()` isn't checked.
+ * Generic.NamingConventions.UpperCaseConstantName, from PSR-1, requires every constant name in UPPER_CASE, but PSR-1
+ * only requires it of class constants. So this sniff changes two things:
+ * - A global constant, from `const` or `define()`, isn't checked by default. Set checkGlobalConstants to check it, and
+ *   any alias of a constant. The parent reports a global `const` as a class constant, with the
+ *   ClassConstantNotUpperCase code, and this sniff reports it as `define()` is reported, with ConstantNotUpperCase.
+ * - PER Coding Style 3.1, section 9, says constants in an enum MAY use either PascalCase or UPPER_CASE, and PascalCase
+ *   is RECOMMENDED. So for an enum constant, this sniff allows PascalCase, reports UPPER_CASE with a warning, and
+ *   anything else, such as camelCase or `Default_Colour`, with an error. A name with no lower-case letter, such as
+ *   `OK` or `A`, is UPPER_CASE. An acronym in capitals in a PascalCase name, as in `HTTPStatus`, isn't reported here.
+ *   AcronymCasing warns about it.
  */
-class ValidConstantNameSniff implements Sniff
+class ValidConstantNameSniff extends GenericSniff
 {
     public const string CODE_UNDERSCORE = 'Underscore';
 
     /**
-     * Whether to check a global constant too, from a `const` statement outside a class.
+     * The parent's code for a constant made with define(), used here for a global const too.
+     */
+    public const string CODE_CONSTANT_NOT_UPPER_CASE = 'ConstantNotUpperCase';
+
+    public const string CODE_CONSTANT_NOT_UPPER_SNAKE_CASE = 'ConstantNotUpperSnakeCase';
+
+    public const string CODE_ENUM_CONSTANT_NOT_PASCAL_CASE = 'EnumConstantNotPascalCase';
+
+    public const string CODE_ENUM_CONSTANT_INVALID_CASE = 'EnumConstantInvalidCase';
+
+    /**
+     * Whether to check global constants too: from `const` or `define()`, and aliases of constants, for being in
+     * UPPER_CASE, and from `const` for a leading underscore. PER doesn't require either.
      */
     public bool $checkGlobalConstants = false;
+
+    /**
+     * Whether a constant in upper case must be in strict UPPER_SNAKE_CASE: words of capitals and digits, separated by
+     * single underscores. It applies to every constant this sniff checks. PER Coding Style has no such rule, so it's
+     * off by default. The Jumbo standard turns it on.
+     */
+    public bool $requireUpperSnakeCase = false;
 
     /**
      * Returns an array of tokens this test wants to listen for.
@@ -36,7 +65,7 @@ class ValidConstantNameSniff implements Sniff
      */
     public function register(): array
     {
-        return [T_CONST];
+        return [...parent::register(), T_AS];
     }
 
     /**
@@ -47,23 +76,151 @@ class ValidConstantNameSniff implements Sniff
      */
     public function process(File $phpcsFile, int $stackPtr): void
     {
-        if (!$this->checkGlobalConstants && !Scopes::isOOConstant($phpcsFile, $stackPtr)) {
+        $tokens = $phpcsFile->getTokens();
+        if ($tokens[$stackPtr]['code'] === T_AS) {
+            $aliasPtr = $this->checkGlobalConstants ? NamingHelper::findConstantAlias($phpcsFile, $stackPtr) : false;
+            if ($aliasPtr !== false) {
+                $this->checkGlobalConstant($phpcsFile, $aliasPtr);
+                $this->checkSnakeCase($phpcsFile, $aliasPtr, $tokens[$aliasPtr]['content'], false);
+            }
+
             return;
         }
 
-        $tokens = $phpcsFile->getTokens();
-        foreach (NamingHelper::findConstantNames($phpcsFile, $stackPtr) as $namePtr) {
-            $name = $tokens[$namePtr]['content'];
-            if (!str_starts_with($name, '_') || str_starts_with($name, '__')) {
-                continue;
+        if ($tokens[$stackPtr]['code'] !== T_CONST) {
+            // Anything else the parent checks is a call to `define()`.
+            if ($this->checkGlobalConstants) {
+                parent::process($phpcsFile, $stackPtr);
+                $namePtr = NamingHelper::findDefinedConstantName($phpcsFile, $stackPtr);
+                if ($namePtr !== false) {
+                    $name = TextStrings::stripQuotes($tokens[$namePtr]['content']);
+                    $this->checkSnakeCase($phpcsFile, $namePtr, $name, false);
+                }
             }
 
+            return;
+        }
+
+        $isClassConstant = Scopes::isOOConstant($phpcsFile, $stackPtr);
+        $isEnum = $isClassConstant && Scopes::validDirectScope($phpcsFile, $stackPtr, T_ENUM) !== false;
+        if ($isClassConstant && !$isEnum) {
+            parent::process($phpcsFile, $stackPtr);
+        }
+
+        foreach (NamingHelper::findConstantNames($phpcsFile, $stackPtr) as $namePtr) {
+            if ($isClassConstant || $this->checkGlobalConstants) {
+                $this->checkUnderscore($phpcsFile, $namePtr);
+            }
+
+            if ($isEnum) {
+                $this->checkEnumConstant($phpcsFile, $namePtr);
+            } elseif (!$isClassConstant && $this->checkGlobalConstants) {
+                $this->checkGlobalConstant($phpcsFile, $namePtr);
+            }
+
+            if ($isClassConstant || $this->checkGlobalConstants) {
+                $this->checkSnakeCase($phpcsFile, $namePtr, $tokens[$namePtr]['content'], true);
+            }
+        }
+    }
+
+    /**
+     * Report a constant in upper case that isn't in strict UPPER_SNAKE_CASE, if requireUpperSnakeCase is on.
+     *
+     * A name with a lower-case letter is left to the case checks. A single leading underscore on a `const` is left to
+     * the Underscore check.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $namePtr The position of the name.
+     * @param string $name The name, without quotes.
+     * @param bool $isConstStatement Whether the name is from a `const` statement, not `define()` or an alias.
+     */
+    private function checkSnakeCase(File $phpcsFile, int $namePtr, string $name, bool $isConstStatement): void
+    {
+        if (!$this->requireUpperSnakeCase || strtoupper($name) !== $name) {
+            return;
+        }
+
+        $hasSingleUnderscore = str_starts_with($name, '_') && !str_starts_with($name, '__');
+        $checked = $isConstStatement && $hasSingleUnderscore ? substr($name, 1) : $name;
+        if (preg_match('/^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$/', $checked) === 1) {
+            return;
+        }
+
+        $phpcsFile->addError(
+            'Constant name "%s" must be in UPPER_SNAKE_CASE: capitals and digits, with single underscores between',
+            $namePtr,
+            self::CODE_CONSTANT_NOT_UPPER_SNAKE_CASE,
+            [$name],
+        );
+    }
+
+    /**
+     * Report a constant name that starts with a single underscore.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $namePtr The position of the name.
+     */
+    private function checkUnderscore(File $phpcsFile, int $namePtr): void
+    {
+        $name = $phpcsFile->getTokens()[$namePtr]['content'];
+        if (str_starts_with($name, '_') && !str_starts_with($name, '__')) {
             $phpcsFile->addError(
                 'Constant name "%s" must not be prefixed with an underscore',
                 $namePtr,
                 self::CODE_UNDERSCORE,
-                [$tokens[$namePtr]['content']],
+                [$name],
             );
         }
+    }
+
+    /**
+     * Check that a global constant or an alias of one is in UPPER_CASE.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $namePtr The position of the name.
+     */
+    private function checkGlobalConstant(File $phpcsFile, int $namePtr): void
+    {
+        $name = $phpcsFile->getTokens()[$namePtr]['content'];
+        if (strtoupper($name) !== $name) {
+            $phpcsFile->addError(
+                'Constants must be uppercase; expected %s but found %s',
+                $namePtr,
+                self::CODE_CONSTANT_NOT_UPPER_CASE,
+                [strtoupper($name), $name],
+            );
+        }
+    }
+
+    /**
+     * Check an enum constant's name: PascalCase passes, UPPER_CASE gets a warning, and anything else an error.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $namePtr The position of the constant's name.
+     */
+    private function checkEnumConstant(File $phpcsFile, int $namePtr): void
+    {
+        $name = $phpcsFile->getTokens()[$namePtr]['content'];
+        if (NamingHelper::isPascalCase($name)) {
+            return;
+        }
+
+        if (strtoupper($name) === $name) {
+            $phpcsFile->addWarning(
+                'An enum constant should be in PascalCase; found %s',
+                $namePtr,
+                self::CODE_ENUM_CONSTANT_NOT_PASCAL_CASE,
+                [$name],
+            );
+            return;
+        }
+
+        $phpcsFile->addError(
+            'An enum constant must be in PascalCase or UPPER_CASE; found %s',
+            $namePtr,
+            self::CODE_ENUM_CONSTANT_INVALID_CASE,
+            [$name],
+        );
     }
 }

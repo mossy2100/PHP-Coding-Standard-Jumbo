@@ -170,7 +170,7 @@ class AcronymCasingSniff implements Sniff
     private function findNames(File $phpcsFile, int $stackPtr): array
     {
         if ($phpcsFile->getTokens()[$stackPtr]['code'] === T_CONST) {
-            // A class constant must be in UPPER_CASE, which PERCS31.NamingConventions.UpperCaseConstantName checks.
+            // A class constant must be in UPPER_CASE, which PERCS31.NamingConventions.ValidConstantName checks.
             // Only an enum's can be in PascalCase.
             $isClassConstant = Scopes::isOOConstant($phpcsFile, $stackPtr);
             if ($isClassConstant && Scopes::validDirectScope($phpcsFile, $stackPtr, T_ENUM) === false) {
