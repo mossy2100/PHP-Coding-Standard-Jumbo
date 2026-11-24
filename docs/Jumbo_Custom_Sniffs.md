@@ -8,6 +8,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | ---------------------------------------------------------- | --------------------------------------------------------------- | ------- |
 | `Jumbo.Arrays.ArrayDeclaration`                            | A multi-line array is on one line if it fits                    | Yes     |
 | `Jumbo.Arrays.ElementComma`                                | A multi-line array element's comma on the element's last line   | Yes     |
+| `Jumbo.Classes.ClassMembers`                               | Members as the header allows, as `private` in a final class     | Mostly  |
 | `Jumbo.Classes.ConstantSpacing`                            | Blank lines after a constant, safe on the last line             | Yes     |
 | `Jumbo.Classes.EmptyLinesAroundClassBraces`                | No blank lines inside class braces, allowing `{}`               | Yes     |
 | `Jumbo.Classes.EnumCaseSpacing`                            | Blank lines after an enum case, safe on the last line           | Yes     |
@@ -125,6 +126,68 @@ $messages = [
     'greeting' => 'Hello.'
     , 'farewell' => 'Goodbye.',
 ];
+```
+
+---
+
+## Jumbo.Classes.ClassMembers
+
+Checks a class's members against what its header allows:
+
+- **`ProtectedToPrivate`:** a `protected` constant, property, method or set visibility, as in `protected(set)`, in a
+  final class that extends no class and uses no trait becomes `private`, as nothing else can see it.
+- **`StaticPrivateMethod`:** a private method whose body never uses `$this` becomes `static`, and its `$this->name()`
+  calls in the class become `self::name()`. It's left alone if it calls a method of the class that isn't static, or
+  one the sniff can't see, or uses `parent::`, a closure that isn't static, or `get_class()` with no argument. A method
+  that calls one made static qualifies on phpcbf's next pass. A magic method is never made static.
+- **`MissingStringable`:** a class with `__toString()` that neither extends a class nor implements an interface gets
+  `implements \Stringable`, which PHP adds anyway. With another interface, `Stringable` may already be inherited.
+- **`SleepWakeup`,** a warning: `__sleep()` and `__wakeup()` are superseded by `__serialize()` and
+  `__unserialize()`. Not fixed, as `__sleep()` returns property names where `__serialize()` returns the data.
+
+**Why:** PER Coding Style 3.1 has no rules for these, so this is an extra rule. Each says what the code already does:
+a member nothing else can reach is private, a method that needs no object is static, and a class that can be a string
+says so. These are php-cs-fixer's `protected_to_private`, `static_private_method`, `stringable_for_to_string` and
+`modern_serialization_methods`.
+
+**Auto-fixable:** yes, except `SleepWakeup`.
+
+**Good:**
+
+```php
+final class Price implements \Stringable
+{
+    private int $cents;
+
+    public function __toString(): string
+    {
+        return self::format($this->cents);
+    }
+
+    private static function format(int $cents): string
+    {
+        return number_format($cents / 100, 2);
+    }
+}
+```
+
+**Bad:**
+
+```php
+final class Price
+{
+    protected int $cents;
+
+    public function __toString(): string
+    {
+        return $this->format($this->cents);
+    }
+
+    private function format(int $cents): string
+    {
+        return number_format($cents / 100, 2);
+    }
+}
 ```
 
 ---

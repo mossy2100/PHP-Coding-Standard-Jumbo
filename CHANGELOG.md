@@ -608,6 +608,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Integer literals, in Jumbo (breaking).** The new `Jumbo.PHP.IntegerLiteral` reports a prefix not in lower case, or
   hex digits not in upper case, as `LiteralCase`, so `0xff` becomes `0xFF`, and, when `php_version` is 8.1 or later, a
   legacy octal literal, as `OctalPrefix`, so `0755` becomes `0o755`. Both are auto-fixable.
+- **Class members, in Jumbo (breaking).** The new `Jumbo.Classes.ClassMembers` checks a class's members against its
+  header: `private`, not `protected`, in a final class that extends no class and uses no trait (`ProtectedToPrivate`),
+  `static` for a private method that doesn't use `$this`, with its calls changed to `self::` (`StaticPrivateMethod`),
+  `implements \Stringable` for a class with `__toString()` and no other parent or interface (`MissingStringable`), all
+  fixed, and a warning for `__sleep()` and `__wakeup()` (`SleepWakeup`).
 - **Built-in names in their own case, in Jumbo (breaking).** The new `Jumbo.PHP.BuiltInNameCase` reports a built-in
   class, interface or enum not in its own case, as in `new \datetime()`, as `ClassNameCase`, and a magic method, as in
   `__tostring()`, as `MagicMethodCase`, where it's declared or called. Both are auto-fixable.

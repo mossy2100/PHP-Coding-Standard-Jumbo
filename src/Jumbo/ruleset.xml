@@ -260,6 +260,11 @@
     <!-- No $this in a static method -->
     <rule ref="Squiz.Scope.StaticThisUsage"/>
 
+    <!-- A class's members as its header allows: private, not protected, in a final class that extends no class and
+         uses no trait; static for a private method that doesn't use $this; implements Stringable with __toString();
+         and a warning for __sleep() and __wakeup() -->
+    <rule ref="Jumbo.Classes.ClassMembers"/>
+
     <rule ref="SlevomatCodingStandard.Classes.ClassLength">
         <properties>
             <property name="maxLinesLength" value="1000"/>
