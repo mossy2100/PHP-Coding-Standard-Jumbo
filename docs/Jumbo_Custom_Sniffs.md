@@ -30,6 +30,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.NamingConventions.ValidNamespaceName`               | A namespace's name in ASCII                                     | No      |
 | `Jumbo.NamingConventions.ValidVariableName`                | No leading underscore on a variable or parameter in a class     | No      |
 | `Jumbo.Operators.IncrementStyle`                           | `$i++;`, not `++$i;`, where the value isn't used                | Yes     |
+| `Jumbo.PHP.BuiltInNameCase`                                | Built-in classes and magic methods in their own case            | Yes     |
 | `Jumbo.PHP.DisallowInvisibleCharacters`                    | No invisible characters, such as a tab or zero-width space      | Mostly  |
 | `Jumbo.PHP.EmbeddedPhp`                                    | A block's tags on their own lines, level with its code          | Mostly  |
 | `Jumbo.PHP.FunctionCalls`                                  | Calls with a better form, such as a cast for `intval()`         | Mostly  |
@@ -891,6 +892,42 @@ class Order
         return $_sum;
     }
 }
+```
+
+---
+
+## Jumbo.PHP.BuiltInNameCase
+
+Requires names PHP defines to be written in their own case:
+
+- **`ClassNameCase`:** a built-in class, interface or enum, wherever it's referenced or imported: `new \datetime()`
+  becomes `new \DateTime()`, and `use random\randomizer;` becomes `use Random\Randomizer;`.
+- **`MagicMethodCase`:** a magic method, where it's declared and where it's called with `->`, `?->` or `::`:
+  `__tostring()` becomes `__toString()`, and `__CONSTRUCT()` becomes `__construct()`.
+
+Each class name is resolved as PHP resolves it, through `use` statements and the current namespace, and matched against
+the classes built into the PHP running PHP_CodeSniffer, so a project class is never touched. A class from an extension
+that isn't loaded there is missed. An alias, as in `use DateTime as Moment`, is left alone.
+
+**Why:** PER Coding Style 3.1 has no rule for this, so this is an extra rule. PHP ignores the case of class and method
+names, but a reader and a search don't, and the documented case is what everyone knows. These are php-cs-fixer's
+`class_reference_name_casing` and Laravel Pint's `magic_method_casing`. Functions are covered by
+`Squiz.PHP.LowercasePHPFunctions`.
+
+**Auto-fixable:** yes.
+
+**Good:**
+
+```php
+$date = new \DateTime();
+return $this->__toString();
+```
+
+**Bad:**
+
+```php
+$date = new \datetime();
+return $this->__tostring();
 ```
 
 ---

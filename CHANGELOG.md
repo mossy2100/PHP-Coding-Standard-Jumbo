@@ -608,6 +608,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Integer literals, in Jumbo (breaking).** The new `Jumbo.PHP.IntegerLiteral` reports a prefix not in lower case, or
   hex digits not in upper case, as `LiteralCase`, so `0xff` becomes `0xFF`, and, when `php_version` is 8.1 or later, a
   legacy octal literal, as `OctalPrefix`, so `0755` becomes `0o755`. Both are auto-fixable.
+- **Built-in names in their own case, in Jumbo (breaking).** The new `Jumbo.PHP.BuiltInNameCase` reports a built-in
+  class, interface or enum not in its own case, as in `new \datetime()`, as `ClassNameCase`, and a magic method, as in
+  `__tostring()`, as `MagicMethodCase`, where it's declared or called. Both are auto-fixable.
 - **Simpler syntax, in Jumbo (breaking).** The new `Jumbo.PHP.SimplifySyntax` requires the simpler of two forms that
   behave the same: `while`, not a `for` loop with only a condition or none (`CanSimplify` and `Infinite`), one
   `isset()` for several joined by `&&` (`ConsecutiveIssets`), one `unset()` for several in a row
