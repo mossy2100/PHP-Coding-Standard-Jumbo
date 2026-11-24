@@ -50,7 +50,7 @@ The complete [PSR-12](https://www.php-fig.org/psr/psr-12/) standard is included.
 - **Generic.PHP.LowerCaseKeyword**, by [`PERCS31.PHP.LowerCaseKeyword`](PERCS31_Custom_Sniffs.md#percs31phplowercasekeyword), which also checks a property hook's name.
   **Squiz.ControlStructures.LowercaseDeclaration** and **Squiz.Functions.LowercaseFunctionKeywords** are excluded, as it
   reports every keyword they do, so an upper-case `IF` or `FUNCTION` was reported twice.
-- **Generic.PHP.LowerCaseType**, by [`PERCS31.PHP.LowerCaseType`](PERCS31_Custom_Sniffs.md#percs31phplowercasetype), which also checks a `set` hook's parameter type.
+- **Generic.PHP.LowerCaseType**, by [`PERCS31.PHP.CanonicalTypes`](PERCS31_Custom_Sniffs.md#percs31phpcanonicaltypes), which also checks a `set` hook's parameter type, an enum's type and doc types.
 - **Generic.NamingConventions.UpperCaseConstantName**, from PSR-1, by [`PERCS31.NamingConventions.UpperCaseConstantName`](PERCS31_Custom_Sniffs.md#percs31namingconventionsuppercaseconstantname),
   which allows PascalCase for an enum constant.
 - **PSR12.Classes.ClosingBrace**, by [`PERCS31.Formatting.AfterClosingBrace`](PERCS31_Custom_Sniffs.md#percs31formattingafterclosingbrace), which checks every closing brace.
@@ -102,7 +102,7 @@ The complete [PSR-12](https://www.php-fig.org/psr/psr-12/) standard is included.
   skips a `set` hook's parameter list, which isn't a call.
 - **Squiz.Classes.ValidClassName**, from PSR-1, by [`PERCS31.NamingConventions.ValidClassName`](PERCS31_Custom_Sniffs.md#percs31namingconventionsvalidclassname), which also reports a name
   with no lower-case letter.
-- **PSR12.Keywords.ShortFormTypeKeywords**, by [`PERCS31.PHP.TypeCast`](PERCS31_Custom_Sniffs.md#percs31phptypecast), which also reports `(double)` and `(binary)`.
+- **PSR12.Keywords.ShortFormTypeKeywords**, by [`PERCS31.PHP.CanonicalTypes`](PERCS31_Custom_Sniffs.md#percs31phpcanonicaltypes), which also reports `(double)` and `(binary)`, and long names in declarations and doc types.
 
 `Squiz.Functions.FunctionDeclarationArgumentSpacing`'s `SpaceBeforeEquals` and `SpaceAfterEquals` are excluded, as a
 default value's `=` is a binary operator, which section 6.2 allows more than one space around.

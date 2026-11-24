@@ -48,10 +48,9 @@ sniff that conflicts with PER Coding Style. Each section gives the reason.
 | `PERCS31.Operators.OperatorPlacement`                      | A wrapped operator starts its line, and a split ternary takes three     | Yes     |
 | `PERCS31.Operators.OperatorSpacing`                        | At least one space around binary operators, including `\|>`             | Yes     |
 | `PERCS31.Operators.UnaryOperatorSpacing`                   | No whitespace after a reference `&`                                     | Yes     |
+| `PERCS31.PHP.CanonicalTypes`                               | Short type names, and types in lower case, in code and doc comments     | Yes     |
 | `PERCS31.PHP.LowerCaseKeyword`                             | Keywords in lower case, including a property hook's `get` or `set`      | Yes     |
-| `PERCS31.PHP.LowerCaseType`                                | Types in lower case, including a `set` hook's and an enum's type        | Yes     |
 | `PERCS31.PHP.RequireCloneParentheses`                      | A warning for `clone $a`, or `clone($a)->b`, not `clone($a)`            | Yes     |
-| `PERCS31.PHP.TypeCast`                                     | `(bool)`, `(int)`, `(float)` and `(string)` in a cast                   | Yes     |
 | `PERCS31.Strings.HeredocLayout`                            | Where a heredoc or nowdoc begins, and its indentation                   | Yes     |
 | `PERCS31.TypeHints.CompoundType`                           | A compound type's spacing and split lines, and `null` last              | Yes     |
 | `PERCS31.WhiteSpace.ArrowSpacing`                          | The space around `=>` in `match` arms and arrays                        | Yes     |
@@ -2507,6 +2506,62 @@ function & find(array & $items, string $key): mixed
 
 ---
 
+## PERCS31.PHP.CanonicalTypes
+
+Requires the canonical spelling of a type, wherever it's written. This replaces `Generic.PHP.LowerCaseType` and
+`PSR12.Keywords.ShortFormTypeKeywords`, and, in Jumbo, `SlevomatCodingStandard.TypeHints.LongTypeHints`.
+
+- **The short name** (`LongName`): `boolean`, `integer`, `double` and `binary` are fixed to `bool`, `int`, `float` and
+  `string`.
+- **Lower case** (`NotLowerCase`): PHP's own types, such as `INT`, `Bool` or `NULL`, are lowered. A class name is left
+  alone. In a doc comment, `resource` and `scalar` count too, as in php-cs-fixer's `phpdoc_types`.
+
+Both are checked in a cast, every native type declaration (a parameter, including a `set` hook's, a return type, a
+property, a typed constant and a backed enum's type), and every type in a doc comment (`@param`, `@return`, `@var`,
+`@property`, `@method` and the rest), including inside generics. A doc comment's types are all fixed at once, and only
+the types change; the rest of the comment is kept as written.
+
+In a type declaration, `integer $x` declares a class named `integer`, so fixing it to `int` changes the code. As PER
+requires the short name, the unqualified name is fixed, and `\integer` is left alone, as it's deliberate. A type that
+PHP_CodeSniffer reads as a keyword, such as `SELF`, `STATIC` or `CALLABLE`, is left to
+[`PERCS31.PHP.LowerCaseKeyword`](#percs31phplowercasekeyword), which reports it. A binary string's prefix, as in
+`b'abc'`, isn't a cast.
+
+**Why:** [PER Coding Style 3.1, Section 2.5](https://www.php-fig.org/per/coding-style/#25-keywords-and-types) says "Short form of type keywords MUST be used i.e. `bool` instead of
+`boolean`, `int` instead of `integer` etc.", and "All PHP reserved keywords and types MUST be in lower case." Neither is
+limited to native types, so doc types are checked too (see the Judgement Calls). PHP 8.5 deprecates all four long
+names as casts. The inherited sniffs each cover part: the Generic sniff doesn't see a `set` hook's parameter or an
+enum's type, the PSR-12 sniff only knows `(boolean)` and `(integer)`, Slevomat's TypeCast deletes a `(binary)` cast,
+which is an alias of `(string)`, and its LongTypeHints only knows `integer` and `boolean` in doc comments.
+
+**Auto-fixable:** yes.
+
+**Good:**
+
+```php
+/**
+ * @param array<string, bool>|null $flags The flags.
+ */
+public function count(?array $flags): int
+{
+    return (int) $this->total;
+}
+```
+
+**Bad:**
+
+```php
+/**
+ * @param array<string, boolean>|NULL $flags The flags.
+ */
+public function count(?ARRAY $flags): integer
+{
+    return (double) $this->total;
+}
+```
+
+---
+
 ## PERCS31.PHP.LowerCaseKeyword
 
 Requires PHP's keywords in lower case, including a property hook's name. This replaces `Generic.PHP.LowerCaseKeyword`,
@@ -2547,52 +2602,6 @@ class Counter
 
 ---
 
-## PERCS31.PHP.LowerCaseType
-
-Requires PHP's types in lower case, including in a `set` hook's parameter and a backed enum's type. This replaces
-`Generic.PHP.LowerCaseType`, which it extends.
-
-**Why:** [PER Coding Style 3.1, Section 2.5](https://www.php-fig.org/per/coding-style/#25-keywords-and-types) says all PHP types MUST be in lower case. The Generic sniff checks
-parameters, return types, properties, typed constants and casts, with three gaps:
-
-- It doesn't see the type of a `set` hook's parameter, as in `set(INT $value)`. PHP_CodeSniffer doesn't know about
-  hooks, so it reads that type as an expression. This sniff checks it, with the parent's `ParamTypeFound` code. A type
-  read there as a keyword, such as `SELF` or `NULL`, is already reported by `PERCS31.PHP.LowerCaseKeyword` or
-  `Generic.PHP.LowerCaseConstant`.
-- After an attribute, as in `set(#[Sensitive] INT $value)`, it reads the parameter as a property, and reports its type
-  as `PropertyTypeFound`. This sniff drops that report, and makes its own.
-- It doesn't check a backed enum's type, as in `enum Suit: STRING`. This sniff does, as `BackingTypeFound`, in the
-  parent's style.
-
-A type PHP_CodeSniffer reads as a keyword, such as `SELF`, `STATIC` or `CALLABLE`, is skipped everywhere, as
-[`PERCS31.PHP.LowerCaseKeyword`](#percs31phplowercasekeyword) reports it. The parent reported it a second time.
-
-**Auto-fixable:** yes, as the parent.
-
-**Good:**
-
-```php
-class Counter
-{
-    public int|string $count {
-        set(int|string $value) => (int) $value;
-    }
-}
-```
-
-**Bad:**
-
-```php
-class Counter
-{
-    public int|string $count {
-        set(INT|String $value) => (int) $value;
-    }
-}
-```
-
----
-
 ## PERCS31.PHP.RequireCloneParentheses
 
 Warns about `clone` without parentheses, such as `clone $a`, or with parentheses that hold only part of what is cloned,
@@ -2622,41 +2631,6 @@ $copy = clone($original);
 
 ```php
 $copy = clone $original;
-```
-
----
-
-## PERCS31.PHP.TypeCast
-
-Requires the canonical form of a type in a cast: `(bool)`, `(int)`, `(float)` and `(string)`, not `(boolean)`,
-`(integer)`, `(double)` or `(binary)`. This replaces `PSR12.Keywords.ShortFormTypeKeywords`, and extends
-`SlevomatCodingStandard.PHP.TypeCast`.
-
-**Why:** [PER Coding Style 3.1, Section 2.5](https://www.php-fig.org/per/coding-style/#25-keywords-and-types) says the short form of a type keyword MUST be used, "i.e. `bool` instead of
-`boolean`, `int` instead of `integer` etc." PHP 8.5 deprecates all four long forms alike, as non-canonical casts. The
-PSR-12 sniff only knows `(boolean)` and `(integer)`. The Slevomat sniff knows all four, with one bug:
-
-- It says a `(binary)` cast has no effect, and its fix deletes it. It's an alias of `(string)`, so `(binary) 5` is
-  `'5'`, and deleting it can change what the code does. This sniff reports it with the `InvalidCastUsed` code, as the
-  other three are, and fixes it to `(string)`.
-
-A sniff's fix can't be changed from a ruleset, so this needs a subclass. A binary string's prefix, as in `b'abc'`, isn't
-a cast, and isn't reported.
-
-**Auto-fixable:** yes.
-
-**Good:**
-
-```php
-$total = (float) $input;
-$name = (string) $input;
-```
-
-**Bad:**
-
-```php
-$total = (double) $input;
-$name = (binary) $input;
 ```
 
 ---

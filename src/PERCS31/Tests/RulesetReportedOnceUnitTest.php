@@ -54,10 +54,13 @@ class RulesetReportedOnceUnitTest extends TestCase
 
             PHP;
 
-        $reported = ['3 InvalidCastUsed', '4 InvalidCastUsed', '5 InvalidCastUsed', '6 InvalidCastUsed'];
+        $reported = ['3 LongName', '4 LongName', '5 LongName', '6 LongName'];
 
         $this->assertSame($reported, $reports, $result['output']);
-        $this->assertStringContainsString('Cast "(binary)" is forbidden, use "(string)" instead.', $result['output']);
+        $this->assertStringContainsString(
+            'Use the short type name "string", not "binary", in a cast',
+            $result['output'],
+        );
         $this->assertSame($expected, $fixed);
     }
 

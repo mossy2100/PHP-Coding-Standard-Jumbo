@@ -71,3 +71,14 @@ enum Upper: string
 }
 
 enum Mixed: int {}
+
+// Long names: an unqualified one is fixed, a fully qualified one is left alone, as it's deliberate.
+final class LongNames
+{
+    public int $count = 0;
+
+    public function convert(bool $a, \integer $b): float|string
+    {
+        return 1.0;
+    }
+}

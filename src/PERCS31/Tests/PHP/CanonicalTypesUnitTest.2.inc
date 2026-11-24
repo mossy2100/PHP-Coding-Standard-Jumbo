@@ -15,12 +15,16 @@ $h = b"abc";
 
 // === INVALID ===
 
-$i = (bool) $x;
-$j = (int) $x;
-$k = (float) $x;
+$i = (boolean) $x;
+$j = (integer) $x;
+$k = (double) $x;
 
 // A (binary) cast is an alias of (string), so the fix replaces it, and doesn't delete it.
-$l = (string) $x;
-$m = (string) $x;
-$n = (string) $x;
-$o = (string)$x;
+$l = (binary) $x;
+$m = (BINARY) $x;
+$n = ( binary ) $x;
+$o = (binary)$x;
+
+// Upper case, and with spaces inside.
+$p = (INT) $x;
+$q = ( Float ) $x;

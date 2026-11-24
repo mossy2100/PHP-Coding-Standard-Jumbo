@@ -570,6 +570,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - `Squiz.PHP.DisallowMultipleAssignments`: no `$a = $b = 1`, as `Found`. An assignment in a condition is still only
     a warning.
   - `Squiz.PHP.Eval`: a warning for `eval()`.
+- **`PERCS31.PHP.CanonicalTypes` (breaking).** A new sniff for the canonical spelling of a type, wherever it's written:
+  a cast, every native type declaration, and every type in a doc comment, including inside generics. `boolean`,
+  `integer`, `double` and `binary` are reported as `LongName`, and fixed to `bool`, `int`, `float` and `string`. PHP's
+  own types in another case, such as `INT` or `Mixed`, are reported as `NotLowerCase`, and lowered. Both are new for
+  doc types in PERCS31, and long names are new in declarations, where `integer $x` is now fixed to `int $x`. It
+  replaces `PERCS31.PHP.LowerCaseType` and `PERCS31.PHP.TypeCast` (see Removed).
 - **Invisible characters, in Jumbo (breaking).** The new `Jumbo.PHP.DisallowInvisibleCharacters` reports any
   invisible or non-printable character except a space and a line feed, such as a tab, a no-break or zero-width space,
   or a bidirectional control, as `InvisibleCharacter`. In a string it's fixed to an escape, such as `\u{00A0}`, and in
@@ -789,6 +795,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 
+- **`PERCS31.PHP.LowerCaseType` and `PERCS31.PHP.TypeCast`.** `PERCS31.PHP.CanonicalTypes` replaces both. A
+  `phpcs:ignore` for their codes, such as `ParamTypeFound` or `InvalidCastUsed`, needs the new sniff's `LongName` or
+  `NotLowerCase`.
+- **`SlevomatCodingStandard.TypeHints.LongTypeHints`, from Jumbo.** `PERCS31.PHP.CanonicalTypes` reports the same long
+  doc types, and more.
 - **`SlevomatCodingStandard.Commenting.AnnotationName`, from Jumbo.** `Jumbo.Commenting.NormalizePhpDocTags` replaces
   it, as its block tag check skipped every tag in a namespaced file. A `phpcs:ignore` for its `AnnotationNameIncorrect`
   code can be removed.

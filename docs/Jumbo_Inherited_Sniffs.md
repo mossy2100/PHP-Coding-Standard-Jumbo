@@ -104,7 +104,6 @@ sections link to it.
 | `SlevomatCodingStandard.Strings.DisallowVariableParsing`                                 | No variables parsed in strings                                 | No      |
 | `SlevomatCodingStandard.TypeHints.ClassConstantTypeHint`                                 | Type hints on class constants                                  | Partly  |
 | `SlevomatCodingStandard.TypeHints.DisallowArrayTypeHintSyntax`                           | `array<int>`, not `int[]`, in a doc comment                    | Yes     |
-| `SlevomatCodingStandard.TypeHints.LongTypeHints`                                         | `int` and `bool`, not `integer` and `boolean`                  | Yes     |
 | `SlevomatCodingStandard.TypeHints.NullableTypeForNullDefaultValue`                       | A nullable type on a parameter that defaults to `null`         | Yes     |
 | `SlevomatCodingStandard.TypeHints.NullTypeHintOnLastPosition`                            | `null` last in a doc comment's union type                      | Yes     |
 | `SlevomatCodingStandard.TypeHints.ParameterTypeHint`                                     | Parameter type hints, through a Jumbo sniff                    | Partly  |
@@ -954,14 +953,6 @@ type, with no description.
 Requires generic syntax for an array type in a doc comment, as in `array<int>`, not `int[]`.
 
 **Auto-fixable:** yes. The fix writes `array<T>`. Narrow it to `list<T>` by hand where the keys are sequential.
-
----
-
-## SlevomatCodingStandard.TypeHints.LongTypeHints
-
-Requires long type hints (`int` instead of `integer`).
-
-**Auto-fixable:** yes.
 
 ---
 
