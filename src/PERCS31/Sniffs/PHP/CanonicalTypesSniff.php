@@ -371,7 +371,7 @@ class CanonicalTypesSniff implements Sniff
      *
      * @param string $name The name, as written.
      * @param array<string, true> $types PHP's types, which are lowered.
-     * @return string|null The canonical spelling, or null if the name is already canonical, or isn't PHP's.
+     * @return ?string The canonical spelling, or null if the name is already canonical, or isn't PHP's.
      */
     private static function canonical(string $name, array $types): ?string
     {

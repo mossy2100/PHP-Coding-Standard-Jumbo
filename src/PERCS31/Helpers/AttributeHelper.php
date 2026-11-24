@@ -19,7 +19,7 @@ class AttributeHelper
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $attributePtr The position of the attribute opener.
-     * @return int|null The position of the parameter list's opening parenthesis, or null if the attribute isn't on a
+     * @return ?int The position of the parameter list's opening parenthesis, or null if the attribute isn't on a
      *     parameter.
      */
     public static function findParameterListOpener(File $phpcsFile, int $attributePtr): ?int
@@ -39,7 +39,7 @@ class AttributeHelper
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $attributePtr The position of an attribute block's opener.
-     * @return int|null The list's opening parenthesis, or null if the attribute isn't on a parameter, or a call's
+     * @return ?int The list's opening parenthesis, or null if the attribute isn't on a parameter, or a call's
      *     argument, in a list on one line.
      */
     public static function findSingleLineListOpener(File $phpcsFile, int $attributePtr): ?int

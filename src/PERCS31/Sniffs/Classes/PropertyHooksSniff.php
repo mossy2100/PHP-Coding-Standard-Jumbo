@@ -756,8 +756,8 @@ class PropertyHooksSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $opener The position of the hook list's opening brace.
      * @param int $closer The position of the hook list's closing brace.
-     * @param list<array{name: string, start: int, end: int, namePtr: int, hasBody: bool, arrowPtr: int|null,
-     *     bodyOpener: int|null}> $hooks The hooks.
+     * @param list<array{name: string, start: int, end: int, namePtr: int, hasBody: bool, arrowPtr: ?int,
+     *     bodyOpener: ?int}> $hooks The hooks.
      * @return bool True if there's a comment between, before or after the hooks.
      */
     private function hasCommentBetweenHooks(File $phpcsFile, int $opener, int $closer, array $hooks): bool

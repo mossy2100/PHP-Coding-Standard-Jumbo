@@ -18,7 +18,7 @@ readonly class StringAtom
      * Constructor.
      *
      * @param string $kind TEXT or VARIABLE.
-     * @param string|null $single How it's written in a single-quoted string, or null if it can't be.
+     * @param ?string $single How it's written in a single-quoted string, or null if it can't be.
      * @param string $double How it's written in a double-quoted string. For a variable, the form it's written in.
      * @param int $source The position of the string literal it came from, or -1 if it came from anything else.
      * @param bool $simple Whether a variable is written without braces, so braces can be added if they're needed.

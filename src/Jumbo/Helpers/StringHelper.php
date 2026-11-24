@@ -25,7 +25,7 @@ class StringHelper
     /**
      * The segments read.
      *
-     * @var list<string|list<StringAtom>>
+     * @var list<list<StringAtom>|string>
      */
     private array $segments = [];
 
@@ -50,7 +50,7 @@ class StringHelper
     /**
      * Get the segments read, with any text that's just one variable from an operand turned back into that operand.
      *
-     * @return list<string|list<StringAtom>> The segments.
+     * @return list<list<StringAtom>|string> The segments.
      */
     public function segments(): array
     {

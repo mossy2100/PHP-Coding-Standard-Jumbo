@@ -121,7 +121,7 @@ class UnaryOperatorSpacingSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the token.
-     * @return string|null The operator's name, for the message, or null if the token isn't to be checked.
+     * @return ?string The operator's name, for the message, or null if the token isn't to be checked.
      */
     private function getOperatorName(File $phpcsFile, int $stackPtr): ?string
     {

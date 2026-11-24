@@ -41,6 +41,27 @@ class CompoundTypeUnitTest extends AbstractSniffTestCase
         }
 
         // The checks on null.
+        if ($testFile === 'CompoundTypeUnitTest.4.inc') {
+            // Doc types: null first, spaces, null first in a longer union, inside a generic, and in @var.
+            return [15 => 1, 16 => 1, 17 => 1, 18 => 1, 22 => 1];
+        }
+
+        if ($testFile === 'CompoundTypeUnitTest.5.inc') {
+            return [
+                // Not sorted: a union, a DNF group and a multi-catch.
+                7 => 2,
+                11 => 1,
+                // Doc types: not sorted, repeated, and redundant (and not sorted).
+                16 => 1,
+                17 => 1,
+                18 => 2,
+                19 => 2,
+                // null not first, in a native type and a doc type.
+                29 => 1,
+                31 => 1,
+            ];
+        }
+
         if ($testFile === 'CompoundTypeUnitTest.3.inc') {
             return [
                 // null first in a DNF type, and in the middle of one.
@@ -112,6 +133,11 @@ class CompoundTypeUnitTest extends AbstractSniffTestCase
      */
     protected function getWarningList(string $testFile = ''): array
     {
+        if ($testFile === 'CompoundTypeUnitTest.4.inc') {
+            // ?T in doc types.
+            return [15 => 1, 18 => 1, 22 => 1];
+        }
+
         if ($testFile !== 'CompoundTypeUnitTest.3.inc') {
             return [];
         }

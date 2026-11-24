@@ -78,7 +78,7 @@ class FileHeaderSniff extends Psr12Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the current token in the stack.
-     * @return int|null The position to skip to, as the parent returns.
+     * @return ?int The position to skip to, as the parent returns.
      */
     public function process(File $phpcsFile, int $stackPtr): ?int
     {
@@ -317,7 +317,7 @@ class FileHeaderSniff extends Psr12Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the first opening tag.
      * @param bool $hasHeader Whether the opening tag starts a header. It doesn't in a file that starts with markup.
-     * @param int|null $after The position to look for imports after, or null for the end of the header.
+     * @param ?int $after The position to look for imports after, or null for the end of the header.
      */
     private function checkImportsAfterCode(
         File $phpcsFile,
@@ -364,7 +364,7 @@ class FileHeaderSniff extends Psr12Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position to search from.
-     * @return int|null The position of the first inline HTML token that isn't blank, or of the first `<?=` tag, or
+     * @return ?int The position of the first inline HTML token that isn't blank, or of the first `<?=` tag, or
      *     null if there's neither.
      */
     private function findOutput(File $phpcsFile, int $stackPtr): ?int

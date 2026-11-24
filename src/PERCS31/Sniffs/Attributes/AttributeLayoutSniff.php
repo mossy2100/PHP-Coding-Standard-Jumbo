@@ -678,7 +678,7 @@ class AttributeLayoutSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $attributePtr The position of the attribute opener.
-     * @return int|null The position of `class`, or of `readonly` before it, where the rest of the declaration starts.
+     * @return ?int The position of `class`, or of `readonly` before it, where the rest of the declaration starts.
      *   Null if the attribute isn't on an anonymous class.
      */
     private function findAnonClass(File $phpcsFile, int $attributePtr): ?int

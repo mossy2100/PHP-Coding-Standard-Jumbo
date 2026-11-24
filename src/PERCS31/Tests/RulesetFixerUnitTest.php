@@ -270,7 +270,7 @@ class RulesetFixerUnitTest extends TestCase
         }
 
         $this->assertSame(2, substr_count($result['output'], 'warning - A union of one type and null'));
-        $this->assertSame(1, substr_count($result['output'], 'PERCS31.TypeHints.CompoundType.NullNotLast'));
+        $this->assertSame(1, substr_count($result['output'], 'PERCS31.TypeHints.CompoundType.NullPosition'));
         $this->assertStringNotContainsString('SlevomatCodingStandard.TypeHints.DNFTypeHintFormat', $result['output']);
         $this->assertSame(str_replace(['static|null', 'null|static'], '?static', $source), $fixed);
         $this->assertSame(0, $after['exitCode'], $after['output']);

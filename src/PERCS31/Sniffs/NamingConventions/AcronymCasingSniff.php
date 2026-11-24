@@ -190,9 +190,9 @@ class AcronymCasingSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the keyword or variable.
-     * @return int|false The name's position, or false if there's nothing to check.
+     * @return false|int The name's position, or false if there's nothing to check.
      */
-    private function findName(File $phpcsFile, int $stackPtr): int|false
+    private function findName(File $phpcsFile, int $stackPtr): false|int
     {
         $tokens = $phpcsFile->getTokens();
         $code = $tokens[$stackPtr]['code'];
@@ -236,9 +236,9 @@ class AcronymCasingSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of `as`.
-     * @return int|false The alias's position, or false if there's nothing to check.
+     * @return false|int The alias's position, or false if there's nothing to check.
      */
-    private function findAlias(File $phpcsFile, int $stackPtr): int|false
+    private function findAlias(File $phpcsFile, int $stackPtr): false|int
     {
         $tokens = $phpcsFile->getTokens();
 

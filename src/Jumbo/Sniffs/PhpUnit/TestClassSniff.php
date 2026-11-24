@@ -236,7 +236,7 @@ class TestClassSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $classPtr The position of the `class` keyword.
-     * @return string|null The class name, or null if there's none.
+     * @return ?string The class name, or null if there's none.
      */
     private function findDefaultClass(File $phpcsFile, int $classPtr): ?string
     {
@@ -307,7 +307,7 @@ class TestClassSniff implements Sniff
      * @param int $classPtr The position of the `class` keyword.
      * @param int $declaration The position of the `class` or `function` keyword.
      * @param array<string, string> $renames Each method marked `@test` that's renamed => its new name.
-     * @param string|null $defaultClass The class `@coversDefaultClass` names, if any.
+     * @param ?string $defaultClass The class `@coversDefaultClass` names, if any.
      */
     private function processDocComment(
         File $phpcsFile,
@@ -443,7 +443,7 @@ class TestClassSniff implements Sniff
      * @param string $name The tag's lower-case name, without the `@`.
      * @param array{tag: int, name: string, value: string, lines: list<string>, last: int} $tag The tag.
      * @param array<string, string> $renames Each method marked `@test` that's renamed => its new name.
-     * @param string|null $defaultClass The class `@coversDefaultClass` names, if any.
+     * @param ?string $defaultClass The class `@coversDefaultClass` names, if any.
      * @return list<string>|null The attributes, which may be none, or null if its value can't be read.
      */
     private function toAttributes(string $name, array $tag, array $renames, ?string $defaultClass): ?array
@@ -508,7 +508,7 @@ class TestClassSniff implements Sniff
      *
      * @param string $name `covers` or `uses`.
      * @param list<string> $words The words of its value.
-     * @param string|null $defaultClass The class `@coversDefaultClass` names, if any.
+     * @param ?string $defaultClass The class `@coversDefaultClass` names, if any.
      * @return list<string>|null The attribute, or null if the value can't be read.
      */
     private function coversOrUses(string $name, array $words, ?string $defaultClass): ?array
@@ -651,7 +651,7 @@ class TestClassSniff implements Sniff
      * Write an attribute, fully qualified.
      *
      * @param string $name The attribute's short name.
-     * @param string|null $arguments Its arguments' code, if any.
+     * @param ?string $arguments Its arguments' code, if any.
      * @return string The attribute's code.
      */
     private function attribute(string $name, ?string $arguments = null): string

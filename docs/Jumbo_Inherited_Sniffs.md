@@ -105,7 +105,6 @@ sections link to it.
 | `SlevomatCodingStandard.TypeHints.ClassConstantTypeHint`                                 | Type hints on class constants                                  | Partly  |
 | `SlevomatCodingStandard.TypeHints.DisallowArrayTypeHintSyntax`                           | `array<int>`, not `int[]`, in a doc comment                    | Yes     |
 | `SlevomatCodingStandard.TypeHints.NullableTypeForNullDefaultValue`                       | A nullable type on a parameter that defaults to `null`         | Yes     |
-| `SlevomatCodingStandard.TypeHints.NullTypeHintOnLastPosition`                            | `null` last in a doc comment's union type                      | Yes     |
 | `SlevomatCodingStandard.TypeHints.ParameterTypeHint`                                     | Parameter type hints, through a Jumbo sniff                    | Partly  |
 | `SlevomatCodingStandard.TypeHints.ParameterTypeHintSpacing`                              | The spacing around parameter type hints, through a Jumbo sniff | Yes     |
 | `SlevomatCodingStandard.TypeHints.PropertyTypeHint`                                      | Property type hints                                            | Partly  |
@@ -959,15 +958,6 @@ Requires generic syntax for an array type in a doc comment, as in `array<int>`, 
 ## SlevomatCodingStandard.TypeHints.NullableTypeForNullDefaultValue
 
 Requires nullable type for parameters with null default.
-
-**Auto-fixable:** yes.
-
----
-
-## SlevomatCodingStandard.TypeHints.NullTypeHintOnLastPosition
-
-Requires `null` last in a doc comment's union type, as in `string|null`, as `PERCS31.TypeHints.CompoundType` requires
-for a native type.
 
 **Auto-fixable:** yes.
 

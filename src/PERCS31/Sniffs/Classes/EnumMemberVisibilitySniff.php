@@ -79,7 +79,7 @@ class EnumMemberVisibilitySniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $constPtr The position of `const`.
-     * @return array{int|null, int|null} The positions of `protected` and `final`, each null if it isn't there.
+     * @return array{?int, ?int} The positions of `protected` and `final`, each null if it isn't there.
      */
     private function findConstantModifiers(File $phpcsFile, int $constPtr): array
     {
@@ -99,7 +99,7 @@ class EnumMemberVisibilitySniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $functionPtr The position of `function`.
-     * @return array{int|null, int|null} The positions of `protected` and `final`, each null if it isn't there.
+     * @return array{?int, ?int} The positions of `protected` and `final`, each null if it isn't there.
      */
     private function findMethodModifiers(File $phpcsFile, int $functionPtr): array
     {

@@ -414,7 +414,7 @@ class ExpressionHelper
      * @param File $phpcsFile The file being scanned.
      * @param int $start The position of the first token.
      * @param int $end The position of the last token.
-     * @return ExpressionNode|null The node, or null if an operand has a line break inside it.
+     * @return ?ExpressionNode The node, or null if an operand has a line break inside it.
      */
     public static function parse(File $phpcsFile, int $start, int $end): ?ExpressionNode
     {
@@ -444,7 +444,7 @@ class ExpressionHelper
      * @param int $start The position of the first token.
      * @param int $end The position of the last token.
      * @param non-empty-list<int> $operators The positions of the operators, outside any brackets.
-     * @return ExpressionNode|null The level, or null if an operand has a line break inside it.
+     * @return ?ExpressionNode The level, or null if an operand has a line break inside it.
      */
     private static function parseLevel(File $phpcsFile, int $start, int $end, array $operators): ?ExpressionNode
     {
@@ -506,7 +506,7 @@ class ExpressionHelper
      * @param File $phpcsFile The file being scanned.
      * @param int $start The position of the first token.
      * @param int $end The position of the last token.
-     * @return ExpressionNode|null The operand or group, or null if it has a line break inside it.
+     * @return ?ExpressionNode The operand or group, or null if it has a line break inside it.
      */
     private static function parseOperand(File $phpcsFile, int $start, int $end): ?ExpressionNode
     {
@@ -572,7 +572,7 @@ class ExpressionHelper
      * @param File $phpcsFile The file being scanned.
      * @param int $before The position of the code before the line break.
      * @param int $after The position of the code after it.
-     * @return int|null The operator's position, or null if there's none.
+     * @return ?int The operator's position, or null if there's none.
      */
     private static function findOperatorBeside(File $phpcsFile, int $before, int $after): ?int
     {

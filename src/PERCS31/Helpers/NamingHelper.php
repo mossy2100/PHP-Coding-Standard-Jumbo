@@ -142,9 +142,9 @@ class NamingHelper
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $asPtr The position of `as`.
-     * @return int|false The alias's position, or false if this `as` doesn't give a constant an alias.
+     * @return false|int The alias's position, or false if this `as` doesn't give a constant an alias.
      */
-    public static function findConstantAlias(File $phpcsFile, int $asPtr): int|false
+    public static function findConstantAlias(File $phpcsFile, int $asPtr): false|int
     {
         $tokens = $phpcsFile->getTokens();
 
@@ -172,9 +172,9 @@ class NamingHelper
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of a name that could be `define`.
-     * @return int|false The name's position, which holds a quoted string, or false if there's nothing to check.
+     * @return false|int The name's position, which holds a quoted string, or false if there's nothing to check.
      */
-    public static function findDefinedConstantName(File $phpcsFile, int $stackPtr): int|false
+    public static function findDefinedConstantName(File $phpcsFile, int $stackPtr): false|int
     {
         $tokens = $phpcsFile->getTokens();
         if (strtolower(ltrim($tokens[$stackPtr]['content'], '\\')) !== 'define') {

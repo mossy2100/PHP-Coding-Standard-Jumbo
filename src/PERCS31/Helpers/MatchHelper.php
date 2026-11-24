@@ -22,7 +22,7 @@ class MatchHelper
      * @param File $phpcsFile The file being scanned.
      * @param int $opener The position of the match body's opening brace.
      * @param int $closer The position of the match body's closing brace.
-     * @return list<array{start: int, arrow: int, end: int|null}> Each arm's first token, `=>`, and the comma that ends
+     * @return list<array{start: int, arrow: int, end: ?int}> Each arm's first token, `=>`, and the comma that ends
      *     it, if there is one.
      */
     public static function findArms(File $phpcsFile, int $opener, int $closer): array
@@ -62,7 +62,7 @@ class MatchHelper
      * as a call in a condition, so it's skipped. A trailing comma before the `=>` doesn't start another condition.
      *
      * @param File $phpcsFile The file being scanned.
-     * @param array{start: int, arrow: int, end: int|null} $arm The arm, as findArms() returns it.
+     * @param array{start: int, arrow: int, end: ?int} $arm The arm, as findArms() returns it.
      * @return list<int> The position of each condition's first token, in order.
      */
     public static function findConditions(File $phpcsFile, array $arm): array
@@ -92,7 +92,7 @@ class MatchHelper
      * the list, so it doesn't count.
      *
      * @param File $phpcsFile The file being scanned.
-     * @param array{start: int, arrow: int, end: int|null} $arm The arm, as findArms() returns it.
+     * @param array{start: int, arrow: int, end: ?int} $arm The arm, as findArms() returns it.
      * @return bool True if the list is split.
      */
     public static function hasSplitConditions(File $phpcsFile, array $arm): bool

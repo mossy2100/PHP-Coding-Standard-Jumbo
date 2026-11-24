@@ -28,8 +28,8 @@ readonly class ExpressionNode
      * @param int $flatLength The length of the node written on one line.
      * @param list<ExpressionNode> $children A level's operands, or a group's contents.
      * @param list<int> $operators The positions of a level's operators, one between each pair of operands.
-     * @param int|null $opener The position of a group's opening parenthesis.
-     * @param int|null $closer The position of a group's closing parenthesis.
+     * @param ?int $opener The position of a group's opening parenthesis.
+     * @param ?int $closer The position of a group's closing parenthesis.
      */
     public function __construct(
         public string $kind,

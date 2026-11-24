@@ -189,7 +189,7 @@ class RequireSingleLineStatementSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $start The position of the part's first token.
      * @param int $end The position of the part's last token.
-     * @param int|null $closer The closer of the multi-line brackets or body after the part, if any.
+     * @param ?int $closer The closer of the multi-line brackets or body after the part, if any.
      */
     private function joinPart(File $phpcsFile, int $start, int $end, ?int $closer = null): void
     {
@@ -382,7 +382,7 @@ class RequireSingleLineStatementSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the token.
-     * @return int|null The position of the closer, or null if the token doesn't open one.
+     * @return ?int The position of the closer, or null if the token doesn't open one.
      */
     private function findOwnSniffCloser(File $phpcsFile, int $stackPtr): ?int
     {

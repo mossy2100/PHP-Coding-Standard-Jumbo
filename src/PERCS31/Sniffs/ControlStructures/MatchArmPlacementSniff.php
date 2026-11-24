@@ -94,7 +94,7 @@ class MatchArmPlacementSniff implements Sniff
      * Check that each condition of an arm starts a line, if the arm's conditions are split over lines.
      *
      * @param File $phpcsFile The file being scanned.
-     * @param array{start: int, arrow: int, end: int|null} $arm The arm, as MatchHelper::findArms() returns it.
+     * @param array{start: int, arrow: int, end: ?int} $arm The arm, as MatchHelper::findArms() returns it.
      */
     private function checkConditions(File $phpcsFile, array $arm): void
     {

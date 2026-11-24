@@ -159,7 +159,7 @@ class MatchArmWrapIndentSniff implements Sniff
      * each condition level with the first and the `=>` on a line of its own.
      *
      * @param File $phpcsFile The file being scanned.
-     * @param array{start: int, arrow: int, end: int|null} $arm The arm, as MatchHelper::findArms() returns it.
+     * @param array{start: int, arrow: int, end: ?int} $arm The arm, as MatchHelper::findArms() returns it.
      * @param int $value The position of the first token of the arm's value.
      */
     private function checkLines(File $phpcsFile, array $arm, int $value): void
@@ -181,7 +181,7 @@ class MatchArmWrapIndentSniff implements Sniff
      * line, indented once.
      *
      * @param File $phpcsFile The file being scanned.
-     * @param array{start: int, arrow: int, end: int|null} $arm The arm, as MatchHelper::findArms() returns it.
+     * @param array{start: int, arrow: int, end: ?int} $arm The arm, as MatchHelper::findArms() returns it.
      */
     private function checkArrowStartsLine(File $phpcsFile, array $arm): void
     {

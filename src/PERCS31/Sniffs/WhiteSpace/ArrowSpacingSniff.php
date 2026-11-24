@@ -139,7 +139,7 @@ class ArrowSpacingSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $yieldPtr The position of `yield`.
-     * @return int|null The position of the `=>`, or null if the `yield` has no key.
+     * @return ?int The position of the `=>`, or null if the `yield` has no key.
      */
     private function findYieldArrow(File $phpcsFile, int $yieldPtr): ?int
     {

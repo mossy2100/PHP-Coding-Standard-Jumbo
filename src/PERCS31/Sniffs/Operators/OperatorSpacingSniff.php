@@ -97,7 +97,7 @@ class OperatorSpacingSniff extends SquizSniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the current token in the stack.
-     * @return int|null The position to skip to, as the parent returns, or null.
+     * @return ?int The position to skip to, as the parent returns, or null.
      */
     public function process(File $phpcsFile, int $stackPtr): ?int
     {

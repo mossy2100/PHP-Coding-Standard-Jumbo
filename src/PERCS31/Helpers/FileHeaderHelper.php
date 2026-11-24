@@ -20,7 +20,7 @@ class FileHeaderHelper
      * PHP skips a shebang line, so the line after one is the first line it reads.
      *
      * @param File $phpcsFile The file being scanned.
-     * @return int|null The position of the opening tag, or null if the file doesn't start with one.
+     * @return ?int The position of the opening tag, or null if the file doesn't start with one.
      */
     public static function findFirstLineTag(File $phpcsFile): ?int
     {
@@ -114,7 +114,7 @@ class FileHeaderHelper
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $tagPtr The position of the block's opening tag.
-     * @return int|null The position of the directive's name, or null if there isn't one.
+     * @return ?int The position of the directive's name, or null if there isn't one.
      */
     public static function findStrictTypesDirective(File $phpcsFile, int $tagPtr): ?int
     {

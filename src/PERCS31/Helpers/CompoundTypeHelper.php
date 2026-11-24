@@ -266,7 +266,7 @@ class CompoundTypeHelper
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of a symbol.
-     * @return int|null The position of the function keyword, or null if there isn't one.
+     * @return ?int The position of the function keyword, or null if there isn't one.
      */
     private static function findReturnTypeOwner(File $phpcsFile, int $stackPtr): ?int
     {

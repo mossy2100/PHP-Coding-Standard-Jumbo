@@ -4,14 +4,28 @@ declare(strict_types=1);
 
 namespace PERCS31\Sniffs\TypeHints;
 
+use DomainException;
 use PERCS31\Helpers\CompoundTypeHelper;
+use PERCS31\Helpers\DocTypeHelper;
 use PERCS31\Helpers\FixerHelper;
 use PERCS31\Helpers\LayoutHelper;
 use PERCS31\Helpers\PropertyHookHelper;
+use PERCS31\Helpers\TypeSetHelper;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;
 use PHPCSUtils\Utils\GetTokensAsString;
+use PHPStan\PhpDocParser\Ast\Attribute;
+use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\IntersectionTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\NullableTypeNode;
+use PHPStan\PhpDocParser\Ast\Type\TypeNode;
+use PHPStan\PhpDocParser\Ast\Type\UnionTypeNode;
+use PHPStan\PhpDocParser\Lexer\Lexer;
+use SlevomatCodingStandard\Helpers\Annotation;
+use SlevomatCodingStandard\Helpers\AnnotationHelper;
+use SlevomatCodingStandard\Helpers\DocCommentHelper;
+use SlevomatCodingStandard\Helpers\PhpDocParserHelper;
 
 /**
  * Checks a compound type: its layout, and where `null` goes in a union.
@@ -63,7 +77,17 @@ use PHPCSUtils\Utils\GetTokensAsString;
  * - Its `?T` fix deletes `static` from a return type, so `static|null` becomes `?`, which is a parse error.
  *
  * So this sniff makes both checks in every type, and the PERCS31 ruleset doesn't use Slevomat's
- * NullTypeHintNotOnLastPosition or RequiredShortNullable codes.
+ * NullTypeHintNotOnLastPosition or RequiredShortNullable codes. Set nullPosition to `first`, or to an empty value to
+ * leave `null` anywhere, and checkShortNullable to false to allow `T|null`.
+ *
+ * Set sortTypes to sort the types in each union or intersection, as php-cs-fixer's `ordered_types` does, ignoring case
+ * and a leading `\`, as NotSorted. `null` isn't sorted, as nullPosition places it. Set checkRedundantTypes to report a
+ * repeated type, as DuplicateType, which the fix removes, and, in a union, a type another member covers, such as `true`
+ * beside `bool` or `list<int>` beside `array`, as RedundantType, which isn't fixed, as the more specific type may be
+ * the one meant. PHP rejects both in a native type, so only doc types are checked for them.
+ *
+ * Doc comment types, in `@param`, `@return`, `@var` and the rest, follow the same rules as native ones, except the
+ * lines of a split type: one split over lines is reported, but not fixed.
  *
  * A type split across lines, or with a comment in it, is reported but not fixed.
  */
@@ -81,9 +105,49 @@ class CompoundTypeSniff implements Sniff
 
     public const string CODE_SPACE_INSIDE_PARENTHESES = 'SpaceInsideParentheses';
 
-    public const string CODE_NULL_NOT_LAST = 'NullNotLast';
+    public const string CODE_NULL_POSITION = 'NullPosition';
 
     public const string CODE_SHORT_NULLABLE = 'ShortNullable';
+
+    public const string CODE_NOT_SORTED = 'NotSorted';
+
+    public const string CODE_DUPLICATE_TYPE = 'DuplicateType';
+
+    public const string CODE_REDUNDANT_TYPE = 'RedundantType';
+
+    /**
+     * Whether to report a union of one simple type with `null`, which should be written `?T`.
+     */
+    public bool $checkShortNullable = true;
+
+    /**
+     * Where `null` goes in a union: `first`, `last`, or null or an empty string to allow it anywhere.
+     */
+    public ?string $nullPosition = 'last';
+
+    /**
+     * Whether to sort the types in each union and intersection.
+     */
+    public bool $sortTypes = false;
+
+    /**
+     * Whether to report a repeated type, and a type another member of a union covers, in a doc comment.
+     */
+    public bool $checkRedundantTypes = false;
+
+    /**
+     * The doc types not fixed, as they're split over lines, by the object ID of the type as parsed.
+     *
+     * @var array<int, true>
+     */
+    private array $unfixable = [];
+
+    /**
+     * The doc types with a space around a `|` or `&`, by the object ID of the type as parsed.
+     *
+     * @var array<int, true>
+     */
+    private array $spaced = [];
 
     /**
      * Returns an array of tokens this test wants to listen for.
@@ -92,7 +156,14 @@ class CompoundTypeSniff implements Sniff
      */
     public function register(): array
     {
-        return [T_TYPE_UNION, T_TYPE_INTERSECTION, T_BITWISE_OR, T_BITWISE_AND, T_OPEN_PARENTHESIS];
+        return [
+            T_TYPE_UNION,
+            T_TYPE_INTERSECTION,
+            T_BITWISE_OR,
+            T_BITWISE_AND,
+            T_OPEN_PARENTHESIS,
+            T_DOC_COMMENT_OPEN_TAG,
+        ];
     }
 
     /**
@@ -103,8 +174,19 @@ class CompoundTypeSniff implements Sniff
      */
     public function process(File $phpcsFile, int $stackPtr): void
     {
+        if (!in_array($this->nullPosition, ['first', 'last', '', null], true)) {
+            throw new DomainException(
+                "The nullPosition property must be 'first', 'last' or empty; found '{$this->nullPosition}'.",
+            );
+        }
+
         $tokens = $phpcsFile->getTokens();
         $code = $tokens[$stackPtr]['code'];
+        if ($code === T_DOC_COMMENT_OPEN_TAG) {
+            $this->processDocComment($phpcsFile, $stackPtr);
+            return;
+        }
+
         if ($code === T_OPEN_PARENTHESIS) {
             if (PropertyHookHelper::isInHookParameterList($phpcsFile, $stackPtr)) {
                 $this->checkHookTypeParentheses($phpcsFile, $stackPtr);
@@ -129,6 +211,7 @@ class CompoundTypeSniff implements Sniff
         [$typeStart, $typeEnd] = CompoundTypeHelper::findTypeBounds($phpcsFile, $stackPtr, $isHook);
         $this->checkLines($phpcsFile, $typeStart, $typeEnd);
         $this->checkNull($phpcsFile, $typeStart, $typeEnd);
+        $this->checkSorting($phpcsFile, $typeStart, $typeEnd);
     }
 
     /**
@@ -178,7 +261,8 @@ class CompoundTypeSniff implements Sniff
     }
 
     /**
-     * Check that `null` is the last type in a union, and that a union of one simple type with `null` is written `?T`.
+     * Check that `null` is where nullPosition puts it in a union, and that a union of one simple type with `null` is
+     * written `?T`.
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $start The position of the type's first token.
@@ -194,18 +278,184 @@ class CompoundTypeSniff implements Sniff
 
         $fixable = $this->isFixable($phpcsFile, $start, $end);
         $type = $this->typeText($phpcsFile, $start, $end);
-        $isNullLast = $nullIndex === (count($members) - 1);
-        if (!$isNullLast) {
-            $this->reportNullNotLast($phpcsFile, $members, $nullIndex, $type, $fixable);
-        }
-
-        if (count($members) === 2) {
-            $other = $members[(1 - $nullIndex)];
-            if ($other[0] === $other[1]) {
-                // Fix it once null is last, so the two fixes don't clash.
-                $this->reportShortNullable($phpcsFile, $start, $end, $other[0], $type, $fixable && $isNullLast);
+        $isPlaced = $this->isNullPlaced($nullIndex, count($members));
+        if (!$isPlaced) {
+            $error = 'null must be the %s type in a union; found "%s"';
+            $data = [(string) $this->nullPosition, $type];
+            $nullPtr = $members[$nullIndex][0];
+            if ($this->reportFixable($phpcsFile, $error, $nullPtr, self::CODE_NULL_POSITION, $fixable, $data)) {
+                $this->replaceType($phpcsFile, $start, $end, $this->canonicalText($phpcsFile, $members, true));
             }
         }
+
+        if ($this->checkShortNullable && count($members) === 2) {
+            $other = $members[(1 - $nullIndex)];
+            if ($other[0] === $other[1]) {
+                // Fix it once null is placed, so the two fixes don't clash.
+                $this->reportShortNullable($phpcsFile, $start, $end, $other[0], $type, $fixable && $isPlaced);
+            }
+        }
+    }
+
+    /**
+     * Check that the types in each union and intersection are sorted, if sortTypes is on.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $start The position of the type's first token.
+     * @param int $end The position of the type's last token.
+     */
+    private function checkSorting(File $phpcsFile, int $start, int $end): void
+    {
+        if (!$this->sortTypes) {
+            return;
+        }
+
+        $members = $this->findMembers($phpcsFile, $start, $end);
+        $sorted = $this->canonicalText($phpcsFile, $members, true);
+        $unsorted = $this->canonicalText($phpcsFile, $members, false);
+        if ($sorted === $unsorted) {
+            return;
+        }
+
+        $error = 'The types in a compound type must be in alphabetical order; found "%s", expected "%s"';
+        $data = [$this->typeText($phpcsFile, $start, $end), $sorted];
+        $fixable = $this->isFixable($phpcsFile, $start, $end);
+        if ($this->reportFixable($phpcsFile, $error, $start, self::CODE_NOT_SORTED, $fixable, $data)) {
+            $this->replaceType($phpcsFile, $start, $end, $sorted);
+        }
+    }
+
+    /**
+     * Check whether `null` is where nullPosition puts it.
+     *
+     * @param int $nullIndex The index of the `null` member.
+     * @param int $count The number of members.
+     * @return bool True if it is.
+     */
+    private function isNullPlaced(int $nullIndex, int $count): bool
+    {
+        return match ($this->nullPosition) {
+            'first' => $nullIndex === 0,
+            'last' => $nullIndex === ($count - 1),
+            default => true,
+        };
+    }
+
+    /**
+     * Write a native type as it should be: `null` placed, and, with sortTypes on, sorted.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param list<array{int, int}> $members The first and last tokens of each union member.
+     * @param bool $sort Whether to sort the types, if sortTypes is on.
+     * @return string The type's code.
+     */
+    private function canonicalText(File $phpcsFile, array $members, bool $sort): string
+    {
+        $sort = $sort && $this->sortTypes;
+        $texts = [];
+        foreach ($members as [$first, $last]) {
+            $text = GetTokensAsString::noEmpties($phpcsFile, $first, $last);
+            $texts[] = $sort ? $this->sortIntersection($text) : $text;
+        }
+
+        $nullIndex = $this->findNull($phpcsFile, $members);
+        $others = array_values(array_filter($texts, static fn(string $text): bool => strtolower($text) !== 'null'));
+        if ($sort) {
+            $others = TypeSetHelper::sort($others, static fn(string $text): string => $text);
+        }
+
+        return implode('|', $this->placeNull($others, $nullIndex === null ? null : $texts[$nullIndex], $nullIndex));
+    }
+
+    /**
+     * Sort the types of an intersection, or a DNF type's group, written as code.
+     *
+     * @param string $text The member's code, such as `B&A` or `(B&A)`.
+     * @return string The code, sorted.
+     */
+    private function sortIntersection(string $text): string
+    {
+        if (!str_contains($text, '&')) {
+            return $text;
+        }
+
+        $isGroup = str_starts_with($text, '(') && str_ends_with($text, ')');
+        $parts = explode('&', $isGroup ? substr($text, 1, -1) : $text);
+        $sorted = implode('&', TypeSetHelper::sort($parts, static fn(string $part): string => $part));
+
+        return $isGroup ? "({$sorted})" : $sorted;
+    }
+
+    /**
+     * Put `null` among a union's other members, where nullPosition says, or where it was.
+     *
+     * @template T
+     * @param list<T> $others The other members, in order.
+     * @param ?T $null The `null` member, or null if there's none.
+     * @param ?int $nullIndex Where `null` was.
+     * @return list<T> The members.
+     */
+    private function placeNull(array $others, mixed $null, ?int $nullIndex): array
+    {
+        if ($null === null || $nullIndex === null) {
+            return $others;
+        }
+
+        $index = match ($this->nullPosition) {
+            'first' => 0,
+            'last' => count($others),
+            default => min($nullIndex, count($others)),
+        };
+        array_splice($others, $index, 0, [$null]);
+
+        return $others;
+    }
+
+    /**
+     * Replace a native type's code.
+     *
+     * @param File $phpcsFile The file being fixed.
+     * @param int $start The position of the type's first token.
+     * @param int $end The position of the type's last token.
+     * @param string $code The new code.
+     */
+    private function replaceType(File $phpcsFile, int $start, int $end, string $code): void
+    {
+        $phpcsFile->fixer->beginChangeset();
+        $phpcsFile->fixer->replaceToken($start, $code);
+        for ($i = ($start + 1); $i <= $end; $i++) {
+            $phpcsFile->fixer->replaceToken($i, '');
+        }
+
+        $phpcsFile->fixer->endChangeset();
+    }
+
+    /**
+     * Report an error, as fixable if it can be.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param string $error The message.
+     * @param int $ptr The position to report at.
+     * @param string $code The error code.
+     * @param bool $fixable Whether it can be fixed.
+     * @param list<string> $data The message's values.
+     * @return bool True if it's to be fixed now.
+     */
+    private function reportFixable(
+        File $phpcsFile,
+        string $error,
+        int $ptr,
+        string $code,
+        bool $fixable,
+        array $data,
+    ): bool {
+        if (!$fixable) {
+            $phpcsFile->addError($error, $ptr, $code, $data);
+
+            return false;
+        }
+
+        return $phpcsFile->addFixableError($error, $ptr, $code, $data);
     }
 
     /**
@@ -427,7 +677,7 @@ class CompoundTypeSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param list<array{int, int}> $members The first and last tokens of each member.
-     * @return int|null The member's index, or null if no member is `null`.
+     * @return ?int The member's index, or null if no member is `null`.
      */
     private function findNull(File $phpcsFile, array $members): ?int
     {
@@ -471,62 +721,6 @@ class CompoundTypeSniff implements Sniff
     }
 
     /**
-     * Report a `null` that isn't the last member, and fix it by moving it to the end.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param list<array{int, int}> $members The first and last tokens of each member.
-     * @param int $nullIndex The index of the `null` member.
-     * @param string $type The type's text, for the message.
-     * @param bool $fixable Whether the type can be fixed.
-     */
-    private function reportNullNotLast(
-        File $phpcsFile,
-        array $members,
-        int $nullIndex,
-        string $type,
-        bool $fixable,
-    ): void {
-        $error = 'null must be the last type in a union; found "%s"';
-        $nullPtr = $members[$nullIndex][0];
-        if (!$fixable) {
-            $phpcsFile->addError($error, $nullPtr, self::CODE_NULL_NOT_LAST, [$type]);
-            return;
-        }
-
-        $fix = $phpcsFile->addFixableError($error, $nullPtr, self::CODE_NULL_NOT_LAST, [$type]);
-        if (!$fix) {
-            return;
-        }
-
-        $tokens = $phpcsFile->getTokens();
-        $content = $tokens[$nullPtr]['content'];
-        $lastEnd = $members[(count($members) - 1)][1];
-
-        $phpcsFile->fixer->beginChangeset();
-        if ($nullIndex === 0) {
-            // Remove `null|`, up to the next member.
-            $phpcsFile->fixer->replaceToken($nullPtr, '');
-            FixerHelper::blankBetween($phpcsFile, $nullPtr, $members[1][0]);
-        } else {
-            // Remove `|null`, from the end of the member before it, which is just before the `|`.
-            $symbol = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($nullPtr - 1), null, true);
-            $previousEnd = $symbol === false
-                ? false
-                : $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($symbol - 1), null, true);
-            if ($previousEnd === false) {
-                $phpcsFile->fixer->rollbackChangeset();
-                return;
-            }
-
-            FixerHelper::blankBetween($phpcsFile, $previousEnd, $nullPtr);
-            $phpcsFile->fixer->replaceToken($nullPtr, '');
-        }
-
-        $phpcsFile->fixer->addContent($lastEnd, "|{$content}");
-        $phpcsFile->fixer->endChangeset();
-    }
-
-    /**
      * Report a union of one simple type with `null`, and fix it by writing it as `?T`.
      *
      * @param File $phpcsFile The file being scanned.
@@ -561,5 +755,280 @@ class CompoundTypeSniff implements Sniff
         $phpcsFile->fixer->replaceToken($start, $shortForm);
         FixerHelper::blankBetween($phpcsFile, $start, ($end + 1));
         $phpcsFile->fixer->endChangeset();
+    }
+
+    /**
+     * Check the compound types in a doc comment, and fix them all at once.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $opener The position of the doc comment's `/**`.
+     */
+    private function processDocComment(File $phpcsFile, int $opener): void
+    {
+        $parsed = DocCommentHelper::parseDocComment($phpcsFile, $opener);
+        if ($parsed === null) {
+            return;
+        }
+
+        $docTokens = $parsed->getTokens()->getTokens();
+        $this->unfixable = [];
+        $this->spaced = [];
+        $fix = false;
+        foreach (AnnotationHelper::getAnnotations($phpcsFile, $opener) as $annotation) {
+            if ($annotation->isInvalid()) {
+                continue;
+            }
+
+            foreach ([UnionTypeNode::class, IntersectionTypeNode::class] as $class) {
+                foreach (AnnotationHelper::getAnnotationNodesByType($annotation->getNode(), $class) as $node) {
+                    if ($node instanceof UnionTypeNode || $node instanceof IntersectionTypeNode) {
+                        $fix = $this->checkDocType($phpcsFile, $annotation, $node, $docTokens) || $fix;
+                    }
+                }
+            }
+        }
+
+        if (!$fix) {
+            return;
+        }
+
+        $content = DocTypeHelper::transformTypes($phpcsFile, $opener, $this->canonicalDocType(...));
+        if ($content !== null) {
+            DocTypeHelper::replace($phpcsFile, $opener, $content);
+        }
+    }
+
+    /**
+     * Check a union or intersection in a doc comment: the space around its symbols, where `null` goes, `?T`, the
+     * order, and repeated and redundant types.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param Annotation<\PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagValueNode> $annotation The tag it's in.
+     * @param IntersectionTypeNode|UnionTypeNode $node The type.
+     * @param list<array{string, int, int}> $docTokens The doc comment's tokens, as parsed.
+     * @return bool True if any report is to be fixed now.
+     */
+    private function checkDocType(File $phpcsFile, Annotation $annotation, TypeNode $node, array $docTokens): bool
+    {
+        $ptr = $annotation->getStartPointer();
+        $printer = PhpDocParserHelper::getPrinter();
+        $whole = $printer->print($node);
+        [$isSplit, $isSpaced] = $this->findDocSpacing($node, $docTokens);
+        $fixable = !$isSplit;
+        if ($isSplit) {
+            $this->unfixable[spl_object_id($node)] = true;
+        }
+
+        $fix = false;
+        if ($isSpaced) {
+            $this->spaced[spl_object_id($node)] = true;
+            $error = 'Expected no space around the | and & in a compound type; found "%s"';
+            $data = [$this->docTypeSource($node, $docTokens)];
+            $fix = $this->reportFixable($phpcsFile, $error, $ptr, self::CODE_SPACE_AROUND_OPERATOR, $fixable, $data);
+        }
+
+        $texts = array_values(array_map(static fn(TypeNode $type): string => $printer->print($type), $node->types));
+        $nullIndex = $node instanceof UnionTypeNode ? $this->findDocNull($node->types) : null;
+        if ($nullIndex !== null && count($node->types) > 1 && !$this->isNullPlaced($nullIndex, count($node->types))) {
+            $error = 'null must be the %s type in a union; found "%s"';
+            $data = [(string) $this->nullPosition, $whole];
+            $fix = $this->reportFixable($phpcsFile, $error, $ptr, self::CODE_NULL_POSITION, $fixable, $data) || $fix;
+        }
+
+        $other = $nullIndex === null || count($node->types) !== 2 ? null : $node->types[(1 - $nullIndex)];
+        if ($this->checkShortNullable && $other instanceof IdentifierTypeNode) {
+            $warning = 'A union of one type and null should be written as ?T; found "%s", use "?%s"';
+            $data = [$whole, $printer->print($other)];
+            $fix = ($fixable
+                ? $phpcsFile->addFixableWarning($warning, $ptr, self::CODE_SHORT_NULLABLE, $data)
+                : $phpcsFile->addWarning($warning, $ptr, self::CODE_SHORT_NULLABLE, $data)) || $fix;
+        }
+
+        $others = array_values(array_filter($texts, static fn(string $text): bool => strtolower($text) !== 'null'));
+        $sorted = TypeSetHelper::sort($others, static fn(string $text): string => $text);
+        if ($this->sortTypes && $sorted !== $others) {
+            $error = 'The types in a compound type must be in alphabetical order; found "%s"';
+            $fix = $this->reportFixable($phpcsFile, $error, $ptr, self::CODE_NOT_SORTED, $fixable, [$whole]) || $fix;
+        }
+
+        return $this->checkRedundantDocTypes($phpcsFile, $ptr, $node, $texts, $fixable) || $fix;
+    }
+
+    /**
+     * Report a repeated type in a doc comment's union or intersection, and a type another member of a union covers.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $ptr The position to report at.
+     * @param IntersectionTypeNode|UnionTypeNode $node The type.
+     * @param list<string> $texts Each member's code.
+     * @param bool $fixable Whether the type can be fixed.
+     * @return bool True if any report is to be fixed now.
+     */
+    private function checkRedundantDocTypes(
+        File $phpcsFile,
+        int $ptr,
+        TypeNode $node,
+        array $texts,
+        bool $fixable,
+    ): bool {
+        if (!$this->checkRedundantTypes) {
+            return false;
+        }
+
+        $whole = PhpDocParserHelper::getPrinter()->print($node);
+        $fix = false;
+        $seen = [];
+        foreach (array_values($node->types) as $index => $type) {
+            $key = TypeSetHelper::sortKey($texts[$index]);
+            if (isset($seen[$key])) {
+                $error = 'The type "%s" is repeated in "%s"';
+                $data = [$texts[$index], $whole];
+                $fix = $this->reportFixable(
+                    $phpcsFile,
+                    $error,
+                    $ptr,
+                    self::CODE_DUPLICATE_TYPE,
+                    $fixable,
+                    $data,
+                ) || $fix;
+                continue;
+            }
+
+            $seen[$key] = true;
+            $members = array_values($node->types);
+            $covering = $node instanceof UnionTypeNode ? TypeSetHelper::findCovering($type, $members) : null;
+            if (
+                $covering !== null
+                && TypeSetHelper::sortKey($texts[$index]) !== TypeSetHelper::sortKey((string) $covering)
+            ) {
+                $error = 'The type "%s" is redundant in "%s", as "%s" covers it';
+                $data = [$texts[$index], $whole, PhpDocParserHelper::getPrinter()->print($covering)];
+                $phpcsFile->addError($error, $ptr, self::CODE_REDUNDANT_TYPE, $data);
+            }
+        }
+
+        return $fix;
+    }
+
+    /**
+     * Find whether a doc type's members are split over lines, or have a space around a symbol between them.
+     *
+     * @param IntersectionTypeNode|UnionTypeNode $node The type.
+     * @param list<array{string, int, int}> $docTokens The doc comment's tokens, as parsed.
+     * @return array{bool, bool} Whether it's split, and whether it has a space around a symbol on a line.
+     */
+    private function findDocSpacing(TypeNode $node, array $docTokens): array
+    {
+        $isSplit = false;
+        $isSpaced = false;
+        $count = count($node->types);
+        for ($index = 0; ($index + 1) < $count; $index++) {
+            $from = $node->types[$index]->getAttribute(Attribute::END_INDEX);
+            $to = $node->types[($index + 1)]->getAttribute(Attribute::START_INDEX);
+            if (!is_int($from) || !is_int($to)) {
+                continue;
+            }
+
+            for ($i = ($from + 1); $i < $to; $i++) {
+                $type = $docTokens[$i][Lexer::TYPE_OFFSET] ?? null;
+                $isSplit = $isSplit || $type === Lexer::TOKEN_PHPDOC_EOL;
+                $isSpaced = $isSpaced || $type === Lexer::TOKEN_HORIZONTAL_WS;
+            }
+        }
+
+        return [$isSplit, $isSpaced && !$isSplit];
+    }
+
+    /**
+     * Get a doc type's code as it's written.
+     *
+     * @param TypeNode $node The type.
+     * @param list<array{string, int, int}> $docTokens The doc comment's tokens, as parsed.
+     * @return string The code.
+     */
+    private function docTypeSource(TypeNode $node, array $docTokens): string
+    {
+        $start = $node->getAttribute(Attribute::START_INDEX);
+        $end = $node->getAttribute(Attribute::END_INDEX);
+        if (!is_int($start) || !is_int($end)) {
+            return PhpDocParserHelper::getPrinter()->print($node);
+        }
+
+        $code = '';
+        for ($i = $start; $i <= $end; $i++) {
+            $code .= $docTokens[$i][Lexer::VALUE_OFFSET] ?? '';
+        }
+
+        return $code;
+    }
+
+    /**
+     * Find which member of a doc type's union is `null`.
+     *
+     * @param array<TypeNode> $types The members.
+     * @return ?int The member's index, or null if none is `null`.
+     */
+    private function findDocNull(array $types): ?int
+    {
+        foreach (array_values($types) as $index => $type) {
+            if ($type instanceof IdentifierTypeNode && strtolower($type->name) === 'null') {
+                return $index;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Rewrite a doc comment's union or intersection as it should be, for the fix. Its members are already rewritten.
+     *
+     * @param TypeNode $node A copy of the type, whose Attribute::ORIGINAL_NODE is the type as parsed.
+     * @return ?TypeNode The new type, or null to keep it.
+     */
+    private function canonicalDocType(TypeNode $node): ?TypeNode
+    {
+        $original = $node->getAttribute(Attribute::ORIGINAL_NODE);
+        $id = is_object($original) ? spl_object_id($original) : null;
+        if (
+            !($node instanceof UnionTypeNode || $node instanceof IntersectionTypeNode) || isset($this->unfixable[$id])
+        ) {
+            return null;
+        }
+
+        $printer = PhpDocParserHelper::getPrinter();
+        $types = array_values($node->types);
+        if ($this->checkRedundantTypes) {
+            $unique = [];
+            foreach ($types as $type) {
+                $unique[TypeSetHelper::sortKey($printer->print($type))] ??= $type;
+            }
+
+            $types = array_values($unique);
+        }
+
+        $nullIndex = $node instanceof UnionTypeNode ? $this->findDocNull($types) : null;
+        $null = $nullIndex === null ? null : $types[$nullIndex];
+        $others = array_values(array_filter($types, static fn(TypeNode $type): bool => $type !== $null));
+        if ($this->sortTypes) {
+            $others = TypeSetHelper::sort($others, static fn(TypeNode $type): string => $printer->print($type));
+        }
+
+        $result = $this->placeNull($others, $null, $nullIndex);
+        if ($this->checkShortNullable && $null !== null && count($result) === 2) {
+            $other = $result[0] === $null ? $result[1] : $result[0];
+            if ($other instanceof IdentifierTypeNode) {
+                return new NullableTypeNode($other);
+            }
+        }
+
+        if ($result === array_values($node->types) && !isset($this->spaced[$id])) {
+            return null;
+        }
+
+        return count($result) === 1
+            ? $result[0]
+            : ($node instanceof UnionTypeNode
+                ? new UnionTypeNode($result)
+                : new IntersectionTypeNode($result));
     }
 }

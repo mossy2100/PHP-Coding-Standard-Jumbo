@@ -143,7 +143,7 @@ class RequireCloneParenthesesSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $start The position of the operand's first token.
-     * @return int|null The position, or null if the operand isn't simple.
+     * @return ?int The position, or null if the operand isn't simple.
      */
     private function findOperandEnd(File $phpcsFile, int $start): ?int
     {
@@ -171,7 +171,7 @@ class RequireCloneParenthesesSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $end The position of the token they follow.
-     * @return int|null The position, or the token's own if nothing follows, or null if a member's name isn't simple.
+     * @return ?int The position, or the token's own if nothing follows, or null if a member's name isn't simple.
      */
     private function findChainEnd(File $phpcsFile, int $end): ?int
     {

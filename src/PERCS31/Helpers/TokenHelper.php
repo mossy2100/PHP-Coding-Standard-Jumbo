@@ -145,7 +145,7 @@ class TokenHelper
      * parameter list's closer, not its body's.
      *
      * @param array<string, mixed> $token The token.
-     * @return int|null The closer's position, or null if the token doesn't open anything.
+     * @return ?int The closer's position, or null if the token doesn't open anything.
      */
     public static function findCloser(array $token): ?int
     {
@@ -162,7 +162,7 @@ class TokenHelper
      * that jumps to the opener can never move forward.
      *
      * @param array<string, mixed> $token The token.
-     * @return int|null The opener's position, or null if the token doesn't close anything.
+     * @return ?int The opener's position, or null if the token doesn't close anything.
      */
     public static function findOpener(array $token): ?int
     {
@@ -183,7 +183,7 @@ class TokenHelper
      * @param int $start The position to start at.
      * @param int $end The position to stop before.
      * @param callable(array<string, mixed>): bool $matches Whether a token is the one wanted.
-     * @return int|null The token's position, or null if there's none.
+     * @return ?int The token's position, or null if there's none.
      */
     public static function findNextAtLevel(File $phpcsFile, int $start, int $end, callable $matches): ?int
     {
@@ -210,7 +210,7 @@ class TokenHelper
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $ptr The position of the token.
-     * @return int|null The position of the opener: `(`, `[` or `{`, or null if the token isn't inside one.
+     * @return ?int The position of the opener: `(`, `[` or `{`, or null if the token isn't inside one.
      */
     public static function findContainer(File $phpcsFile, int $ptr): ?int
     {
@@ -240,8 +240,8 @@ class TokenHelper
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $newPtr The position of `new`.
-     * @param int|null $limit A position the expression must end before, or null for the end of the file.
-     * @return int|null The position, or null if there's no argument list, the class reference isn't simple, or it
+     * @param ?int $limit A position the expression must end before, or null for the end of the file.
+     * @return ?int The position, or null if there's no argument list, the class reference isn't simple, or it
      *     ends at or after the limit.
      */
     public static function findNewExpressionEnd(File $phpcsFile, int $newPtr, ?int $limit = null): ?int
@@ -312,7 +312,7 @@ class TokenHelper
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $opener The position of the `(`.
-     * @return int|null The position of the `...`, or null if the parentheses hold anything else.
+     * @return ?int The position of the `...`, or null if the parentheses hold anything else.
      */
     public static function findCallableEllipsis(File $phpcsFile, int $opener): ?int
     {

@@ -660,7 +660,7 @@ class ExpressionFormatSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $start The position of the expression's first token.
-     * @return int|null The position of the opening parenthesis, or null if it isn't in one.
+     * @return ?int The position of the opening parenthesis, or null if it isn't in one.
      */
     private function findConditionOpener(File $phpcsFile, int $start): ?int
     {
@@ -845,7 +845,7 @@ class ExpressionFormatSniff implements Sniff
      * @param int $indent The indent for its new lines.
      * @param int $trailing The number of characters straight after it on its last line.
      * @param bool $includeLiteral Whether a single string literal is laid out too, not only a chain of `.` operations.
-     * @return int|null The number of characters before its end, on its last line, or null if it isn't laid out.
+     * @return ?int The number of characters before its end, on its last line, or null if it isn't laid out.
      */
     private function delegateString(
         File $phpcsFile,

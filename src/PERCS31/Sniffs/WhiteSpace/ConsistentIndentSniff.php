@@ -242,7 +242,7 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the whitespace at the start of a line.
-     * @return int|null The position of its keyword, or null if there isn't one.
+     * @return ?int The position of its keyword, or null if there isn't one.
      */
     private function findAnchor(File $phpcsFile, int $stackPtr): ?int
     {
@@ -355,7 +355,7 @@ class ConsistentIndentSniff extends PhpCollectiveSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $ptr The position of the line's first code.
      * @param int $anchor The position of the closure, anonymous class or switch keyword.
-     * @return int|null The number of spaces, or null if it can't be worked out.
+     * @return ?int The number of spaces, or null if it can't be worked out.
      */
     private function findExpectedFromAnchor(File $phpcsFile, int $ptr, int $anchor): ?int
     {

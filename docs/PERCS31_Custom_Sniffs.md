@@ -2706,9 +2706,10 @@ $alsoNotAllowed
 
 ## PERCS31.TypeHints.CompoundType
 
-Checks a union, intersection or DNF type. Its layout: no space around its `|` and `&`, and when it's split across lines,
-one type per line, or for a DNF type, one union segment per line. And `null`: last in a union, with `?T` recommended for
-a union of one type with `null`.
+Checks a union, intersection or DNF type, in code and in doc comments. Its layout: no space around its `|` and `&`, and
+when it's split across lines, one type per line, or for a DNF type, one union segment per line. And `null`: last in a
+union, with `?T` recommended for a union of one type with `null`. Optionally, the types sorted, and no repeated or
+redundant type.
 
 **The spacing.** A space before or after a symbol, on its line, is reported as `SpaceAroundOperator`. A type may be
 split before a symbol, so a line break there is allowed. A symbol at the end of a line is reported as
@@ -2741,8 +2742,10 @@ doesn't see it.
 
 Section 2.5 doesn't set the indent. See [The Indent of a Split Type](PER-CS_3.1_Judgement_Calls.md#the-indent-of-a-split-type).
 
-**`null`.** `null` must be the last type in a union, reported as `NullNotLast`, and a union of one type with `null`
-should be written `?T`, reported as `ShortNullable`, a warning. Both are checked wherever a type can appear.
+**`null`.** `null` must be the last type in a union, reported as `NullPosition`, and a union of one type with `null`
+should be written `?T`, reported as `ShortNullable`, a warning. Both are checked wherever a type can appear, doc
+comments included. `nullPosition` can put `null` first instead, or allow it anywhere, and `checkShortNullable` can turn
+the `?T` check off.
 
 Section 2.5 says `null` MUST be the last item, and that a union of a single simple type with `null` SHOULD be written
 `?T`. This replaces the `NullTypeHintNotOnLastPosition` and `RequiredShortNullable` checks of
@@ -2756,8 +2759,28 @@ Section 2.5 says `null` MUST be the last item, and that a union of a single simp
 
 So this sniff makes both checks everywhere. `?T` is a SHOULD, so a warning.
 
+**Doc comments.** A compound type in `@param`, `@return`, `@var` or any other tag follows the same rules, including
+inside generics, as in `array<string, int|null>` (see
+[Compound Types in Doc Comments](PER-CS_3.1_Judgement_Calls.md#compound-types-in-doc-comments)). A doc type split over
+lines is reported, but not fixed. All of a doc comment's types are fixed at once, and the rest of it is kept as
+written. In Jumbo, this replaces `SlevomatCodingStandard.TypeHints.NullTypeHintOnLastPosition`.
+
+**Sorting** (`sortTypes`, off by default, on in Jumbo): the types in each union and intersection, a DNF type's groups
+and a multi-catch included, in alphabetical order, ignoring case and a leading `\`, as php-cs-fixer's `ordered_types`
+does. `null` isn't sorted, as `nullPosition` places it. Reported as `NotSorted`.
+
+**Repeated and redundant types** (`checkRedundantTypes`, off by default, on in Jumbo), in doc types only, as PHP
+rejects both in a native type:
+
+- A repeated type, as in `int|int`, is reported as `DuplicateType`, and the repeat removed.
+- In a union, a type another member covers, going by
+  [PHPStan's types](https://phpstan.org/writing-php-code/phpdoc-types), is reported as `RedundantType`, but not fixed,
+  as the more specific type may be the one meant: `positive-int|int`, `list<float>|array`, `true|bool`,
+  `array<Foo>|array`. A class is only compared with itself, as subclassing can't be known without loading code.
+
 **Auto-fixable:** yes, unless a comment comes before a `&` that starts a line inside parentheses. A symbol at the end of
-a line is moved to the start of the next. A `null` fix isn't made in a type split across lines, or with a comment in it.
+a line is moved to the start of the next. A `null` or sorting fix isn't made in a type split across lines, or with a
+comment in it, and a redundant type isn't fixed.
 
 **Good:**
 
@@ -2830,6 +2853,17 @@ class Limits
     public const int|null MAX = null;
 }
 ```
+
+**Configuration:**
+
+| Property              | Type   | Default | Description                                                                |
+| --------------------- | ------ | ------- | -------------------------------------------------------------------------- |
+| `checkShortNullable`  | bool   | true    | Report a union of one simple type with `null`, which should be `?T`.       |
+| `nullPosition`        | string | `last`  | Where `null` goes in a union: `first` or `last`, or empty for anywhere.    |
+| `sortTypes`           | bool   | false   | Sort the types in each union and intersection. True in Jumbo.              |
+| `checkRedundantTypes` | bool   | false   | Report repeated and redundant types in doc comments. True in Jumbo.        |
+
+Any other `nullPosition` stops the run with an error.
 
 ---
 

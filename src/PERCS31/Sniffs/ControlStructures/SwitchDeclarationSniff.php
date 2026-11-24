@@ -212,7 +212,7 @@ class SwitchDeclarationSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $case The position of the `case` or `default` keyword.
-     * @return int|null The position of the colon, or null if the label doesn't end in one.
+     * @return ?int The position of the colon, or null if the label doesn't end in one.
      */
     private function findColon(File $phpcsFile, int $case): ?int
     {
@@ -395,7 +395,7 @@ class SwitchDeclarationSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $opener The position of the block's `{`.
      * @param int $end The position of the next label, or the switch's `}`.
-     * @return int|null The position of the terminating statement's first token, or null if there's none after the
+     * @return ?int The position of the terminating statement's first token, or null if there's none after the
      *     block.
      */
     private function findTerminatorAfterBlock(File $phpcsFile, int $opener, int $end): ?int
@@ -758,9 +758,9 @@ class SwitchDeclarationSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position to start looking at.
      * @param int $end The position to stop looking at.
-     * @return int|false The position, or false if there's none.
+     * @return false|int The position, or false if there's none.
      */
-    private function findNextCase(File $phpcsFile, int $stackPtr, int $end): int|false
+    private function findNextCase(File $phpcsFile, int $stackPtr, int $end): false|int
     {
         $tokens = $phpcsFile->getTokens();
         $found = $phpcsFile->findNext([T_CASE, T_DEFAULT, T_SWITCH], $stackPtr, $end);
@@ -784,9 +784,9 @@ class SwitchDeclarationSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position to start looking at.
      * @param int $end The position to stop looking at.
-     * @return int|bool The position of the terminating statement, true if every branch has one, or false if not.
+     * @return bool|int The position of the terminating statement, true if every branch has one, or false if not.
      */
-    private function findNestedTerminator(File $phpcsFile, int $stackPtr, int $end): int|bool
+    private function findNestedTerminator(File $phpcsFile, int $stackPtr, int $end): bool|int
     {
         $tokens = $phpcsFile->getTokens();
 
@@ -890,9 +890,9 @@ class SwitchDeclarationSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $switch The position of the nested `switch`.
-     * @return int|bool The last terminating statement found, or false if a case has none, or there's no default.
+     * @return bool|int The last terminating statement found, or false if a case has none, or there's no default.
      */
-    private function findSwitchTerminator(File $phpcsFile, int $switch): int|bool
+    private function findSwitchTerminator(File $phpcsFile, int $switch): bool|int
     {
         $tokens = $phpcsFile->getTokens();
         $endOfSwitch = $tokens[$switch]['scope_closer'] ?? null;

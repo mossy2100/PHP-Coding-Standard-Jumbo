@@ -147,7 +147,7 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the function keyword.
-     * @return int|null The position of `use`, or null if it isn't a closure, or has no `use`.
+     * @return ?int The position of `use`, or null if it isn't a closure, or has no `use`.
      */
     private function findUse(File $phpcsFile, int $stackPtr): ?int
     {
@@ -259,7 +259,7 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
      * @param int $first The position of the line's first token.
      * @param int $opener The position of the list's opening parenthesis.
      * @param int $closer The position of the list's closing parenthesis.
-     * @return int|null 0 for the closing parenthesis, 1 for a line that starts an item or its attributes, or null for a
+     * @return ?int 0 for the closing parenthesis, 1 for a line that starts an item or its attributes, or null for a
      *     line that isn't checked.
      */
     private function findExpectedParameterIndent(File $phpcsFile, int $first, int $opener, int $closer): ?int

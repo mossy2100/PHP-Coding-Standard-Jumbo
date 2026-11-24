@@ -48,7 +48,7 @@ class FixerHelper
      * @param int $to The position of the token after the gap.
      * @param string $error The error message.
      * @param string $code The error's code.
-     * @param int|null $reportPtr The position of the token the error is on, or null for the token after the gap.
+     * @param ?int $reportPtr The position of the token the error is on, or null for the token after the gap.
      * @param bool $reportIfComment Whether a gap with a comment in it is reported, as an error with no fix. If not,
      *     it's left alone.
      * @param array<int|string, mixed> $data The values for the message's placeholders.

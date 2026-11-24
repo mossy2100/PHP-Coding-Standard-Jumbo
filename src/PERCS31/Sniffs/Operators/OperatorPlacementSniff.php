@@ -282,7 +282,7 @@ class OperatorPlacementSniff implements Sniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the operator.
      * @param int $boundary The position of the token before the operator's expression.
-     * @return int|null The position of the arrow function's `fn`, or null if there's none.
+     * @return ?int The position of the arrow function's `fn`, or null if there's none.
      */
     private function findArrowFunction(File $phpcsFile, int $stackPtr, int $boundary): ?int
     {
@@ -660,7 +660,7 @@ class OperatorPlacementSniff implements Sniff
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $inlineThenPointer The position of the `?`.
-     * @return int|null The position of the `:`, or null if there isn't one.
+     * @return ?int The position of the `:`, or null if there isn't one.
      */
     private function findElse(File $phpcsFile, int $inlineThenPointer): ?int
     {

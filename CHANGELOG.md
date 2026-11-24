@@ -570,6 +570,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - `Squiz.PHP.DisallowMultipleAssignments`: no `$a = $b = 1`, as `Found`. An assignment in a condition is still only
     a warning.
   - `Squiz.PHP.Eval`: a warning for `eval()`.
+- **Compound types: doc comments, sorting, and repeated and redundant types (breaking).**
+  `PERCS31.TypeHints.CompoundType` now checks doc comment types too, including inside generics: no space around `|`
+  and `&`, `null` last, and `?T` for a union of one type with `null`. New properties: `nullPosition` (`last` by
+  default, or `first`, or empty for anywhere), `checkShortNullable` (`true` by default), `sortTypes`, which sorts the
+  types in each union and intersection, as `NotSorted`, and `checkRedundantTypes`, which reports a repeated doc type,
+  as `DuplicateType`, fixed by removing it, and one another member covers, such as `true` beside `bool`, as
+  `RedundantType`. Jumbo turns on `sortTypes` and `checkRedundantTypes`. The `NullNotLast` code is renamed
+  `NullPosition`.
 - **`PERCS31.PHP.CanonicalTypes` (breaking).** A new sniff for the canonical spelling of a type, wherever it's written:
   a cast, every native type declaration, and every type in a doc comment, including inside generics. `boolean`,
   `integer`, `double` and `binary` are reported as `LongName`, and fixed to `bool`, `int`, `float` and `string`. PHP's
@@ -795,6 +803,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 
+- **`SlevomatCodingStandard.TypeHints.NullTypeHintOnLastPosition`, from Jumbo.** `PERCS31.TypeHints.CompoundType` now
+  reports `null` that isn't last in a doc type.
 - **`PERCS31.PHP.LowerCaseType` and `PERCS31.PHP.TypeCast`.** `PERCS31.PHP.CanonicalTypes` replaces both. A
   `phpcs:ignore` for their codes, such as `ParamTypeFound` or `InvalidCastUsed`, needs the new sniff's `LongName` or
   `NotLowerCase`.

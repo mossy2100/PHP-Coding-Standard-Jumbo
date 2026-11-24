@@ -154,15 +154,22 @@
     <rule ref="PERCS31.TypeHints.CompoundType.ShortNullable">
         <type>error</type>
     </rule>
+
+    <!-- The types in each union and intersection sorted, and no repeated or redundant type in a doc comment, such as
+         true beside bool. PER has no rule for either. -->
+    <rule ref="PERCS31.TypeHints.CompoundType">
+        <properties>
+            <property name="sortTypes" value="true"/>
+            <property name="checkRedundantTypes" value="true"/>
+        </properties>
+    </rule>
     <rule ref="SlevomatCodingStandard.TypeHints.NullableTypeForNullDefaultValue"/>
     <rule ref="SlevomatCodingStandard.TypeHints.PropertyTypeHint"/>
     <rule ref="SlevomatCodingStandard.TypeHints.ReturnTypeHint"/>
     <rule ref="SlevomatCodingStandard.TypeHints.ClassConstantTypeHint"/>
 
-    <!-- Docblock types: array<int>, not int[], and null last in a union, as PERCS31.TypeHints.CompoundType requires
-         for a native type -->
+    <!-- Docblock types: array<int>, not int[] -->
     <rule ref="SlevomatCodingStandard.TypeHints.DisallowArrayTypeHintSyntax"/>
-    <rule ref="SlevomatCodingStandard.TypeHints.NullTypeHintOnLastPosition"/>
 
     <!-- ====== FILES AND NAMESPACES (3) ====== -->
 

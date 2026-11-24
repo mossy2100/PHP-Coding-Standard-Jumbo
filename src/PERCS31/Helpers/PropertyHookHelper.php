@@ -245,7 +245,7 @@ class PropertyHookHelper
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the token.
-     * @return int|null The position of the parenthesis, or null if the token isn't in one.
+     * @return ?int The position of the parenthesis, or null if the token isn't in one.
      */
     public static function findHookParameterListOpener(File $phpcsFile, int $stackPtr): ?int
     {
@@ -345,9 +345,9 @@ class PropertyHookHelper
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $varPtr The position of the property's T_VARIABLE token.
-     * @return int|false The position of the hook list's opening brace, or false if the property has no hooks.
+     * @return false|int The position of the hook list's opening brace, or false if the property has no hooks.
      */
-    public static function findHookListOpener(File $phpcsFile, int $varPtr): int|false
+    public static function findHookListOpener(File $phpcsFile, int $varPtr): false|int
     {
         $tokens = $phpcsFile->getTokens();
         $depth = 0;
@@ -423,7 +423,7 @@ class PropertyHookHelper
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $functionPtr The position of the function keyword.
-     * @return list<array{int, int|null}> Each hook list's opening brace, and its closing brace if it has one.
+     * @return list<array{int, ?int}> Each hook list's opening brace, and its closing brace if it has one.
      */
     private static function findPromotedHookLists(File $phpcsFile, int $functionPtr): array
     {
@@ -561,8 +561,8 @@ class PropertyHookHelper
      * @param File $phpcsFile The file being scanned.
      * @param int $opener The position of the hook list's opening brace.
      * @param int $closer The position of the hook list's closing brace.
-     * @return list<array{name: string, start: int, end: int, namePtr: int, hasBody: bool, arrowPtr: int|null,
-     *     bodyOpener: int|null}>|null The hooks, with the `=>` of a short hook and the `{` of a block body, or null
+     * @return list<array{name: string, start: int, end: int, namePtr: int, hasBody: bool, arrowPtr: ?int,
+     *     bodyOpener: ?int}>|null The hooks, with the `=>` of a short hook and the `{` of a block body, or null
      *     if the list can't be parsed.
      */
     public static function parseHooks(File $phpcsFile, int $opener, int $closer): ?array
