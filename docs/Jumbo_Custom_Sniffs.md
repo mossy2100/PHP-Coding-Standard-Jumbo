@@ -31,6 +31,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.PHP.DisallowInvisibleCharacters`                    | No invisible characters, such as a tab or zero-width space      | Mostly  |
 | `Jumbo.PHP.EmbeddedPhp`                                    | A block's tags on their own lines, level with its code          | Mostly  |
 | `Jumbo.PHP.FunctionCalls`                                  | Calls with a better form, such as a cast for `intval()`         | Mostly  |
+| `Jumbo.PHP.IntegerLiteral`                                 | `0xFF` and `0o755`, not `0XFF`, `0xff` or `0755`                | Yes     |
 | `Jumbo.PhpUnit.RequireDedicatedAssertions`                 | PHPUnit's dedicated assertions, such as `assertIsInt($a)`       | Yes     |
 | `Jumbo.PhpUnit.TestClass`                                  | No PHPUnit annotations, and the `setUp()` hooks `protected`     | Yes     |
 | `Jumbo.Strings.RequireBracedVariables`                     | Braces around every variable in a string, as in `"{$name}"`     | Yes     |
@@ -1042,6 +1043,38 @@ $count = intval($input);
 if (strpos($name, ' ') !== false) {
     array_push($parts, $name);
 }
+```
+
+---
+
+## Jumbo.PHP.IntegerLiteral
+
+Checks how an integer literal is written. Both fixes keep the value.
+
+- **`LiteralCase`:** the prefix in lower case and hex digits in upper case: `0XFF` and `0xff` become `0xFF`, `0B101`
+  becomes `0b101`, and `0O17` becomes `0o17`.
+- **`OctalPrefix`:** a legacy octal literal, `0755`, becomes `0o755`, the explicit prefix PHP 8.1 added. Only when
+  PHP_CodeSniffer's `php_version` is 8.1 or later, as in `<config name="php_version" value="80100"/>`, as the project
+  may support an older PHP.
+
+**Why:** PER Coding Style 3.1 has no rule for number literals, so this is an extra rule. A lower-case `b`, `o` or `x`
+stands out from both the leading `0` and the digits, as in `0xDEADBEEF`, and `0o755` can't be mistaken for a decimal
+number. These are php-cs-fixer's `integer_literal_case` and `octal_notation`.
+
+**Auto-fixable:** yes.
+
+**Good:**
+
+```php
+$mask = 0xFF;
+$mode = 0o755;
+```
+
+**Bad:**
+
+```php
+$mask = 0xff;
+$mode = 0755;
 ```
 
 ---

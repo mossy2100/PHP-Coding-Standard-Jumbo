@@ -599,6 +599,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   or a bidirectional control, as `InvisibleCharacter`. In a string it's fixed to an escape, such as `\u{00A0}`, and in
   code or a comment to a space, or removed if it has no width. In a name or inline HTML it's reported only. Set
   `allowTabs` to allow a tab outside a string.
+- **Integer literals, in Jumbo (breaking).** The new `Jumbo.PHP.IntegerLiteral` reports a prefix not in lower case, or
+  hex digits not in upper case, as `LiteralCase`, so `0xff` becomes `0xFF`, and, when `php_version` is 8.1 or later, a
+  legacy octal literal, as `OctalPrefix`, so `0755` becomes `0o755`. Both are auto-fixable.
 - **PHPUnit's dedicated assertions, in Jumbo (breaking).** The new `Jumbo.PhpUnit.RequireDedicatedAssertions` reports
   `assertSame()` with `null`, `true` or `false`, as `InvalidAssert`, and `assertTrue()` or `assertFalse()` of a check
   with its own assertion, such as `is_int()` for `assertIsInt()` or `array_key_exists()` for `assertArrayHasKey()`, as

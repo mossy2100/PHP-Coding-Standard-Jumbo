@@ -344,6 +344,10 @@
          not strpos() comparisons; a dedicated function, not ini_set(); and simpler calls -->
     <rule ref="Jumbo.PHP.FunctionCalls"/>
 
+    <!-- An integer literal's prefix in lower case and its hex digits in upper case, as in 0xFF, and 0o755 for an octal
+         with php_version 8.1 or later -->
+    <rule ref="Jumbo.PHP.IntegerLiteral"/>
+
     <!-- No extract(), which creates variables from an array's keys -->
     <rule ref="Generic.PHP.ForbiddenFunctions">
         <properties>
