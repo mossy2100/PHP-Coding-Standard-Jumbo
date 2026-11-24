@@ -1,0 +1,17 @@
+<?php
+
+// Valid.
+$i++;
+$x = ++$i;
+foo(++$i);
+for ($j = 0; $j < 10; $j++) {}
+for ($j = 0; ++$j < 10;) {}
+
+// Invalid.
+++$i;
+--$i;
+++$this->count;
+--$items['total'];
+++self::$instances;
+for ($j = 0; $j < 10; ++$j) {}
+for ($j = 0, $k = 0; $j < 10; ++$j, --$k) {}

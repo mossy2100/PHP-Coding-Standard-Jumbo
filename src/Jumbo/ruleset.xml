@@ -476,6 +476,9 @@
     <rule ref="SlevomatCodingStandard.Operators.RequireCombinedAssignmentOperator"/>
     <rule ref="SlevomatCodingStandard.Operators.RequireOnlyStandaloneIncrementAndDecrementOperators"/>
 
+    <!-- A standalone increment or decrement after its variable: $i++, not ++$i -->
+    <rule ref="Jumbo.Operators.IncrementStyle"/>
+
     <!-- An increment or decrement operator, not $i += 1 or $i -= 1. NotAllowed and NoBrackets are left out, as
          SlevomatCodingStandard.Operators.RequireOnlyStandaloneIncrementAndDecrementOperators reports those lines. -->
     <rule ref="Squiz.Operators.IncrementDecrementUsage">

@@ -599,6 +599,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   or a bidirectional control, as `InvisibleCharacter`. In a string it's fixed to an escape, such as `\u{00A0}`, and in
   code or a comment to a space, or removed if it has no width. In a name or inline HTML it's reported only. Set
   `allowTabs` to allow a tab outside a string.
+- **`$i++`, not `++$i`, in Jumbo (breaking).** The new `Jumbo.Operators.IncrementStyle` reports a standalone increment
+  or decrement written before its variable, as `PreIncrement`, as a statement or a `for` loop's step. Auto-fixable.
 - **Integer literals, in Jumbo (breaking).** The new `Jumbo.PHP.IntegerLiteral` reports a prefix not in lower case, or
   hex digits not in upper case, as `LiteralCase`, so `0xff` becomes `0xFF`, and, when `php_version` is 8.1 or later, a
   legacy octal literal, as `OctalPrefix`, so `0755` becomes `0o755`. Both are auto-fixable.

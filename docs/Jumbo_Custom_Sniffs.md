@@ -29,6 +29,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.Namespaces.UnusedUses`                              | No unused `use` statements, safe with a miscased `use Function` | Yes     |
 | `Jumbo.NamingConventions.ValidVariableName`                | No leading underscore on a variable or parameter in a class     | No      |
 | `Jumbo.PHP.DisallowInvisibleCharacters`                    | No invisible characters, such as a tab or zero-width space      | Mostly  |
+| `Jumbo.Operators.IncrementStyle`                           | `$i++;`, not `++$i;`, where the value isn't used                | Yes     |
 | `Jumbo.PHP.EmbeddedPhp`                                    | A block's tags on their own lines, level with its code          | Mostly  |
 | `Jumbo.PHP.FunctionCalls`                                  | Calls with a better form, such as a cast for `intval()`         | Mostly  |
 | `Jumbo.PHP.IntegerLiteral`                                 | `0xFF` and `0o755`, not `0XFF`, `0xff` or `0755`                | Yes     |
@@ -913,6 +914,35 @@ $label = "Total: {$total}"; // A no-break space after the colon.
 | Property    | Type | Default | Description                                                                 |
 | ----------- | ---- | ------- | --------------------------------------------------------------------------- |
 | `allowTabs` | bool | false   | Allow a tab outside a string, to indent with tabs. A tab in a string isn't. |
+
+---
+
+## Jumbo.Operators.IncrementStyle
+
+Requires a standalone increment or decrement after its variable: `$i++;`, not `++$i;`, as `PreIncrement`. Standalone
+means a statement of its own, or a `for` loop's step, where its value isn't used, so the two forms do the same. One
+whose value is used, as in `$x = ++$i`, is left alone.
+
+**Why:** PER Coding Style 3.1 has no rule for this, so this is an extra rule. One form reads the same everywhere. This
+is Laravel Pint's `increment_style`, with the post form.
+
+**Auto-fixable:** yes.
+
+**Good:**
+
+```php
+for ($i = 0; $i < 10; $i++) {
+    $count--;
+}
+```
+
+**Bad:**
+
+```php
+for ($i = 0; $i < 10; ++$i) {
+    --$count;
+}
+```
 
 ---
 
