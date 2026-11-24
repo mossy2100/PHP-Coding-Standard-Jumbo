@@ -568,13 +568,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   the parts, and around a one-line doc comment's text (`Spacing`), a redundant variable name on a property or constant
   (`VarName`), an inline `@var` with its name first (`VarNameOrder`), and one in a `/* */` comment (`VarInBlockComment`),
   all but the type fixed. It replaces `PhpCollective.Commenting.InlineDocBlock` in Jumbo.
-- **Six more extra rules in Jumbo (breaking).** Jumbo now includes:
+- **Five more extra rules in Jumbo (breaking).** Jumbo now includes:
   - `Generic.CodeAnalysis.ForLoopShouldBeWhileLoop`: a warning for a `for` loop with only a condition.
   - `Generic.PHP.DeprecatedFunctions`: no call to a native function that PHP marks deprecated.
   - `Generic.PHP.DisallowRequestSuperglobal`: no `$_REQUEST`.
   - `Generic.PHP.DiscourageGoto`: a warning for `goto`.
   - `Generic.WhiteSpace.HereNowdocIdentifierSpacing`: no space in `<<< END`. Auto-fixable.
-  - `PhpCollective.PHP.RemoveFunctionAlias`: no function alias, such as `sizeof()` or `join()`. Auto-fixable.
 - **Four more Squiz rules in Jumbo (breaking).** Jumbo now includes:
   - `Squiz.Commenting.DocCommentAlignment`: a docblock's stars lined up, with one space after each. Auto-fixable.
   - `Squiz.Operators.IncrementDecrementUsage`: `$i++`, not `$i += 1`, as `Found`.
@@ -600,6 +599,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   or a bidirectional control, as `InvisibleCharacter`. In a string it's fixed to an escape, such as `\u{00A0}`, and in
   code or a comment to a space, or removed if it has no width. In a name or inline HTML it's reported only. Set
   `allowTabs` to allow a tab outside a string.
+- **Function calls with a better form, in Jumbo (breaking).** The new `Jumbo.PHP.FunctionCalls` reports, each with its
+  own code, and fixes where the fix keeps what the code does: `intval()` and the like, for a cast (`CastFunction`),
+  `settype()` as a statement (`SetType`), a function's alias, such as `sizeof()` (`FunctionAlias`), `die`
+  (`DieAlias`), `print` as a statement (`PrintStatement`), `ini_set()` for a setting with its own function, such as
+  `set_time_limit()` (`DedicatedIniFunction`), `strpos()` and similar comparisons for `str_contains()`,
+  `str_starts_with()` and `str_ends_with()` (`ModernStringFunction`), `$a[array_key_first($a)]` for `array_first($a)`,
+  when `php_version` is 8.5 or later (`ArrayFirstLast`), `strlen($a) === 0` for `$a === ''` (`StringLength`), and
+  simpler calls: `array_push()` with one value (`ArrayPush`), `implode()` without a separator (`ImplodeSeparator`),
+  `sprintf()` and `printf()` of a plain string (`UselessSprintf` and `UselessPrintf`), `pow()` (`Pow`), and
+  `call_user_func()` (`CallUserFunc`). It warns about `t` in an `fopen()` mode (`FopenTextMode`).
 - **No blank line after any doc comment, in Jumbo (breaking).** The new `Jumbo.WhiteSpace.DocBlockSpacing` replaces
   `PhpCollective.WhiteSpace.DocBlockSpacing`, and also reports a blank line between a doc comment and a property, a
   constant, an enum or an enum case, as `InvalidSpacing`. Auto-fixable.
@@ -611,7 +620,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **`#` comments, in Jumbo (breaking).** The new `Jumbo.Commenting.DisallowHashComments` reports a `#` comment as
   `HashComment`, and fixes it to `//`. `#region` and `#endregion` are allowed; set its `exceptions` property to change
   the list. PERCS31 is unchanged, as PER Coding Style 3.1 has no rule for comments.
-- **41 more extra rules in Jumbo (breaking).** Jumbo now includes:
+- **40 more extra rules in Jumbo (breaking).** Jumbo now includes:
   - Bugs and dead code: `Generic.Classes.DuplicateClassName` (a warning), `Generic.CodeAnalysis.UnconditionalIfStatement`
     (a warning), `Generic.CodeAnalysis.UnnecessaryFinalModifier` (a warning),
     `Generic.CodeAnalysis.UselessOverridingMethod` (a warning), `Generic.VersionControl.GitMergeConflict`,
@@ -625,8 +634,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     `Universal.FunctionDeclarations.NoLongClosures` (a warning over 10 lines of code, an error over 20) and
     `Universal.PHP.OneStatementInShortEchoTag`.
   - Simpler forms, all auto-fixable: `Modernize.FunctionCalls.Dirname`, `PhpCollective.ControlStructures.UnneededElse`,
-    `PhpCollective.PHP.NoIsNull`, `PhpCollective.PHP.NotEqual`, `PhpCollective.PHP.PreferCastOverFunction`,
-    `PhpCollective.Testing.AssertPrimitives`, `SlevomatCodingStandard.ControlStructures.UselessTernaryOperator`
+    `PhpCollective.PHP.NoIsNull`, `PhpCollective.PHP.NotEqual`, `PhpCollective.Testing.AssertPrimitives`, `SlevomatCodingStandard.ControlStructures.UselessTernaryOperator`
     (partly), `SlevomatCodingStandard.Functions.RequireArrowFunction`, `Universal.CodeAnalysis.NoDoubleNegative`,
     `Universal.CodeAnalysis.NoEchoSprintf` and `Universal.PHP.NoFQNTrueFalseNull`.
   - Order: `SlevomatCodingStandard.Classes.TraitUseOrder` and `Universal.OOStructures.AlphabeticExtendsImplements`, both

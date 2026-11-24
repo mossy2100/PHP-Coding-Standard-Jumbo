@@ -340,8 +340,9 @@
     <!-- A warning for eval() -->
     <rule ref="Squiz.PHP.Eval"/>
 
-    <!-- No function alias, such as sizeof() or join() -->
-    <rule ref="PhpCollective.PHP.RemoveFunctionAlias"/>
+    <!-- Calls with a better form: a cast, not intval(); no alias, such as sizeof() or die; str_contains() and the like,
+         not strpos() comparisons; a dedicated function, not ini_set(); and simpler calls -->
+    <rule ref="Jumbo.PHP.FunctionCalls"/>
 
     <!-- No extract(), which creates variables from an array's keys -->
     <rule ref="Generic.PHP.ForbiddenFunctions">
@@ -363,8 +364,7 @@
     <!-- No global statement -->
     <rule ref="Squiz.PHP.GlobalKeyword"/>
 
-    <!-- A cast, not strval(), intval(), floatval() or boolval(), and $x === null, not is_null($x) -->
-    <rule ref="PhpCollective.PHP.PreferCastOverFunction"/>
+    <!-- $x === null, not is_null($x) -->
     <rule ref="PhpCollective.PHP.NoIsNull"/>
 
     <!-- printf(), not echo sprintf(), and __DIR__ or dirname()'s levels argument, not dirname(__FILE__) or nested

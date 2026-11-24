@@ -30,6 +30,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.NamingConventions.ValidVariableName`                | No leading underscore on a variable or parameter in a class     | No      |
 | `Jumbo.PHP.DisallowInvisibleCharacters`                    | No invisible characters, such as a tab or zero-width space      | Mostly  |
 | `Jumbo.PHP.EmbeddedPhp`                                    | A block's tags on their own lines, level with its code          | Mostly  |
+| `Jumbo.PHP.FunctionCalls`                                  | Calls with a better form, such as a cast for `intval()`         | Mostly  |
 | `Jumbo.PhpUnit.TestClass`                                  | No PHPUnit annotations, and the `setUp()` hooks `protected`     | Yes     |
 | `Jumbo.Strings.RequireBracedVariables`                     | Braces around every variable in a string, as in `"{$name}"`     | Yes     |
 | `Jumbo.TypeHints.DeclareStrictTypes`                       | `strict_types=1` required, allowing `<?php declare(...) ?>`     | Yes     |
@@ -965,6 +966,81 @@ HTML's whitespace.
         $b,
     ) ?></p>
 </div>
+```
+
+---
+
+## Jumbo.PHP.FunctionCalls
+
+Reports calls to PHP's functions that have a better form, and fixes them where the fix is certain to keep what the code
+does. Only calls to PHP's global functions are checked: an unqualified name that a `use function` statement imports
+from elsewhere, or that the file declares a function by, is left alone.
+
+| Code                   | Reported                                                     | Fixed to                                    |
+| ---------------------- | ------------------------------------------------------------ | ------------------------------------------- |
+| `CastFunction`         | `strval()`, `intval()`, `floatval()`, `boolval()`            | A cast, as in `(int) $a`                    |
+| `SetType`              | `settype($a, 'int');`, as a statement, with a literal type   | `$a = (int) $a;`                            |
+| `FunctionAlias`        | An alias, such as `sizeof()`, `join()` or `is_integer()`     | The main name: `count()`, `implode()` ...   |
+| `DieAlias`             | `die`                                                        | `exit`                                      |
+| `PrintStatement`       | `print 'x';`, as a statement                                 | `echo 'x';`                                 |
+| `DedicatedIniFunction` | `ini_set()` for a setting with its own function              | The function, as a statement with a literal |
+| `ModernStringFunction` | `strpos($h, $n) !== false`, `=== 0` and the like             | `str_contains()`, `str_starts_with()` ...   |
+| `ArrayFirstLast`       | `$a[array_key_first($a)]`, with `php_version` 8.5 or later   | `array_first($a)`                           |
+| `StringLength`         | `strlen($a) === 0`, `!== 0` or `> 0`                         | `$a === ''` or `$a !== ''`                  |
+| `ArrayPush`            | `array_push($a, $b);` with one value, as a statement         | `$a[] = $b;`                                |
+| `ImplodeSeparator`     | `implode($pieces)`                                           | `implode('', $pieces)`                      |
+| `UselessSprintf`       | `sprintf('text')`, with no `%`                               | `'text'`                                    |
+| `UselessPrintf`        | `printf('text');`, with no `%`, as a statement               | `echo 'text';`                              |
+| `Pow`                  | `pow($a, $b)`                                                | `$a ** $b`                                  |
+| `CallUserFunc`         | `call_user_func()` and `call_user_func_array()`              | A direct call, as in `$callback($a)`        |
+| `FopenTextMode`        | A warning for `t` in a literal `fopen()` mode                | Not fixed                                   |
+
+- **Casts:** a call with a base, as in `intval($a, 16)`, or a first-class callable, is left alone. An argument that
+  isn't simple gets parentheses: `(string) ($a + 1)`.
+- **Aliases:** from [PHP's list of function aliases](https://www.php.net/manual/en/aliases.php).
+- **`ini_set()`:** for `max_execution_time` (`set_time_limit()`), `error_reporting`, `date.timezone`
+  (`date_default_timezone_set()`), `include_path` (`set_include_path()`), `bcmath.scale` (`bcscale()`),
+  `ignore_user_abort`, `mbstring.language`, `.substitute_character` and `.regex_encoding`, and `session.name`,
+  `.save_path`, `.cache_limiter` and `.cookie_*`. It's only fixed as a statement, with a literal value converted to the
+  function's type, as `ini_set()` returns the old value as a string, where the functions return other things, and
+  takes a string, where `set_time_limit('30')` is a `TypeError` under strict types. A cookie setting is reported only.
+- **Modern functions:** only patterns whose fix keeps the behaviour: strict comparisons only, and
+  `str_ends_with()` only for a non-empty literal needle, as `substr($h, -strlen(''))` is all of `$h`. A comparison
+  inside a tighter operator, as in `1 + strpos($h, $n) !== false`, isn't touched. `array_first()` and `array_last()`
+  need PHP 8.5, so `php_version` must be set, as in `<config name="php_version" value="80500"/>`.
+- **`pow()`:** an operand that isn't simple gets parentheses, as `**` binds tighter than nearly everything:
+  `pow(-2, 2)` becomes `(-2) ** 2`. `pow($a, $b) ** $c` keeps its order, as `($a ** $b) ** $c`.
+- **`call_user_func()`:** a string callable becomes a call to that function, fully qualified in a namespace, an array
+  of a variable and a method name becomes `$object->method()`, and a variable becomes `$callable()`.
+  `call_user_func_array()` unpacks its array. A call where an argument assigns to the callable's variable is left
+  alone.
+- **`fopen()`:** `t` is Windows-only text mode, which translates line endings there. Removing it changes what the
+  code does on Windows, so it isn't fixed. `b` is PHP's default everywhere, so it isn't checked.
+
+**Why:** PER Coding Style 3.1 has no rules for which functions to call, so this is an extra rule. These are
+php-cs-fixer's `set_type_to_cast`, `no_alias_language_construct_call`, `no_mixed_echo_print`, `modernize_strpos`,
+`string_length_to_empty`, `array_push`, `implode_call`, `no_useless_sprintf`, `no_useless_printf`,
+`pow_to_exponentiation`, `regular_callable_call` and `fopen_flags`, with php-collective's `PreferCastOverFunction` and
+`RemoveFunctionAlias`, which this replaces, in one sniff, so a call goes straight to its final form.
+
+**Auto-fixable:** mostly.
+
+**Good:**
+
+```php
+$count = (int) $input;
+if (str_contains($name, ' ')) {
+    $parts[] = $name;
+}
+```
+
+**Bad:**
+
+```php
+$count = intval($input);
+if (strpos($name, ' ') !== false) {
+    array_push($parts, $name);
+}
 ```
 
 ---

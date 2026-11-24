@@ -1,0 +1,46 @@
+<?php
+
+$a = (int) $x;
+$b = intval($x, 16);
+$c = (string) ($x + 1);
+$d = (int) $d;
+$e = null;
+$f = count($list);
+$g = \implode(',', $list);
+exit('Stopped');
+echo 'Hello';
+$h = print 'x';
+set_time_limit(30);
+$i = ini_set('max_execution_time', '30');
+ini_set('memory_limit', '1G');
+ini_set('precision', '14');
+ini_set('session.cookie_secure', '1');
+if (str_contains($haystack, $needle)) {}
+if (str_starts_with($haystack, $needle)) {}
+if (!str_contains($haystack, 'a b')) {}
+$j = 1 + strpos($haystack, $needle) !== false;
+if (str_starts_with($h, $n)) {}
+if (str_ends_with($h, '.php')) {}
+if (substr($h, -strlen($n)) === $n) {}
+if (!str_starts_with($h, $n)) {}
+if ($s === '') {}
+if ($s !== '') {}
+$list[] = $item;
+array_push($list, $item, $other);
+$k = implode('', $pieces);
+$l = 'text';
+$m = sprintf('100%%');
+echo 'text';
+$n = $p ** 2;
+$o = (-2) ** 2;
+$q = ($p ** 2) ** 2;
+foo($a);
+$obj->bar($a, $b);
+$callback($a);
+$callback(...$args);
+call_user_func($foo, $foo = 'bar');
+$r = fopen('file', 'rt');
+$s2 = $obj->sizeof($list);
+$t = array_first($list);
+$u = array_last($this->items);
+$v = $first[array_key_first($second)];

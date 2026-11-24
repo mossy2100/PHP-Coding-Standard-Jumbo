@@ -250,7 +250,7 @@ class RulesetPropertiesUnitTest extends TestCase
 
     /**
      * Test that extract() is the only function Generic.PHP.ForbiddenFunctions forbids in Jumbo. Its default list of
-     * aliases, such as sizeof(), is left to PhpCollective.PHP.RemoveFunctionAlias.
+     * aliases, such as sizeof(), is left to Jumbo.PHP.FunctionCalls.
      */
     public function testExtractIsTheOnlyForbiddenFunction(): void
     {

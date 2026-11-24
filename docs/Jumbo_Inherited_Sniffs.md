@@ -37,8 +37,6 @@ sections link to it.
 | `PhpCollective.ControlStructures.UnneededElse`                                           | No `else` after branches that all exit early                   | Yes     |
 | `PhpCollective.PHP.NoIsNull`                                                             | `$x === null`, not `is_null($x)`                               | Yes     |
 | `PhpCollective.PHP.NotEqual`                                                             | `!=`, not `<>`                                                 | Yes     |
-| `PhpCollective.PHP.PreferCastOverFunction`                                               | A cast, not `intval()` and similar                             | Yes     |
-| `PhpCollective.PHP.RemoveFunctionAlias`                                                  | No function aliases, such as `sizeof()`                        | Yes     |
 | `PhpCollective.Testing.AssertPrimitives`                                                 | `assertNull()`, not `assertSame(null, ...)`                    | Yes     |
 | `PhpCollective.WhiteSpace.EmptyLines`                                                    | No more than one blank line in a row                           | Yes     |
 | `SlevomatCodingStandard.Arrays.ArrayAccess`                                              | No white space around an array access's brackets               | Partly  |
@@ -289,8 +287,7 @@ A warning for `goto`, and for its labels.
 ## Generic.PHP.ForbiddenFunctions
 
 Disallows `extract()`, which creates variables from an array's keys, so a reader can't tell where they come from.
-Jumbo replaces the sniff's default list (`sizeof()` and `delete()`), as `PhpCollective.PHP.RemoveFunctionAlias`
-covers aliases.
+Jumbo replaces the sniff's default list (`sizeof()` and `delete()`), as `Jumbo.PHP.FunctionCalls` covers aliases.
 
 **Auto-fixable:** no.
 
@@ -388,24 +385,6 @@ Requires `$x === null`, not `is_null($x)`.
 ## PhpCollective.PHP.NotEqual
 
 Requires `!=`, not `<>`.
-
-**Auto-fixable:** yes.
-
----
-
-## PhpCollective.PHP.PreferCastOverFunction
-
-Requires a cast, not `strval()`, `intval()`, `floatval()` or `boolval()`, as in `(int) $a`. A call with a base
-argument, or used as a callable, is left alone.
-
-**Auto-fixable:** yes.
-
----
-
-## PhpCollective.PHP.RemoveFunctionAlias
-
-Disallows a function alias, such as `sizeof()`, `join()` or `is_integer()`, and replaces it with the main function:
-`count()`, `implode()` or `is_int()`.
 
 **Auto-fixable:** yes.
 
