@@ -1,0 +1,27 @@
+<?php
+
+// === VALID ===
+$a = 'plain';
+$b = "an escaped \t tab";
+
+// === INVALID ===
+$c = "tab\there";
+$d = "nbsp\u{00A0}here";
+$e = 'cost $5​';
+$f = "zero\u{200B}width";
+$g = "$h  after a variable";
+$i = "a\\\tb";
+    $j = 1;
+$k = 1; // comment
+$l = 1; // zerowidth
+/** Doc comment. */
+$m = <<<TXT
+    nowdoc\u{00A0}text
+    TXT;
+$n = <<<TXT
+    heredoc\ttext
+    TXT;
+$o = "nul\x001";
+$p‮q = 1;
+?>
+<p>html </p>

@@ -28,6 +28,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.Functions.RequireSingleLineSignature`               | A split function or closure signature fits on a line            | Yes     |
 | `Jumbo.Namespaces.UnusedUses`                              | No unused `use` statements, safe with a miscased `use Function` | Yes     |
 | `Jumbo.NamingConventions.ValidVariableName`                | No leading underscore on a variable or parameter in a class     | No      |
+| `Jumbo.PHP.DisallowInvisibleCharacters`                    | No invisible characters, such as a tab or zero-width space      | Mostly  |
 | `Jumbo.PHP.EmbeddedPhp`                                    | A block's tags on their own lines, level with its code          | Mostly  |
 | `Jumbo.PhpUnit.TestClass`                                  | No PHPUnit annotations, and the `setUp()` hooks `protected`     | Yes     |
 | `Jumbo.Strings.RequireBracedVariables`                     | Braces around every variable in a string, as in `"{$name}"`     | Yes     |
@@ -821,6 +822,57 @@ class Order
     }
 }
 ```
+
+---
+
+## Jumbo.PHP.DisallowInvisibleCharacters
+
+Disallows any invisible or non-printable character except a space and a line feed, as `InvisibleCharacter`. By
+Unicode category, that's:
+
+- Control characters (`Cc`) except a line feed: a tab, carriage return, form feed, NUL and the rest.
+- Format characters (`Cf`): a zero-width space, joiner or non-joiner, a soft hyphen, a byte order mark inside the
+  file, and the bidirectional controls used in "Trojan Source" attacks.
+- Separators (`Zs`, `Zl`, `Zp`) except a space: a no-break, thin or em space, and the line and paragraph separators.
+
+A byte order mark at the very start of the file is left to `Generic.Files.ByteOrderMark`.
+
+**The fix depends on where the character is:**
+
+- **A double-quoted string or a heredoc:** an escape, such as `\t`, `\r`, `\0`, `\x1F` or `\u{00A0}`, which keeps the
+  value. One inside or straight after an interpolated variable is reported only.
+- **A single-quoted string or a nowdoc:** these can't hold an escape, so the string becomes double-quoted, or the
+  nowdoc a heredoc, if it has no `$` or `\` that would then mean something. Otherwise it's reported only, as is a
+  single-quoted string over several lines.
+- **Code or a comment:** a space, or nothing for a character with no width (a format character). A tab becomes spaces
+  to the next tab stop, and a carriage return before a line feed is removed, so the fixes agree with
+  `Generic.WhiteSpace.DisallowTabIndent` and the line endings sniff, which report some of the same characters.
+- **A name or inline HTML:** reported only, as a fix would change the name, or the output.
+
+**Why:** an invisible character can hide what code does. A bidirectional control can make code read differently from
+how it runs, and a no-break or zero-width space looks like a space, or like nothing, in an editor and a diff. No
+inherited sniff covers them all: `Generic.WhiteSpace.DisallowTabIndent` only checks indents, and the line endings sniff
+only line ends.
+
+**Auto-fixable:** mostly.
+
+**Good:**
+
+```php
+$label = "Total:\u{00A0}{$total}";
+```
+
+**Bad:**
+
+```php
+$label = "Total: {$total}"; // A no-break space after the colon.
+```
+
+**Configuration:**
+
+| Property    | Type | Default | Description                                                                 |
+| ----------- | ---- | ------- | --------------------------------------------------------------------------- |
+| `allowTabs` | bool | false   | Allow a tab outside a string, to indent with tabs. A tab in a string isn't. |
 
 ---
 

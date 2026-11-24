@@ -1,0 +1,8 @@
+<?php
+// phpcs:set Jumbo.PHP.DisallowInvisibleCharacters allowTabs true
+
+// A tab outside a string is allowed, but not one in a string.
+	$a = 1;	// Aligned.
+$b = "tab	here";
+
+// phpcs:set Jumbo.PHP.DisallowInvisibleCharacters allowTabs false

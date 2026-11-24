@@ -144,6 +144,30 @@ class RulesetUnitTest extends TestCase
         $this->assertStringContainsString($expected, $fixed);
     }
 
+    /**
+     * Test that Jumbo.PHP.DisallowInvisibleCharacters agrees with the tab indent and line ending sniffs, which report
+     * some of the same characters: a tab in code becomes spaces to the next tab stop, a carriage return before a line
+     * feed is removed, and a tab in a string becomes an escape.
+     */
+    public function testInvisibleCharacterFixesAgreeWithTheOtherSniffs(): void
+    {
+        $source = "<?php\r\n\r\ndeclare(strict_types=1);\r\n\r\nfunction foo(): string\r\n{\r\n\t\$a = 1;\t// "
+            . "One.\r\n\r\n\treturn \"x\ty{\$a}\";\r\n}\r\n";
+        $expected = "<?php\n\ndeclare(strict_types=1);\n\nfunction foo(): string\n{\n    \$a = 1; // One.\n\n    "
+            . "return \"x\\ty{\$a}\";\n}\n";
+        $file = $this->copyToTempFile(null, $source);
+
+        try {
+            $fixer = $this->runTool('phpcbf', ['--standard=Jumbo', $file]);
+            $fixed = (string) file_get_contents($file);
+        } finally {
+            unlink($file);
+        }
+
+        $this->assertStringNotContainsString('FAILED TO FIX', $fixer['output']);
+        $this->assertSame($expected, $fixed);
+    }
+
     #endregion
 
     #region Tests comparing PERCS31 and Jumbo.

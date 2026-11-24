@@ -28,6 +28,10 @@
 
     <rule ref="SlevomatCodingStandard.PHP.UselessSemicolon"/>
 
+    <!-- No invisible or non-printable character but a space and a line feed, such as a tab, a no-break or zero-width
+         space, or a bidirectional control ("Trojan Source"). In a string, it's fixed to an escape. -->
+    <rule ref="Jumbo.PHP.DisallowInvisibleCharacters"/>
+
     <!-- A warning for a merge conflict marker left in a comment, heredoc, nowdoc or inline HTML, where PHP accepts it -->
     <rule ref="Generic.VersionControl.GitMergeConflict"/>
 

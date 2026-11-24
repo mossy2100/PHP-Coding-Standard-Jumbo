@@ -570,6 +570,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - `Squiz.PHP.DisallowMultipleAssignments`: no `$a = $b = 1`, as `Found`. An assignment in a condition is still only
     a warning.
   - `Squiz.PHP.Eval`: a warning for `eval()`.
+- **Invisible characters, in Jumbo (breaking).** The new `Jumbo.PHP.DisallowInvisibleCharacters` reports any
+  invisible or non-printable character except a space and a line feed, such as a tab, a no-break or zero-width space,
+  or a bidirectional control, as `InvisibleCharacter`. In a string it's fixed to an escape, such as `\u{00A0}`, and in
+  code or a comment to a space, or removed if it has no width. In a name or inline HTML it's reported only. Set
+  `allowTabs` to allow a tab outside a string.
 - **PHPUnit test classes, in Jumbo (breaking).** The new `Jumbo.PhpUnit.TestClass` reports a PHPUnit annotation,
   which PHPUnit 12 ignores, and fixes it to its attribute, or `@test` to a `test` prefix on the method's name, as
   `Annotation` and `TestAnnotation`. It also reports `setUp()`, `tearDown()`, `setUpBeforeClass()` and
