@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Jumbo\Sniffs\Formatting;
 
-use Jumbo\Helpers\ExpressionHelper;
 use Jumbo\Helpers\SingleLineHelper;
+use PERCS31\Helpers\ExpressionHelper;
 use PERCS31\Helpers\TokenHelper;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
@@ -16,7 +16,7 @@ use PHP_CodeSniffer\Util\Tokens;
  *
  * PER Coding Style 3.1, section 6.4, says a statement MAY be split at an operator, so this is an extra rule. Other
  * sniffs do the same for a call, an array, a method signature, a condition and a loop header, and
- * Jumbo.Formatting.ExpressionFormat lays out an expression's binary operators and grouping parentheses. This sniff
+ * PERCS31.Formatting.ExpressionFormat lays out an expression's binary operators and grouping parentheses. This sniff
  * covers the rest of a statement, such as `$a` then `= $b;`, and an expression that sniff leaves alone, such as one
  * with a multi-line closure.
  *
@@ -166,7 +166,7 @@ class RequireSingleLineStatementSniff implements Sniff
                 }
             }
 
-            // Grouping parentheses are part of an expression, laid out by Jumbo.Formatting.ExpressionFormat.
+            // Grouping parentheses are part of an expression, laid out by PERCS31.Formatting.ExpressionFormat.
             $closer = TokenHelper::findCloser($tokens[$i]);
             if (!is_int($closer) || $closer <= $i || ExpressionHelper::isGrouping($phpcsFile, $i)) {
                 continue;
@@ -342,7 +342,7 @@ class RequireSingleLineStatementSniff implements Sniff
 
     /**
      * Check whether a statement has a line break outside a call or an array, whose own sniffs report those, and outside
-     * an expression's layout, which Jumbo.Formatting.ExpressionFormat reports.
+     * an expression's layout, which PERCS31.Formatting.ExpressionFormat reports.
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $start The position of the statement's first token.

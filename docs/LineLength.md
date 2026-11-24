@@ -22,9 +22,9 @@ Neither limit is auto-fixable, as only a person can choose where to split a line
 
 ## Changing the Limit
 
-In the [PERCS31](PERCS31.md) standard, only `Generic.Files.LineLength` uses the limit, so set its `absoluteLineLimit` to change it.
-That property holds the soft limit, as the sniff's `lineLimit` holds the recommended 80. The rest of this section is
-about the Jumbo standard.
+In the [PERCS31](PERCS31.md) standard, two sniffs use the limit: `Generic.Files.LineLength`, whose `absoluteLineLimit`
+holds it, as its `lineLimit` holds the recommended 80, and `PERCS31.Formatting.ExpressionFormat`, whose
+`maxLineLength` holds it. Set both to change it. The rest of this section is about the Jumbo standard.
 
 Thirteen sniffs check or wrap long lines, and each has its own line-length property. The Jumbo ruleset sets all thirteen
 from two XML entities, `lineLength` and `lineLengthPlusOne`, at the top of its `ruleset.xml`. An entity only applies
@@ -41,7 +41,7 @@ within the file that defines it, so you can't override it from `phpcs.xml`. Set 
 | `Jumbo.Arrays.ArrayDeclaration`                                            | `maxLineLength`     | length     |
 | `Jumbo.ControlStructures.HeaderLayout`                                     | `maxLineLength`     | length     |
 | `Jumbo.ControlStructures.MatchArmWrapIndent`                               | `maxLineLength`     | length     |
-| `Jumbo.Formatting.ExpressionFormat`                                        | `maxLineLength`     | length     |
+| `PERCS31.Formatting.ExpressionFormat`                                      | `maxLineLength`     | length     |
 | `Jumbo.Formatting.RequireSingleLineStatement`                              | `maxLineLength`     | length     |
 | `Jumbo.Functions.RequireSingleLineSignature`                               | `maxLineLength`     | length     |
 | `Jumbo.Classes.RequireSingleLineClassHeader`                               | `maxLineLength`     | length     |
@@ -110,7 +110,7 @@ set separately:
             <property name="maxLineLength" value="&lineLength;"/>
         </properties>
     </rule>
-    <rule ref="Jumbo.Formatting.ExpressionFormat">
+    <rule ref="PERCS31.Formatting.ExpressionFormat">
         <properties>
             <property name="maxLineLength" value="&lineLength;"/>
         </properties>

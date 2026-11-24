@@ -499,6 +499,11 @@
          split at ? or : takes three lines, with ? and : leading, indented once (6.4). -->
     <rule ref="PERCS31.Operators.OperatorPlacement"/>
 
+    <!-- A warning for an expression written on one line that's over the soft line length, fixed by splitting it
+         before its loosest operators. Any split someone has written is left alone, as PER allows splitting before any
+         operator (2.3, 6.4). -->
+    <rule ref="PERCS31.Formatting.ExpressionFormat"/>
+
     <!-- ====== CLOSURES AND ANONYMOUS CLASSES (7, 8) ====== -->
 
     <!-- No space after fn, and the expression may be on the next line (7.1) -->

@@ -70,8 +70,8 @@ class RulesetUnitTest extends TestCase
     }
 
     /**
-     * Test that Jumbo.Formatting.ExpressionFormat and the sniffs that check the same lines agree: phpcbf fixes the bad
-     * fixture to exactly the good one, without failing to finish, and the good one has no violations.
+     * Test that PERCS31.Formatting.ExpressionFormat and the sniffs that check the same lines agree: phpcbf fixes the
+     * bad fixture to exactly the good one, without failing to finish, and the good one has no violations.
      *
      * ExpressionFormat works out each new line's indent for the layout it writes, and
      * PERCS31.Operators.OperatorPlacement checks the indent of the layout as it's written. A difference between their

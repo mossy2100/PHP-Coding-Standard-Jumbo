@@ -1,0 +1,15 @@
+<?php
+
+// Valid when not strict: a split that fits, and one before an operator that isn't the loosest.
+$a = $b
+    + $c;
+$total = $someLongVariableName * $anotherLongVariableName
+    + $yetAnotherLongVariableName * $finalLongVariableName + $oneMore;
+
+// Reported: an expression written on one line that's too long.
+$total = $someLongVariableName * $anotherLongVariableName + $yetAnotherLongVariableName * $finalLongVariableName
+    + $more;
+
+// Left alone: a condition that shares its line with `if (`.
+if ($someLongVariableName > $anotherLongVariableName && $yetAnotherLongVariableName > $finalLongVariableName || $other) {
+}

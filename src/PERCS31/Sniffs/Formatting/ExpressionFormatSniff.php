@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Jumbo\Sniffs\Formatting;
+namespace PERCS31\Sniffs\Formatting;
 
-use Jumbo\Helpers\ExpressionHelper;
-use Jumbo\Helpers\ExpressionNode;
-use Jumbo\Helpers\StringHelper;
+use PERCS31\Helpers\ExpressionHelper;
+use PERCS31\Helpers\ExpressionNode;
 use PERCS31\Helpers\FixerHelper;
 use PERCS31\Helpers\LayoutHelper;
+use PERCS31\Helpers\StringHelper;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;
@@ -16,8 +16,11 @@ use PHP_CodeSniffer\Util\Tokens;
 /**
  * Requires an expression to be split across lines only where it must be, at its loosest operators.
  *
- * PER Coding Style 3.1, section 6.4, lets an expression be split before any operator, so this is an extra rule. The
- * sniff works out the one layout an expression should have, and reports it if it's written any other way:
+ * PER Coding Style 3.1, section 2.3, says a line over the soft limit SHOULD be split, and section 6.4 lets an
+ * expression be split before any operator. So by default, only an expression written on one line that's too long is
+ * reported, as TooLong, and split before its loosest operators, which is a judgement call. Reports are warnings, as
+ * the limit is soft. With strict on, as in Jumbo, an extra rule, the sniff works out the one layout an expression
+ * should have, and reports it if it's written any other way, as ShouldBeSingleLine or IncorrectSplit:
  * - If the expression fits within the line length on one line, it's written on one line.
  * - Otherwise, it's split before the operators that bind most loosely, outside any grouping parentheses, such as the
  *   `||` in `$a && $b || $c`. Each line holds as many operands as fit, so a line only breaks before the operator whose
@@ -58,6 +61,8 @@ class ExpressionFormatSniff implements Sniff
     public const string CODE_SHOULD_BE_SINGLE_LINE = 'ShouldBeSingleLine';
 
     public const string CODE_INCORRECT_SPLIT = 'IncorrectSplit';
+
+    public const string CODE_TOO_LONG = 'TooLong';
 
     public const string CODE_INCORRECT_STRING_FORMAT = 'IncorrectStringFormat';
 
@@ -107,6 +112,13 @@ class ExpressionFormatSniff implements Sniff
      * Whether to rewrite string expressions as the fewest strings they can be written as, and split long strings.
      */
     public bool $reflowStringExpressions = false;
+
+    /**
+     * Whether to require the one layout: an expression that fits on one line, and one split anywhere but before its
+     * loosest operators, are reported too. Off, only an expression written on one line that's too long is reported, as
+     * PER allows any other layout.
+     */
+    public bool $strict = false;
 
     /**
      * The file whose expressions are in $checked.
@@ -237,19 +249,21 @@ class ExpressionFormatSniff implements Sniff
             }
         }
 
-        if ($isLaidOut || $isLeftAlone) {
+        // An expression written on one line is too long. Any other difference is only a choice of layout.
+        $isTooLong = $current === [] && !$misplaced;
+        if ($isLaidOut || $isLeftAlone || (!$isTooLong && !$this->strict)) {
             return;
         }
 
         $error = 'An expression too long for %s characters must be split only before its loosest operators, with as '
             . 'many operands on each line as fit.';
-        $code = self::CODE_INCORRECT_SPLIT;
+        $code = $isTooLong ? self::CODE_TOO_LONG : self::CODE_INCORRECT_SPLIT;
         if ($breaks === []) {
             $error = 'An expression split across lines fits within %s characters, so it must be written on one line.';
             $code = self::CODE_SHOULD_BE_SINGLE_LINE;
         }
 
-        if ($phpcsFile->addFixableError($error, $start, $code, [$this->maxLineLength])) {
+        if ($phpcsFile->addFixableWarning($error, $start, $code, [$this->maxLineLength])) {
             $phpcsFile->fixer->beginChangeset();
             $this->applyLayout($phpcsFile, $root, $breaks);
             $phpcsFile->fixer->endChangeset();
@@ -565,7 +579,9 @@ class ExpressionFormatSniff implements Sniff
 
         $error = 'A string expression must be written as the fewest strings it can be, with variables interpolated, '
             . 'and split only where it doesn\'t fit within %s characters.';
-        if (!$phpcsFile->addFixableError($error, $start, self::CODE_INCORRECT_STRING_FORMAT, [$this->maxLineLength])) {
+        if (
+            !$phpcsFile->addFixableWarning($error, $start, self::CODE_INCORRECT_STRING_FORMAT, [$this->maxLineLength])
+        ) {
             return;
         }
 
@@ -639,7 +655,7 @@ class ExpressionFormatSniff implements Sniff
         $keywordName = $tokens[$keyword]['code'] === T_OPEN_TAG_WITH_ECHO
             ? '<?='
             : strtolower($tokens[$keyword]['content']);
-        $fix = $phpcsFile->addFixableError(
+        $fix = $phpcsFile->addFixableWarning(
             'The string conversion isn\'t needed, as %s converts its arguments to strings.',
             $from,
             self::CODE_UNNECESSARY_STRING_CONVERSION,

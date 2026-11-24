@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Jumbo\Helpers;
+namespace PERCS31\Helpers;
 
 /**
- * One indivisible part of a string's text, as Jumbo.Formatting.ExpressionFormat reads it: a character, an escape
+ * One indivisible part of a string's text, as PERCS31.Formatting.ExpressionFormat reads it: a character, an escape
  * sequence, or an interpolated variable. A string is only ever split between two atoms.
  */
 readonly class StringAtom

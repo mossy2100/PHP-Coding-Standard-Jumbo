@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Jumbo\Helpers;
+namespace PERCS31\Helpers;
 
 use PHP_CodeSniffer\Files\File;
 
 /**
- * Helper class for Jumbo.Formatting.ExpressionFormat's string expressions: reading a chain of `.` operations, or a
+ * Helper class for PERCS31.Formatting.ExpressionFormat's string expressions: reading a chain of `.` operations, or a
  * string literal, into the fewest strings it can be written as, and laying them out.
  *
  * An expression is read into segments, each either text, as a list of atoms, or an operand that can't be interpolated,

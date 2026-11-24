@@ -128,7 +128,7 @@
     <rule ref="Squiz.WhiteSpace.SemicolonSpacing"/>
 
     <!-- No space inside grouping parentheses, as in ($a + $b) * 2. A line break is left to
-         Jumbo.Formatting.ExpressionFormat and PERCS31.Operators.OperatorPlacement. -->
+         PERCS31.Formatting.ExpressionFormat and PERCS31.Operators.OperatorPlacement. -->
     <rule ref="Generic.WhiteSpace.ArbitraryParenthesesSpacing">
         <properties>
             <property name="ignoreNewlines" value="true"/>
@@ -444,7 +444,7 @@
     <rule ref="SlevomatCodingStandard.Exceptions.RequireNonCapturingCatch"/>
 
     <!-- A control structure's header on one line if it fits, and split with its condition on its own line if it
-         doesn't. Jumbo.Formatting.ExpressionFormat splits the condition itself. -->
+         doesn't. PERCS31.Formatting.ExpressionFormat splits the condition itself. -->
     <rule ref="Jumbo.ControlStructures.HeaderLayout">
         <properties>
             <property name="maxLineLength" value="&lineLength;"/>
@@ -459,12 +459,15 @@
         </properties>
     </rule>
 
-    <!-- An expression on one line if it fits, otherwise split only before its loosest operators. PER allows a split
-         before any operator. -->
-    <rule ref="Jumbo.Formatting.ExpressionFormat">
+    <!-- An expression on one line if it fits, otherwise split only before its loosest operators, and string
+         expressions as the fewest strings, as errors. PER allows a split before any operator, so PERCS31 only warns
+         about an expression on one line that's too long (strict set to true). -->
+    <rule ref="PERCS31.Formatting.ExpressionFormat">
+        <type>error</type>
         <properties>
             <property name="maxLineLength" value="&lineLength;"/>
             <property name="reflowStringExpressions" value="true"/>
+            <property name="strict" value="true"/>
         </properties>
     </rule>
 

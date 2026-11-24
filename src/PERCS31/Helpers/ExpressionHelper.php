@@ -2,17 +2,14 @@
 
 declare(strict_types=1);
 
-namespace Jumbo\Helpers;
+namespace PERCS31\Helpers;
 
-use PERCS31\Helpers\MatchHelper;
-use PERCS31\Helpers\OperatorHelper;
-use PERCS31\Helpers\TokenHelper;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Util\Tokens;
 
 /**
  * Helper class for reading an expression's binary operators and grouping parentheses into a tree, shared by
- * Jumbo.Formatting.ExpressionFormat, which lays expressions out, and Jumbo.Formatting.RequireSingleLineStatement,
+ * PERCS31.Formatting.ExpressionFormat, which lays expressions out, and Jumbo.Formatting.RequireSingleLineStatement,
  * which leaves them to it.
  */
 class ExpressionHelper
@@ -24,7 +21,7 @@ class ExpressionHelper
      * Assignment operators, and `and`, `or` and `xor`, which bind more loosely than assignment, aren't included. The
      * `=>` of an array element, or of a `match` arm with one condition, is put first, so a `key => value` pair is read
      * as one expression, with the key and value as its operands (see isArrowOperator()). It isn't laid out as the
-     * loosest operator, though: Jumbo.Formatting.ExpressionFormat splits a value at its own operators first.
+     * loosest operator, though: PERCS31.Formatting.ExpressionFormat splits a value at its own operators first.
      *
      * @var list<list<int|string>>
      */
@@ -550,8 +547,8 @@ class ExpressionHelper
 
     /**
      * Check whether a line break between two tokens is part of an expression's layout, which
-     * Jumbo.Formatting.ExpressionFormat checks: next to a binary operator, or just inside grouping parentheses next to
-     * or holding one.
+     * PERCS31.Formatting.ExpressionFormat checks: next to a binary operator, or just inside grouping parentheses next
+     * to or holding one.
      *
      * @param File $phpcsFile The file being scanned.
      * @param int $before The position of the code before the line break.

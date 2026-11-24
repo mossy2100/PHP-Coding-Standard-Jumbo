@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Jumbo\Helpers;
+namespace PERCS31\Helpers;
 
 /**
- * One part of an expression, as Jumbo.Formatting.ExpressionFormat reads it:
+ * One part of an expression, as PERCS31.Formatting.ExpressionFormat reads it:
  * - An operand with no binary operator outside its brackets, such as `$a`, `foo($b)` or `-$c`.
  * - A group: an operand in grouping parentheses, such as `($a && $b)` or `!($a || $b)`.
  * - A level: operands joined by the operators of one precedence, such as `$a || $b || $c`. An operand of a level can

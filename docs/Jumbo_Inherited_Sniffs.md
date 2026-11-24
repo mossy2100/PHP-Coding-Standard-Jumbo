@@ -295,7 +295,7 @@ PHP accepts it.
 
 Disallows a space just inside grouping parentheses, as in `( $a + $b ) * 2`. A line break inside them is allowed
 (`ignoreNewlines`), as the layout of a split expression is left to
-[`Jumbo.Formatting.ExpressionFormat`](Jumbo_Custom_Sniffs.md#jumboformattingexpressionformat) and
+[`PERCS31.Formatting.ExpressionFormat`](PERCS31_Custom_Sniffs.md#percs31formattingexpressionformat) and
 `PERCS31.Operators.OperatorPlacement`.
 
 **Auto-fixable:** yes.

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Jumbo\Sniffs\PHP;
 
-use Jumbo\Helpers\ExpressionHelper;
 use Jumbo\Helpers\FunctionCallHelper;
+use PERCS31\Helpers\ExpressionHelper;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;

@@ -23,7 +23,6 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.ControlStructures.LanguageConstructWithParentheses` | No `echo('x')`, allowing `exit()` and `die()`                   | Yes     |
 | `Jumbo.ControlStructures.MatchArmWrapIndent`               | One line if it fits, else a wrapped `match` arm indented once   | Yes     |
 | `Jumbo.ControlStructures.RequireShortTernaryOperator`      | `$a ?: $b`, skipping a nullable type in a `set` hook            | Yes     |
-| `Jumbo.Formatting.ExpressionFormat`                        | An expression on one line, or split at its loosest operators    | Yes     |
 | `Jumbo.Formatting.RequireSingleLineStatement`              | A split statement or `case` label fits on a line                | Yes     |
 | `Jumbo.Functions.RequireSingleLineCall`                    | A call that fits is on one line, skipping a class or `match`    | Yes     |
 | `Jumbo.Functions.RequireSingleLineSignature`               | A split function or closure signature fits on a line            | Yes     |
@@ -470,7 +469,7 @@ over after `Jumbo.Arrays.ArrayDeclaration` collapses the array inside it.
   Reported as `ShouldBeMultiLine`.
 
 The condition itself isn't changed. If it's still too long on its own line,
-[`ExpressionFormat`](#jumboformattingexpressionformat) splits it, and `PERCS31.ControlStructures.ControlStructureSpacing`
+[`ExpressionFormat`](PERCS31_Custom_Sniffs.md#percs31formattingexpressionformat) splits it, and `PERCS31.ControlStructures.ControlStructureSpacing`
 puts a `foreach`'s `as` on its own line.
 
 **Auto-fixable:** yes.
@@ -595,160 +594,6 @@ Slevomat sniff then looks for a `:` that isn't there, and the error stops the fi
 
 ---
 
-## Jumbo.Formatting.ExpressionFormat
-
-Lays out each expression: on one line if it fits, otherwise split only before its loosest operators.
-
-**Why:** PER allows a split before any operator, so this is an extra rule, in Jumbo only. Without it, an expression can
-be split anywhere, even inside a group while the operators around the group stay on one line.
-
-**The layout:**
-
-1. If the expression fits on one line within `maxLineLength`, it goes on one line.
-2. Otherwise, it's split only before the operators that bind most loosely, outside any grouping parentheses, such as
-   the `||` in `$a && $b || $c`. Each line holds as many operands as fit.
-3. An operand too long for a line of its own is split the same way, at its own loosest operators. Without parentheses,
-   its new lines keep the same indent. In grouping parentheses, the parentheses stay with its contents, and its new
-   lines are indented once past the line with the `(`.
-
-**A `key => value` pair**, in an array or in a `match` arm with one condition, is one expression. One that doesn't fit
-on one line is laid out by the first of these that applies:
-
-1. A value with operators of its own is split at them, with `key =>` kept on the first line. A string expression that
-   becomes one string, such as `'a ' . 'b'`, counts as one operand.
-2. A value that fits on a line of its own goes there, starting with the `=>`, indented once.
-3. Otherwise, the value stays after `key =>`, and a string is split, as below.
-
-A key too long for its line is split as any string is. There's never a line break after a `=>`. A `match` arm with
-several conditions is left to [`MatchArmWrapIndent`](#jumbocontrolstructuresmatcharmwrapindent).
-
-An expression fits on its line if its own text, and any punctuation straight after it, such as a `;`, `,` or `)`, fit
-within `maxLineLength`. What follows that, such as an array value after its key, or a comment, is never a reason to
-split it.
-
-Each new line starts with its operator, and is indented once past the line the expression starts on. In a control
-structure's condition or a loop header, the lines split at `&&` or `||` are indented once past the line with the `(`,
-and a line split at any other operator once past the line its operand starts on. These are the indents
-[`PERCS31.Operators.OperatorPlacement`](PERCS31_Custom_Sniffs.md#percs31operatorsoperatorplacement) checks, with Jumbo's
-`requireExactConditionIndent`. This sniff only reports where the lines break. A wrong indent, or an operator at the end
-of a line, is that sniff's to report.
-
-It covers every binary operator, including `.`, `instanceof` and, on PHP 8.5, `|>`. An assignment operator, or `and`,
-`or` or `xor`, ends an expression, so `$total = $price` then `+ $tax` is checked as `$price + $tax`. So does a `,`,
-any other `=>`, ternary `?` or `:`, or the brackets of a call, array or control structure. Each argument of a call is its own
-expression.
-
-These are left alone, and `RequireSingleLineStatement` still checks the first:
-
-- An expression with a comment, a heredoc or nowdoc, a multi-line string or an arrow function, or a line break inside
-  an operand, such as a multi-line call or closure.
-- A `case` condition.
-- An expression written on one line that's too long, unless it's a whole statement, a value after an assignment or
-  `return`, a `key => value` pair that starts its line, or a condition on its own line. Anywhere else, such as in an argument, a split would clash with the
-  layout around it.
-- A ternary's condition or value that's too long. One that's split but fits on one line is still joined.
-
-**String expressions:** with `reflowStringExpressions` on, as it is in Jumbo, a string expression is rewritten as the
-fewest strings it can be, then laid out. A string expression is a chain of `.` operations, a string literal, or an
-argument of `echo`, `print` or `<?=`.
-
-- Text is merged: `'cat ' . 'dog'` becomes `'cat dog'`.
-- A variable, with any property reads, nullsafe property reads, method calls or array accesses, is interpolated:
-  `'Age: ' . $user->age` becomes `"Age: $user->age"`. It gets braces where it needs them, as in `"{$d}km"`.
-- `(string)` and `->__toString()` are dropped where the value is converted to a string anyway: in a concatenation,
-  and around a whole argument of `echo`, `print` or `<?=`.
-- A decimal integer is merged as text. Anything else stays an operand of `.`: a call, a constant, a static property,
-  arithmetic, a float, a ternary and the like.
-- Grouping parentheses are dropped around a concatenation inside a concatenation, and around anything that becomes one
-  string, as in `(' ' . $type->name)`.
-- Text from a single-quoted string is escaped when it goes into a double-quoted one, including every `$`.
-- A string that's exactly one literal as written keeps its quotes, for `Squiz.Strings.DoubleQuoteUsage` to decide. Any
-  other is single-quoted if it can be.
-- Braces already around a variable are kept. [`RequireBracedVariables`](#jumbostringsrequirebracedvariables) adds the
-  rest, in Jumbo.
-
-If the result doesn't fit, each line breaks before the last `.` that fits on it. A string too long for a line of its
-own is split after the last space that fits, or, if there's none, after the last variable, or, if there's none, after
-the last character. The new lines start with `.`, indented as above.
-
-A string expression is laid out like this where an expression on one line can be split, as above, where it starts its
-own line, and where it's a whole ternary branch whose `?` or `:` starts a line. One that ExpressionFormat puts on its
-own line, after a split before an outer operator, is laid out from there too. Anywhere else, it's only rewritten, and
-only if the result fits on its line. A string with a comment, a heredoc or nowdoc, a line break inside it, or `${` is
-left alone, as is one in `declare()`.
-
-| Code                          | Reported for                                                                    |
-| ----------------------------- | ------------------------------------------------------------------------------- |
-| `ShouldBeSingleLine`          | A split expression that fits on one line                                        |
-| `IncorrectSplit`              | A longer expression that isn't laid out as above                                |
-| `IncorrectStringFormat`       | A string expression that isn't written or laid out as above                     |
-| `UnnecessaryStringConversion` | A `(string)` or `->__toString()` around an argument of `echo`, `print` or `<?=` |
-
-**Auto-fixable:** yes. Without `reflowStringExpressions`, only the whitespace around its operators and inside its
-grouping parentheses changes.
-
-**Good:**
-
-```php
-$isMatch = ($bestValue < 1.0 && $prefixedValue > $bestValue)
-    || ($prefixedValue >= 1.0 && $prefixedValue < $bestValue && $prefixedValue !== $previousValue);
-
-$message = 'Cannot convert ' . Units::format($quantity) . ' to ' . Units::format($targetUnit)
-    . ' as their dimensions differ: ' . Units::dimensions($quantity) . ' and ' . Units::dimensions($targetUnit) . '.';
-
-$message = "The distance from here to the Sun is {$earth->distSun}km, which takes light about {$minutes} minutes to "
-    . 'cross.';
-
-$result = $cachedValue
-    ?? "Some long message about the {$thing} that goes on and on, well past the limit of the line, to the end.";
-
-$isValid = !empty($type)
-    && (self::isBasicType($type) || self::isPseudoType($type) || self::isResourceType($type)
-        || self::isClassType($type));
-
-$labels = [
-    'description'
-        => 'A long description that fits on a line of its own, so the line breaks before its => to put it there.',
-    'canCheckout' => $age >= 18 && !$isBanned && $balance - $price * (1 - $discount / 100) >= 0 && $creditLimit > 0
-        && $hasAddress,
-];
-```
-
-**Bad:**
-
-```php
-$isMatch = ($bestValue < 1.0
-    && $prefixedValue > $bestValue)
-    || ($prefixedValue >= 1.0
-    && $prefixedValue < $bestValue && $prefixedValue !== $previousValue);
-
-$total = $price
-    + $tax;
-
-$message = 'Cannot convert ' .
-    Units::format($quantity);
-
-$message = 'Hello, ' . $name . '!';
-
-echo (string) $total;
-
-$labels = [
-    'description' => 'A long description that fits on a line of its own, so the line breaks before its => to put it '
-        . 'there.',
-];
-```
-
-**Configuration:**
-
-| Property                  | Type | Default | Description                                            |
-| ------------------------- | ---- | ------- | ------------------------------------------------------ |
-| `maxLineLength`           | int  | 120     | Maximum line length.                                   |
-| `reflowStringExpressions` | bool | false   | Rewrite and lay out string expressions. True in Jumbo. |
-
-To use a different limit, set every line-length property, as described in [Line Length](LineLength.md).
-
----
-
 ## Jumbo.Formatting.RequireSingleLineStatement, and the signature and class header sniffs
 
 Require code split across lines to be written on one line, if the whole resulting line fits within `maxLineLength`.
@@ -768,7 +613,7 @@ These are left alone:
 - A comment, a heredoc or nowdoc, or a multi-line string.
 - A line break only inside a call or array, whose own sniffs report it.
 - A line break before or after a binary operator, or just inside grouping parentheses, in an expression that
-  [`ExpressionFormat`](#jumboformattingexpressionformat) lays out.
+  [`ExpressionFormat`](PERCS31_Custom_Sniffs.md#percs31formattingexpressionformat) lays out.
 
 A statement with a closure, `match` or anonymous class body, or a call or array too long for one line, can't be
 collapsed. So the lines around it are joined instead, and it moves left to match:

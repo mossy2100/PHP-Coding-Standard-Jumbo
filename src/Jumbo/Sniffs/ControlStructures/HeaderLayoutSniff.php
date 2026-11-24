@@ -20,7 +20,7 @@ use PHP_CodeSniffer\Sniffs\Sniff;
  *   indented once, and the `)` starts the next line, level with the keyword's line, as PER Coding Style 3.1, section 5,
  *   shows. A `for` header's expressions go on a line each.
  *
- * The condition itself is left as it is. Jumbo.Formatting.ExpressionFormat splits it further, if it's still too long
+ * The condition itself is left as it is. PERCS31.Formatting.ExpressionFormat splits it further, if it's still too long
  * on its own line, and PERCS31.ControlStructures.ControlStructureSpacing checks the rest of the split layout, such as a
  * `foreach`'s `as` starting its own line.
  */

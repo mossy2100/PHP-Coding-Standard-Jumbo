@@ -49,7 +49,7 @@ switch ($a) {
 }
 #[D]
 const E = 1;
-// Left to Jumbo.Formatting.ExpressionFormat: a line break at a binary operator.
+// Left to PERCS31.Formatting.ExpressionFormat: a line break at a binary operator.
 $a = $b
     + $c;
 $a = $b

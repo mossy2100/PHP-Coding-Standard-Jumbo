@@ -1,5 +1,5 @@
 <?php
-
+// phpcs:set PERCS31.Formatting.ExpressionFormat strict true
 // Valid: on one line, or split only at the loosest operators, with as many operands on each line as fit.
 $a = $b + $c * $d;
 $total = $someLongVariableName * $anotherLongVariableName + $yetAnotherLongVariableName * $finalLongVariableName
@@ -75,3 +75,4 @@ $isValid = $someLongConditionName && ($anotherLongConditionName || $yetAnotherLo
     || $theLastOfTheLongConditionNames || $oneMoreConditionToMakeItLong);
 $ok = $someLongConditionNameNumberOne || $someLongConditionNameNumberTwoIsLonger && $someLongConditionNameNumberThreeIsLonger
     && $someLongConditionNameNumberFourIsLonger;
+// phpcs:set PERCS31.Formatting.ExpressionFormat strict false

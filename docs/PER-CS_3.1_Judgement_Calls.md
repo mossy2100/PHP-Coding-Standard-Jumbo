@@ -2461,7 +2461,8 @@ it before.
 
 **Decision:** A statement that takes its line over 120 characters is a warning, as the limit is soft (see
 [Line Length](#line-length)). The fix splits it before its loosest operators first, with as many operands on each line
-as fit, each new line starting with the operator and indented once. Its parts are split outermost first: an array or
+as fit, each new line starting with the operator and indented once. A statement already split is left alone, wherever
+the split is, as the spec allows a split before any operator. Its parts are split outermost first: an array or
 call in it is only split (see [A Call Over the Line Length](#a-call-over-the-line-length) and
 [An Array Over the Line Length](#an-array-over-the-line-length)) if it still doesn't fit in the space its line leaves it
 once the statement is split on its operators. Strings aren't split; the spec says nothing about that, so it's left to

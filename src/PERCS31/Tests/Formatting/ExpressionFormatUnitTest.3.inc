@@ -1,7 +1,7 @@
 <?php
 
-// phpcs:set Jumbo.Formatting.ExpressionFormat reflowStringExpressions true
-
+// phpcs:set PERCS31.Formatting.ExpressionFormat reflowStringExpressions true
+// phpcs:set PERCS31.Formatting.ExpressionFormat strict true
 // Valid: a `key => value` pair that fits, or laid out by the rules, and a string that isn't split for what follows it.
 $x = [
     'short' => 'This value is fine and fits.',
@@ -26,26 +26,27 @@ foreach ($someLongArrayVariableName as $someLongKeyVariableName => $someLongValu
 
 // Invalid: a value that fits on a line of its own goes there, starting with the `=>`.
 $x = [
-    'a_string_value_key'
-        => 'This is a long value string that goes past the line length limit of one hundred and twenty.',
-    'joined_key' => 'This is a long value string that goes past the line length limit of one hundred and twenty.',
+    'a_string_value_key' => 'This is a long value string that goes past the line length limit of one hundred and twenty.',
+    'joined_key' => 'This is a long value string that goes past the line length limit of one hundred and '
+        . 'twenty.',
 ];
 $label = match (true) {
-    $firstNumber > 10 && $secondNumber > 20 && $thirdNumber > 30 && $fourthNumber > 40
-        => 'all of them are big enough here',
+    $firstNumber > 10 && $secondNumber > 20 && $thirdNumber > 30 && $fourthNumber > 40 => 'all of them are big enough here',
     default => 'none',
 };
 
 // Invalid: a key too long for its line is split, by the same rules as any string.
 $x = [
-    'a key that is so long that it goes on and on past the line length limit of one hundred and twenty characters, and '
-        . 'more' => 1,
+    'a key that is so long that it goes on and on past the line length limit of one hundred and twenty characters, and more' => 1,
 ];
 
 // Invalid: a pair that fits on one line, split before or after its `=>`.
 $x = [
-    'short' => 'value',
-    'other' => 'value',
+    'short'
+        => 'value',
+    'other' =>
+        'value',
 ];
 
-// phpcs:set Jumbo.Formatting.ExpressionFormat reflowStringExpressions false
+// phpcs:set PERCS31.Formatting.ExpressionFormat reflowStringExpressions false
+// phpcs:set PERCS31.Formatting.ExpressionFormat strict false

@@ -168,7 +168,7 @@ class RulesetPropertiesUnitTest extends TestCase
 
     /**
      * Test that Jumbo reports a space inside grouping parentheses on one line, but not a line break inside them, which
-     * Jumbo.Formatting.ExpressionFormat and PERCS31.Operators.OperatorPlacement check.
+     * PERCS31.Formatting.ExpressionFormat and PERCS31.Operators.OperatorPlacement check.
      */
     public function testLineBreakInGroupingParenthesesIsAllowed(): void
     {

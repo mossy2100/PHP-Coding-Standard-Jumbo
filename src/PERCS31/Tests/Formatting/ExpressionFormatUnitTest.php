@@ -2,23 +2,38 @@
 
 declare(strict_types=1);
 
-namespace Jumbo\Tests\Formatting;
+namespace PERCS31\Tests\Formatting;
 
 use PHP_CodeSniffer\Tests\Standards\AbstractSniffTestCase;
 
 /**
- * Unit tests for Jumbo.Formatting.ExpressionFormat sniff.
+ * Unit tests for PERCS31.Formatting.ExpressionFormat sniff.
  */
 class ExpressionFormatUnitTest extends AbstractSniffTestCase
 {
     /**
      * Returns the lines where errors should occur.
      *
-     * @param string $testFile The name of the file being tested.
      * @return array<int, int> Line number => error count.
      */
-    protected function getErrorList(string $testFile = ''): array
+    protected function getErrorList(): array
     {
+        return [];
+    }
+
+    /**
+     * Returns the lines where warnings should occur.
+     *
+     * @param string $testFile The name of the file being tested.
+     * @return array<int, int> Line number => warning count.
+     */
+    protected function getWarningList(string $testFile = ''): array
+    {
+        if ($testFile === 'ExpressionFormatUnitTest.4.inc') {
+            // Not strict: only the expression written on one line that's too long.
+            return [10 => 1];
+        }
+
         if ($testFile === 'ExpressionFormatUnitTest.2.inc') {
             // String expressions, from line 20 to line 46, then too long from line 49, then string conversions.
             $lines = [...range(20, 46), 49, 50, 51, 52, 57, 60, 63, 65, 67];
@@ -56,15 +71,5 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
             74 => 1,
             76 => 1,
         ];
-    }
-
-    /**
-     * Returns the lines where warnings should occur.
-     *
-     * @return array<int, int> Line number => warning count.
-     */
-    protected function getWarningList(): array
-    {
-        return [];
     }
 }

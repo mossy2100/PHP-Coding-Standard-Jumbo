@@ -1,7 +1,7 @@
 <?php
 
-// phpcs:set Jumbo.Formatting.ExpressionFormat reflowStringExpressions true
-
+// phpcs:set PERCS31.Formatting.ExpressionFormat reflowStringExpressions true
+// phpcs:set PERCS31.Formatting.ExpressionFormat strict true
 // Valid: already as few strings as they can be, or left alone.
 $a = 'cat dog';
 $a = "Hi $name, welcome";
@@ -67,4 +67,5 @@ print (string) foo();
 <?= (string) $total ?>
 <?php
 
-// phpcs:set Jumbo.Formatting.ExpressionFormat reflowStringExpressions false
+// phpcs:set PERCS31.Formatting.ExpressionFormat reflowStringExpressions false
+// phpcs:set PERCS31.Formatting.ExpressionFormat strict false

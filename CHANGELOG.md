@@ -518,13 +518,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **`Universal.Constants.ModifierKeywordOrder` (breaking).** `final` must come before the visibility on a constant, as
   in `final public const A`, the order PER Coding Style 3.1, section 4.6, sets for modifier keywords. Auto-fixable, in
   PERCS31 and Jumbo.
-- **`Jumbo.Formatting.ExpressionFormat` (breaking).** Lays out each expression: on one line if it fits, otherwise split
-  only before its loosest operators, outside any grouping parentheses, with as many operands on each line as fit. An
-  operand too long for a line of its own is split the same way. So `($a` then `&& $b)` then `|| ($c` then `&& $d)`
-  becomes `($a && $b)` then `|| ($c && $d)`. It covers every binary operator, including `.`. A split expression that
-  fits is reported as `ShouldBeSingleLine`, and any other wrong layout as `IncorrectSplit`. Auto-fixable. PERCS31 is
-  unchanged, as PER Coding Style 3.1 allows a split before any operator.
-- **String expressions, in Jumbo (breaking).** `Jumbo.Formatting.ExpressionFormat` has a new
+- **`PERCS31.Formatting.ExpressionFormat` (breaking).** Lays out each expression: split only before its loosest
+  operators, outside any grouping parentheses, with as many operands on each line as fit. An operand too long for a
+  line of its own is split the same way. It covers every binary operator, including `.`. In PERCS31, it warns about an
+  expression written on one line that's too long, as `TooLong`, and leaves any split someone wrote alone, as PER Coding
+  Style 3.1 allows a split before any operator. Jumbo sets `strict`, and reports as errors: a split expression that
+  fits, as `ShouldBeSingleLine`, and any other wrong layout, as `IncorrectSplit`, so `($a` then `&& $b)` then `|| ($c`
+  then `&& $d)` becomes `($a && $b)` then `|| ($c && $d)`. Auto-fixable.
+- **String expressions, in Jumbo (breaking).** `PERCS31.Formatting.ExpressionFormat` has a new
   `reflowStringExpressions` property, on in Jumbo. It rewrites a chain of `.` operations as the fewest strings it can
   be, interpolating variables, property reads and method calls, so `'Hello, ' . $name . '!'` becomes `"Hello, $name!"`.
   It drops `(string)` and `->__toString()` where they're redundant, and grouping parentheses around what becomes one
@@ -566,8 +567,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **`@var` tags, in Jumbo (breaking).** `Jumbo.Commenting.PhpDocTags` now also checks every `@var`: a property's or
   constant's type that doesn't match its native type (`VarTypeMismatch`, not fixed), a missing type, one space between
   the parts, and around a one-line doc comment's text (`Spacing`), a redundant variable name on a property or constant
-  (`VarName`), an inline `@var` with its name first (`VarNameOrder`), and one in a `/* */` comment (`VarInBlockComment`),
-  all but the type fixed. It replaces `PhpCollective.Commenting.InlineDocBlock` in Jumbo.
+  (`VarName`), an inline `@var` with its name first (`VarNameOrder`), and one in a `/* */` comment
+  (`VarInBlockComment`), all but the type fixed. It replaces `PhpCollective.Commenting.InlineDocBlock` in Jumbo.
 - **Four more extra rules in Jumbo (breaking).** Jumbo now includes:
   - `Generic.PHP.DeprecatedFunctions`: no call to a native function that PHP marks deprecated.
   - `Generic.PHP.DisallowRequestSuperglobal`: no `$_REQUEST`.
@@ -648,9 +649,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   `HashComment`, and fixes it to `//`. `#region` and `#endregion` are allowed; set its `exceptions` property to change
   the list. PERCS31 is unchanged, as PER Coding Style 3.1 has no rule for comments.
 - **39 more extra rules in Jumbo (breaking).** Jumbo now includes:
-  - Bugs and dead code: `Generic.Classes.DuplicateClassName` (a warning), `Generic.CodeAnalysis.UnconditionalIfStatement`
-    (a warning), `Generic.CodeAnalysis.UnnecessaryFinalModifier` (a warning),
-    `Generic.CodeAnalysis.UselessOverridingMethod` (a warning), `Generic.VersionControl.GitMergeConflict`,
+  - Bugs and dead code: `Generic.Classes.DuplicateClassName` (a warning),
+    `Generic.CodeAnalysis.UnconditionalIfStatement` (a warning), `Generic.CodeAnalysis.UnnecessaryFinalModifier` (a
+    warning), `Generic.CodeAnalysis.UselessOverridingMethod` (a warning), `Generic.VersionControl.GitMergeConflict`,
     `Squiz.PHP.InnerFunctions`, `Squiz.Scope.StaticThisUsage`, `Universal.Arrays.DuplicateArrayKey`,
     `Universal.CodeAnalysis.ConstructorDestructorReturn` (`ReturnValueFound` only, a warning) and
     `Universal.CodeAnalysis.ForeachUniqueAssignment`.
@@ -684,8 +685,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   and properties (`checkGlobalConstants` and `requireUpperSnakeCase`), and the leading underscore, as `Underscore`.
   Change any reference to `PERCS31.NamingConventions.UpperCaseConstantName`, in a ruleset or a `phpcs:ignore`, to
   `PERCS31.NamingConventions.ValidConstantName`.
-- **`key => value` pairs, in Jumbo (breaking).** `Jumbo.Formatting.ExpressionFormat` now lays out an array element or a
-  `match` arm with one condition as one expression. One too long for its line is split at the value's own operators,
+- **`key => value` pairs, in Jumbo (breaking).** `PERCS31.Formatting.ExpressionFormat` now lays out an array element or
+  a `match` arm with one condition as one expression. One too long for its line is split at the value's own operators,
   keeping `key =>` on the first line. Otherwise, a value that fits on a line of its own goes there, starting with `=>`,
   and only a value too long for that has its string split. A pair that fits on one line is joined, and a line break
   after `=>` is moved before it.
@@ -852,9 +853,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   property definitions.
 - **`Jumbo.Formatting.RequireSingleLineStatement` leaves expressions to `ExpressionFormat`.** A line break before or
   after a binary operator, or just inside grouping parentheses, is no longer reported by it, when
-  `Jumbo.Formatting.ExpressionFormat` lays out that expression. So `$a = $b` then `+ $c;` is now reported as
-  `Jumbo.Formatting.ExpressionFormat.ShouldBeSingleLine`. It also no longer joins `$a = $b && (` onto one line before a
-  multi-line group.
+  `PERCS31.Formatting.ExpressionFormat` lays out that expression. So `$a = $b` then `+ $c;` is now reported as
+  `PERCS31.Formatting.ExpressionFormat.ShouldBeSingleLine`. It also no longer joins `$a = $b && (` onto one line before
+  a multi-line group.
 
 ### Removed
 
@@ -917,13 +918,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   condition, however deeply nested.
 - **`SlevomatCodingStandard.ControlStructures.RequireSingleLineCondition` and `RequireMultiLineCondition`, from Jumbo.**
   `Jumbo.ControlStructures.HeaderLayout` joins and splits every control structure's header, and
-  `Jumbo.Formatting.ExpressionFormat` splits a condition that's still too long. The Slevomat sniffs put each part of a
+  `PERCS31.Formatting.ExpressionFormat` splits a condition that's still too long. The Slevomat sniffs put each part of a
   long condition on its own line, which `ExpressionFormat` then joined again, and the first joined a condition with no
   `&&` or `||` however long the line.
 
 ### Fixed
 
-- **Strings split because of what followed them, in Jumbo.** `Jumbo.Formatting.ExpressionFormat` counted everything
+- **Strings split because of what followed them, in Jumbo.** `PERCS31.Formatting.ExpressionFormat` counted everything
   after a string or expression on its line as text it had to fit, so on a long line it split a short array key, or a
   string with a comment after it, and phpcbf then failed to fix the file. Now only its own text, and punctuation
   straight after it such as `,` or `;`, count.
