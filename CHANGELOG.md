@@ -563,6 +563,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   `ReturnTypeMismatch`), and a missing type (`MissingType`), none of them fixed. Exactly one space between a tag's
   parts (`Spacing`), and `$this` or `self` in a `@return` written as `this`, `@this`, `$self` or `@self`
   (`SelfReference`), are fixed.
+- **`@var` tags, in Jumbo (breaking).** `Jumbo.Commenting.PhpDocTags` now also checks every `@var`: a property's or
+  constant's type that doesn't match its native type (`VarTypeMismatch`, not fixed), a missing type, one space between
+  the parts, and around a one-line doc comment's text (`Spacing`), a redundant variable name on a property or constant
+  (`VarName`), an inline `@var` with its name first (`VarNameOrder`), and one in a `/* */` comment (`VarInBlockComment`),
+  all but the type fixed. It replaces `PhpCollective.Commenting.InlineDocBlock` in Jumbo.
 - **Six more extra rules in Jumbo (breaking).** Jumbo now includes:
   - `Generic.CodeAnalysis.ForLoopShouldBeWhileLoop`: a warning for a `for` loop with only a condition.
   - `Generic.PHP.DeprecatedFunctions`: no call to a native function that PHP marks deprecated.

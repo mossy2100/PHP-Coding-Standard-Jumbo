@@ -5,21 +5,25 @@ declare(strict_types=1);
 namespace Jumbo\Sniffs\Commenting;
 
 use Jumbo\Helpers\DocTypeMatchHelper;
+use PERCS31\Helpers\PropertyHookHelper;
 use PHP_CodeSniffer\Exceptions\RuntimeException;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;
+use PHPCSUtils\Utils\Constants;
 use PHPStan\PhpDocParser\Ast\Attribute;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\ReturnTagValueNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\TypelessParamTagValueNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\VarTagValueNode;
 use PHPStan\PhpDocParser\Ast\Type\TypeNode;
 use PHPStan\PhpDocParser\Lexer\Lexer;
 use PHPStan\PhpDocParser\Parser\TokenIterator;
 use SlevomatCodingStandard\Helpers\PhpDocParserHelper;
 use SlevomatCodingStandard\Helpers\UseStatement;
 use SlevomatCodingStandard\Helpers\UseStatementHelper;
+use Throwable;
 
 /**
  * Checks the tags in a docblock: their names, the format of inline tags, and the `@param` and `@return` tags of a
@@ -45,6 +49,13 @@ use SlevomatCodingStandard\Helpers\UseStatementHelper;
  *   - Spacing: more than one space, or none, between the tag, its type, the variable and the description. The
  *     description itself isn't touched.
  *   - SelfReference: `this` or `@this` in a `@return`, fixed to `$this`, and `$self` or `@self`, fixed to `self`.
+ * - A `@var` tag, on a property, a constant or an inline variable:
+ *   - VarTypeMismatch: a property's or typed constant's type that doesn't match the native type, as above. Not fixed.
+ *   - MissingType and Spacing, as above, one-line doc comments included: `/**@var int*\/` becomes `/** @var int *\/`.
+ *   - VarName: a variable name in a property's or constant's `@var`, which is redundant, and removed. An inline `@var`
+ *     keeps its name.
+ *   - VarNameOrder: an inline `@var` with the name before the type, as in `@var $a int`, reordered.
+ *   - VarInBlockComment: an inline `@var` in a `/* *\/` comment, which tools ignore, made a doc comment.
  *
  * Block tags and inline tags are both checked. A block tag that a `use` statement imports, such as a Doctrine or JMS
  * annotation, is left alone, as is a name followed by `(` or `\`. Text that only looks like a tag, in the middle of a
@@ -79,6 +90,14 @@ class PhpDocTagsSniff implements Sniff
     public const string CODE_SPACING = 'Spacing';
 
     public const string CODE_SELF_REFERENCE = 'SelfReference';
+
+    public const string CODE_VAR_TYPE_MISMATCH = 'VarTypeMismatch';
+
+    public const string CODE_VAR_NAME = 'VarName';
+
+    public const string CODE_VAR_NAME_ORDER = 'VarNameOrder';
+
+    public const string CODE_VAR_IN_BLOCK_COMMENT = 'VarInBlockComment';
 
     /**
      * The malformed self-references in a `@return`, with their fixes.
@@ -249,7 +268,7 @@ class PhpDocTagsSniff implements Sniff
      */
     public function register(): array
     {
-        return [T_DOC_COMMENT_OPEN_TAG];
+        return [T_DOC_COMMENT_OPEN_TAG, T_COMMENT];
     }
 
     /**
@@ -261,6 +280,11 @@ class PhpDocTagsSniff implements Sniff
     public function process(File $phpcsFile, int $stackPtr): void
     {
         $tokens = $phpcsFile->getTokens();
+        if ($tokens[$stackPtr]['code'] === T_COMMENT) {
+            $this->processBlockComment($phpcsFile, $stackPtr);
+            return;
+        }
+
         $closer = $tokens[$stackPtr]['comment_closer'];
         $first = null;
         $last = null;
@@ -286,6 +310,256 @@ class PhpDocTagsSniff implements Sniff
         if ($function !== null) {
             $this->processFunctionTags($phpcsFile, $stackPtr, $function);
         }
+
+        $this->processVarTags($phpcsFile, $stackPtr);
+    }
+
+    /**
+     * Report an inline `@var` in a `/* *\/` comment, which tools ignore, and make it a doc comment.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $stackPtr The position of the comment.
+     */
+    private function processBlockComment(File $phpcsFile, int $stackPtr): void
+    {
+        $content = $phpcsFile->getTokens()[$stackPtr]['content'];
+        if (preg_match('~^/\*(?!\*)\s*@var\s~', $content) !== 1 || !str_contains($content, '*/')) {
+            return;
+        }
+
+        $error = 'An inline @var must be in a doc comment, /** */, which tools read';
+        if ($phpcsFile->addFixableError($error, $stackPtr, self::CODE_VAR_IN_BLOCK_COMMENT)) {
+            $phpcsFile->fixer->replaceToken($stackPtr, '/**' . substr($content, 2));
+        }
+    }
+
+    /**
+     * Check the `@var` tags in a docblock.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $opener The position of the docblock's `/**`.
+     */
+    private function processVarTags(File $phpcsFile, int $opener): void
+    {
+        $tokens = $phpcsFile->getTokens();
+        [$nativeType, $isDeclaration] = $this->findVarTarget($phpcsFile, $opener);
+        foreach ($tokens[$opener]['comment_tags'] as $tag) {
+            $lower = strtolower(substr($tokens[$tag]['content'], 1));
+            if ((self::ALIASES[$lower] ?? $lower) !== 'var') {
+                continue;
+            }
+
+            $stringPtr = $tag + 2;
+            $hasValue = ($tokens[$stringPtr]['code'] ?? null) === T_DOC_COMMENT_STRING
+                && $tokens[$stringPtr]['line'] === $tokens[$tag]['line'];
+            [$value, $trailing] = $hasValue ? $this->splitValue($phpcsFile, $stringPtr) : ['', ''];
+            if (trim($value) === '') {
+                $phpcsFile->addError('The @%s tag must have a type', $tag, self::CODE_MISSING_TYPE, ['var']);
+                continue;
+            }
+
+            if (!$isDeclaration && preg_match('/^(&?\$\w+)\s+(\S+)(.*)$/s', $value, $match) === 1) {
+                $error = 'An inline @var must have its type before the variable; found "%s"';
+                if ($phpcsFile->addFixableError($error, $tag, self::CODE_VAR_NAME_ORDER, [$value])) {
+                    $phpcsFile->fixer->replaceToken($stringPtr, "{$match[2]} {$match[1]}{$match[3]}{$trailing}");
+                }
+
+                continue;
+            }
+
+            $lexTokens = PhpDocParserHelper::getLexer()->tokenize($value);
+            $node = PhpDocParserHelper::getParser()->parseTagValue(new TokenIterator($lexTokens), '@var');
+            if (!$node instanceof VarTagValueNode) {
+                continue;
+            }
+
+            if ($nativeType !== '') {
+                $this->checkType($phpcsFile, $tag, $node->type, $nativeType, self::CODE_VAR_TYPE_MISMATCH);
+            }
+
+            $this->checkVarLayout($phpcsFile, $tag, $stringPtr, $node, $lexTokens, $isDeclaration);
+        }
+
+        $this->checkOneLineSpacing($phpcsFile, $opener);
+    }
+
+    /**
+     * Find what a docblock's `@var` is for: a property's or constant's declaration, or an inline variable.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $opener The position of the docblock's `/**`.
+     * @return array{string, bool} The declaration's native type, if any, and whether it's a property or constant.
+     */
+    private function findVarTarget(File $phpcsFile, int $opener): array
+    {
+        $tokens = $phpcsFile->getTokens();
+        $conditions = $tokens[$opener]['conditions'];
+        $scope = $conditions === [] ? null : $conditions[array_key_last($conditions)];
+        $targets = [T_CONST, T_VARIABLE, T_SEMICOLON, T_OPEN_CURLY_BRACKET, T_FUNCTION];
+        $target = $phpcsFile->findNext($targets, ($tokens[$opener]['comment_closer'] + 1));
+        if ($target === false || $scope === null || !isset(Tokens::OO_SCOPE_TOKENS[$scope])) {
+            return ['', false];
+        }
+
+        try {
+            if ($tokens[$target]['code'] === T_CONST) {
+                return [(string) Constants::getProperties($phpcsFile, $target)['type'], true];
+            }
+
+            if (
+                $tokens[$target]['code'] === T_VARIABLE && PropertyHookHelper::isPropertyVariable($phpcsFile, $target)
+            ) {
+                return [$phpcsFile->getMemberProperties($target)['type'], true];
+            }
+        } catch (Throwable) {
+            return ['', false];
+        }
+
+        return ['', false];
+    }
+
+    /**
+     * Report a `@var` without exactly one space between its parts, or with a redundant variable name on a declaration,
+     * and fix both at once.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $tag The position of the tag.
+     * @param int $stringPtr The position of the tag's value.
+     * @param VarTagValueNode $node The value, as parsed.
+     * @param list<array{string, int, int}> $lexTokens The value's tokens.
+     * @param bool $isDeclaration Whether it's on a property or constant.
+     */
+    private function checkVarLayout(
+        File $phpcsFile,
+        int $tag,
+        int $stringPtr,
+        VarTagValueNode $node,
+        array $lexTokens,
+        bool $isDeclaration,
+    ): void {
+        $tokens = $phpcsFile->getTokens();
+        [$value, $trailing] = $this->splitValue($phpcsFile, $stringPtr);
+        $type = $this->typeSource($node->type, $lexTokens);
+        if ($type === null || !str_starts_with($value, $type)) {
+            return;
+        }
+
+        $rest = substr($value, strlen($type));
+        if (preg_match('/^(?:\s+(&?(?:\.\.\.)?\$\w+))?(?:\s+(.*))?$/s', $rest, $match) !== 1) {
+            return;
+        }
+
+        $variable = $match[1] ?? '';
+        $hasName = $variable !== '' && $isDeclaration;
+        if ($hasName) {
+            $error = 'The variable name in a property\'s or constant\'s @var is redundant; found "%s"';
+            $fix = $phpcsFile->addFixableError($error, $tag, self::CODE_VAR_NAME, [$variable]);
+            $variable = '';
+        }
+
+        $parts = array_filter([$type, $variable, $match[2] ?? ''], static fn(string $part): bool => $part !== '');
+        $expected = implode(' ', $parts);
+        $gap = $tokens[($tag + 1)]['content'];
+        $isSpaced = ($expected !== $value && !$hasName) || $gap !== ' ';
+        if ($isSpaced) {
+            $error = 'Expected one space between the parts of a @var tag';
+            $fix = $phpcsFile->addFixableError($error, $tag, self::CODE_SPACING, []);
+        }
+
+        if (($hasName || $isSpaced) && ($fix ?? false)) {
+            $phpcsFile->fixer->beginChangeset();
+            $phpcsFile->fixer->replaceToken(($tag + 1), ' ');
+            $phpcsFile->fixer->replaceToken($stringPtr, "{$expected}{$trailing}");
+            $phpcsFile->fixer->endChangeset();
+        }
+    }
+
+    /**
+     * Report a one-line doc comment without one space after its `/**` and before its `*\/`, and fix it.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $opener The position of the docblock's `/**`.
+     */
+    private function checkOneLineSpacing(File $phpcsFile, int $opener): void
+    {
+        $tokens = $phpcsFile->getTokens();
+        $closer = $tokens[$opener]['comment_closer'];
+        if ($tokens[$opener]['line'] !== $tokens[$closer]['line'] || ($closer - $opener) < 2) {
+            return;
+        }
+
+        $after = $tokens[($opener + 1)];
+        $before = $tokens[($closer - 1)];
+        $isAfterOk = $after['code'] === T_DOC_COMMENT_WHITESPACE && $after['content'] === ' ';
+        $isBeforeOk = $before['code'] === T_DOC_COMMENT_WHITESPACE
+            ? $before['content'] === ' '
+            : str_ends_with($before['content'], ' ') && !str_ends_with($before['content'], '  ');
+        if ($isAfterOk && $isBeforeOk) {
+            return;
+        }
+
+        $error = 'Expected one space after the /** and before the */ of a one-line doc comment';
+        if (!$phpcsFile->addFixableError($error, $opener, self::CODE_SPACING)) {
+            return;
+        }
+
+        $phpcsFile->fixer->beginChangeset();
+        if (!$isAfterOk) {
+            $after['code'] === T_DOC_COMMENT_WHITESPACE
+                ? $phpcsFile->fixer->replaceToken(($opener + 1), ' ')
+                : $phpcsFile->fixer->addContent($opener, ' ');
+        }
+
+        if (!$isBeforeOk) {
+            $phpcsFile->fixer->replaceToken(
+                ($closer - 1),
+                $before['code'] === T_DOC_COMMENT_WHITESPACE ? ' ' : rtrim($before['content']) . ' ',
+            );
+        }
+
+        $phpcsFile->fixer->endChangeset();
+    }
+
+    /**
+     * Split a tag's value from the space before a one-line doc comment's `*\/`, which PHP_CodeSniffer keeps in it.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $stringPtr The position of the value.
+     * @return array{string, string} The value, and the space after it, which is kept as it is.
+     */
+    private function splitValue(File $phpcsFile, int $stringPtr): array
+    {
+        $tokens = $phpcsFile->getTokens();
+        $content = $tokens[$stringPtr]['content'];
+        $next = $tokens[($stringPtr + 1)] ?? null;
+        if ($next === null || $next['code'] !== T_DOC_COMMENT_CLOSE_TAG) {
+            return [$content, ''];
+        }
+
+        $value = rtrim($content);
+
+        return [$value, substr($content, strlen($value))];
+    }
+
+    /**
+     * Get a doc type's code as written in a tag's value.
+     *
+     * @param TypeNode $type The type.
+     * @param list<array{string, int, int}> $lexTokens The value's tokens.
+     * @return ?string The code, or null if the parser gave no position.
+     */
+    private function typeSource(TypeNode $type, array $lexTokens): ?string
+    {
+        $start = $type->getAttribute(Attribute::START_INDEX);
+        $end = $type->getAttribute(Attribute::END_INDEX);
+        if (!is_int($start) || !is_int($end)) {
+            return null;
+        }
+
+        return implode('', array_map(
+            static fn(array $token): string => $token[Lexer::VALUE_OFFSET],
+            array_slice($lexTokens, $start, ($end - $start + 1)),
+        ));
     }
 
     /**
@@ -351,7 +625,7 @@ class PhpDocTagsSniff implements Sniff
             $stringPtr = $tag + 2;
             $hasValue = ($tokens[$stringPtr]['code'] ?? null) === T_DOC_COMMENT_STRING
                 && $tokens[$stringPtr]['line'] === $tokens[$tag]['line'];
-            $value = $hasValue ? $tokens[$stringPtr]['content'] : '';
+            $value = $hasValue ? $this->splitValue($phpcsFile, $stringPtr)[0] : '';
             if ($name === 'return' && $hasValue && $this->checkSelfReference($phpcsFile, $stringPtr, $value)) {
                 continue;
             }
@@ -411,7 +685,8 @@ class PhpDocTagsSniff implements Sniff
         $expected = self::SELF_REFERENCES[$match[1]];
         $error = 'Use "%s", not "%s", in a @return tag';
         if ($phpcsFile->addFixableError($error, $stringPtr, self::CODE_SELF_REFERENCE, [$expected, $match[1]])) {
-            $phpcsFile->fixer->replaceToken($stringPtr, $expected . substr($value, strlen($match[1])));
+            $content = $phpcsFile->getTokens()[$stringPtr]['content'];
+            $phpcsFile->fixer->replaceToken($stringPtr, $expected . substr($content, strlen($match[1])));
         }
 
         return true;
@@ -483,18 +758,9 @@ class PhpDocTagsSniff implements Sniff
         array $lexTokens,
     ): void {
         $tokens = $phpcsFile->getTokens();
-        $value = $tokens[$stringPtr]['content'];
-        $start = $node->type->getAttribute(Attribute::START_INDEX);
-        $end = $node->type->getAttribute(Attribute::END_INDEX);
-        if (!is_int($start) || !is_int($end)) {
-            return;
-        }
-
-        $type = implode('', array_map(
-            static fn(array $token): string => $token[Lexer::VALUE_OFFSET],
-            array_slice($lexTokens, $start, ($end - $start + 1)),
-        ));
-        if (!str_starts_with($value, $type)) {
+        [$value, $trailing] = $this->splitValue($phpcsFile, $stringPtr);
+        $type = $this->typeSource($node->type, $lexTokens);
+        if ($type === null || !str_starts_with($value, $type)) {
             return;
         }
 
@@ -518,7 +784,7 @@ class PhpDocTagsSniff implements Sniff
         if ($phpcsFile->addFixableError($error, $tag, self::CODE_SPACING, [$name])) {
             $phpcsFile->fixer->beginChangeset();
             $phpcsFile->fixer->replaceToken(($tag + 1), ' ');
-            $phpcsFile->fixer->replaceToken($stringPtr, $expected);
+            $phpcsFile->fixer->replaceToken($stringPtr, "{$expected}{$trailing}");
             $phpcsFile->fixer->endChangeset();
         }
     }

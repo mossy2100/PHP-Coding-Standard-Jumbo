@@ -34,7 +34,6 @@ sections link to it.
 | `PhpCollective.Commenting.DocBlockReturnTag`                                             | No `@return` description starting with a variable              | No      |
 | `PhpCollective.Commenting.DocBlockStructure`                                             | `/**` and `*/`, not `/***` or `**/`                            | Yes     |
 | `PhpCollective.Commenting.DocBlockTagIterable`                                           | The spacing inside a generic doc type                          | Yes     |
-| `PhpCollective.Commenting.InlineDocBlock`                                                | An inline `@var` in a doc comment, with its type first         | Yes     |
 | `PhpCollective.ControlStructures.UnneededElse`                                           | No `else` after branches that all exit early                   | Yes     |
 | `PhpCollective.PHP.NoIsNull`                                                             | `$x === null`, not `is_null($x)`                               | Yes     |
 | `PhpCollective.PHP.NotEqual`                                                             | `!=`, not `<>`                                                 | Yes     |
@@ -365,15 +364,6 @@ next line. A one-line doc comment is left alone.
 ## PhpCollective.Commenting.DocBlockTagIterable
 
 Requires one space after each comma in a generic doc type, and none inside the brackets, as in `array<string, int>`.
-
-**Auto-fixable:** yes.
-
----
-
-## PhpCollective.Commenting.InlineDocBlock
-
-Requires an inline `@var` in a doc comment, `/** @var int $a */`, not `/* @var int $a */`, which tools ignore, and
-its type before the variable, not `@var $a int`.
 
 **Auto-fixable:** yes.
 

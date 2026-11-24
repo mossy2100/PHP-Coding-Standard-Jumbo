@@ -19,6 +19,22 @@ class PhpDocTagsUnitTest extends AbstractSniffTestCase
      */
     protected function getErrorList(string $testFile = ''): array
     {
+        // @var tags.
+        if ($testFile === 'PhpDocTagsUnitTest.3.inc') {
+            return [
+                // A property's redundant name, a wrong type, a one-line comment without spaces, and spacing.
+                8 => 1,
+                11 => 1,
+                14 => 1,
+                17 => 1,
+                // No type.
+                23 => 1,
+                // An inline @var with the name first, and one in a block comment.
+                31 => 1,
+                34 => 1,
+            ];
+        }
+
         // A function's @param and @return tags.
         if ($testFile === 'PhpDocTagsUnitTest.2.inc') {
             return [

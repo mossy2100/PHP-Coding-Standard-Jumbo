@@ -645,8 +645,10 @@
          single line -->
     <rule ref="Jumbo.Commenting.BlockComment"/>
 
-    <!-- Docblock tag names in their usual case, with no aliases, and inline tags as {@name description}. Replaces
-         SlevomatCodingStandard.Commenting.AnnotationName, which skips block tags in a namespaced file -->
+    <!-- Docblock tag names in their usual case, with no aliases, and inline tags as {@name description}, and a
+         function's @param and @return tags and every @var checked against the code. Replaces
+         SlevomatCodingStandard.Commenting.AnnotationName, which skips block tags in a namespaced file, and
+         PhpCollective.Commenting.InlineDocBlock -->
     <rule ref="Jumbo.Commenting.PhpDocTags"/>
 
     <rule ref="SlevomatCodingStandard.Commenting.DeprecatedAnnotationDeclaration"/>
@@ -679,9 +681,6 @@
 
     <!-- No blank line between a doc comment and its class, interface, trait or function -->
     <rule ref="PhpCollective.WhiteSpace.DocBlockSpacing"/>
-
-    <!-- An inline @var in a doc comment, not a /* */ comment, with its type before the variable -->
-    <rule ref="PhpCollective.Commenting.InlineDocBlock"/>
 
     <!-- One space after each comma in a generic doc type, as in array<string, int>, and none inside the brackets -->
     <rule ref="PhpCollective.Commenting.DocBlockTagIterable"/>

@@ -253,7 +253,8 @@ const DAY = 86400;
 
 ## Jumbo.Commenting.PhpDocTags
 
-Checks the tags in a docblock: their names, the format of inline tags, and a function's `@param` and `@return` tags.
+Checks the tags in a docblock: their names, the format of inline tags, a function's `@param` and `@return` tags, and
+every `@var` tag.
 
 | Code                 | Reported when                                                                   |
 | -------------------- | ------------------------------------------------------------------------------- |
@@ -267,6 +268,10 @@ Checks the tags in a docblock: their names, the format of inline tags, and a fun
 | `MissingType`        | A `@param` or `@return` has no type, as in `@param $x The value.` Not fixed     |
 | `Spacing`            | A `@param` or `@return` hasn't exactly one space between its parts              |
 | `SelfReference`      | A `@return` has `this` or `@this` for `$this`, or `$self` or `@self` for `self` |
+| `VarTypeMismatch`    | A property's or constant's `@var` type doesn't match its native type. Not fixed |
+| `VarName`            | A property's or constant's `@var` names the variable, which is redundant        |
+| `VarNameOrder`       | An inline `@var` has the name before the type, as in `@var $a int`              |
+| `VarInBlockComment`  | An inline `@var` is in a `/* */` comment, which tools ignore                    |
 
 | Alias          | Replaced by   |
 | -------------- | ------------- |
@@ -304,6 +309,13 @@ Checks the tags in a docblock: their names, the format of inline tags, and a fun
     description isn't touched.
   - A tag isn't required, and one that only repeats the native type is removed by the `UselessAnnotation` codes of
     `Jumbo.TypeHints.ParameterTypeHint` and `SlevomatCodingStandard.TypeHints.ReturnTypeHint`.
+- **`@var`:** on a property, a constant or an inline variable. A property's or typed constant's type is matched as
+  above. `MissingType` and `Spacing` apply as above, and a one-line doc comment needs one space after its `/**` and
+  before its `*/`: `/**@var int*/` becomes `/** @var int */`. The variable name in a property's or constant's `@var`
+  is removed, as it's redundant and can drift; an inline `@var` keeps its name. An inline `@var` with its name first
+  is reordered, and one in a `/* */` comment becomes a doc comment. In Jumbo, this replaces
+  `PhpCollective.Commenting.InlineDocBlock`. An inline `@var` on an assignment becomes an `assert()`, by
+  `SlevomatCodingStandard.PHP.RequireExplicitAssertion`, where it can be.
 
 **Why:** PER Coding Style 3.1 has no rule for docblocks, so this is an extra rule. It replaces
 `SlevomatCodingStandard.Commenting.AnnotationName`, whose block tag check skips every tag in a file with a `namespace`
