@@ -29,6 +29,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.Namespaces.UnusedUses`                              | No unused `use` statements, safe with a miscased `use Function` | Yes     |
 | `Jumbo.NamingConventions.ValidVariableName`                | No leading underscore on a variable or parameter in a class     | No      |
 | `Jumbo.PHP.EmbeddedPhp`                                    | A block's tags on their own lines, level with its code          | Mostly  |
+| `Jumbo.PhpUnit.TestClass`                                  | No PHPUnit annotations, and the `setUp()` hooks `protected`     | Yes     |
 | `Jumbo.Strings.RequireBracedVariables`                     | Braces around every variable in a string, as in `"{$name}"`     | Yes     |
 | `Jumbo.TypeHints.DeclareStrictTypes`                       | `strict_types=1` required, allowing `<?php declare(...) ?>`     | Yes     |
 | `Jumbo.TypeHints.ParameterTypeHint`                        | Parameter type hints, skipping a promoted hook                  | Yes     |
@@ -875,6 +876,66 @@ HTML's whitespace.
         $b,
     ) ?></p>
 </div>
+```
+
+---
+
+## Jumbo.PhpUnit.TestClass
+
+Checks a PHPUnit test class's declarations:
+
+- **No PHPUnit annotations** (`TestAnnotation` and `Annotation`). PHPUnit 12 reads attributes only, so an annotation
+  is silently ignored: a method marked only `@test` never runs, and `@dataProvider` or `@depends` does nothing.
+  - `@test` is fixed to a `test` prefix on the method's name, as in `testAddsNumbers()`, and a `#[Depends]` or
+    `@depends` naming the method in the class is renamed too. It's not fixed if the new name is taken.
+  - Any other is fixed to its attribute, written fully qualified for
+    `SlevomatCodingStandard.Namespaces.ReferenceUsedNamesOnly` to import: `@dataProvider provideCases` becomes
+    `#[DataProvider('provideCases')]`, `@requires PHP 8.4` becomes `#[RequiresPhp('>= 8.4')]`, and so on, as
+    php-cs-fixer's `php_unit_attributes` does. `@coversDefaultClass` has no attribute, so it's removed, and a
+    class-level `@covers ::method` names that class.
+  - One with no attribute where it is, such as `@covers` on a method, or whose value can't be read, is reported but
+    not fixed.
+- **`setUp()`, `tearDown()`, `setUpBeforeClass()` and `tearDownAfterClass()` `protected`** (`HookVisibility`), not
+  `public`, as PHPUnit's `TestCase` declares them.
+
+A test class is one that extends `PHPUnit\Framework\TestCase`, resolved through the file's `use` statements. A class
+that extends a project's own base test class isn't checked. `@author`, which PHPUnit also reads as a group, is left
+alone, as it's a general doc tag.
+
+**Why:** PER Coding Style 3.1 has no rules for tests, so this is an extra rule. An annotation PHPUnit ignores is a bug
+waiting to be found. No inherited sniff checks either.
+
+**Auto-fixable:** mostly.
+
+**Good:**
+
+```php
+#[CoversClass(Calculator::class)]
+final class CalculatorTest extends TestCase
+{
+    protected function setUp(): void {}
+
+    #[DataProvider('provideCases')]
+    public function testAddsNumbers(int $a): void {}
+}
+```
+
+**Bad:**
+
+```php
+/**
+ * @covers \Vendor\Calculator
+ */
+final class CalculatorTest extends TestCase
+{
+    public function setUp(): void {}
+
+    /**
+     * @test
+     * @dataProvider provideCases
+     */
+    public function addsNumbers(int $a): void {}
+}
 ```
 
 ---

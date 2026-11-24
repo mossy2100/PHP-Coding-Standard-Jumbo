@@ -1,0 +1,79 @@
+<?php
+
+namespace Vendor\Tests;
+
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * Tests for the calculator.
+ */
+#[\PHPUnit\Framework\Attributes\CoversClass(\Vendor\Calculator::class)]
+#[\PHPUnit\Framework\Attributes\Group('slow')]
+class CalculatorTest extends TestCase
+{
+    protected function setUp(): void {}
+
+    protected static function setUpBeforeClass(): void {}
+
+    protected function tearDown(): void {}
+
+    public function testAddsTwoNumbers(): void {}
+
+    /**
+     * Subtracts.
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('provideCases')]
+    #[\PHPUnit\Framework\Attributes\Depends('testAddsTwoNumbers')]
+    public function testSubtracts(int $a): void {}
+
+    #[\PHPUnit\Framework\Attributes\TestWithJson('[1, 2]')]
+    #[\PHPUnit\Framework\Attributes\TestWithJson('[3, 4]')]
+    public function testWithRows(int $a, int $b): void {}
+
+    /**
+     * @covers ::foo
+     */
+    public function testWrongPlace(): void {}
+
+    /**
+     * Requirements.
+     *
+     * @return void Nothing.
+     */
+    #[\PHPUnit\Framework\Attributes\RequiresPhp('>= 8.4')]
+    #[\PHPUnit\Framework\Attributes\RequiresPhpExtension('mbstring')]
+    #[\PHPUnit\Framework\Attributes\BackupGlobals(true)]
+    #[\PHPUnit\Framework\Attributes\Group('fast')]
+    public function testRequires(): void {}
+
+    /**
+     * @requires nonsense
+     */
+    public function testUnreadable(): void {}
+
+    #[DataProvider('provideCases')]
+    public function testAlreadyHasTheAttribute(int $a): void {}
+
+    #[\PHPUnit\Framework\Attributes\Depends('testAddsTwoNumbers')]
+    public function testDependsOnTheRenamedOne(): void {}
+
+    /**
+     * @return list<array{int}>
+     */
+    public static function provideCases(): array
+    {
+        return [[1]];
+    }
+}
+
+/**
+ * @group slow
+ */
+class NotATest extends Something
+{
+    /**
+     * @test
+     */
+    public function setUp(): void {}
+}

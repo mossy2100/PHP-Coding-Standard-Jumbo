@@ -725,6 +725,10 @@
 
     <!-- ====== PHPUNIT (NOT IN PER) ====== -->
 
+    <!-- No PHPUnit annotations, which PHPUnit 12 ignores: attributes, and a test prefix in place of @test. setUp() and
+         the other hooks protected. -->
+    <rule ref="Jumbo.PhpUnit.TestClass"/>
+
     <!-- assertNull(), assertTrue() and assertFalse(), not assertSame() with null, true or false -->
     <rule ref="PhpCollective.Testing.AssertPrimitives"/>
 

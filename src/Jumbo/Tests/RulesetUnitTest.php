@@ -95,6 +95,55 @@ class RulesetUnitTest extends TestCase
         $this->assertSame(0, $result['exitCode'], $result['output']);
     }
 
+    /**
+     * Test that Jumbo turns a PHPUnit annotation into its attribute, imported by
+     * SlevomatCodingStandard.Namespaces.ReferenceUsedNamesOnly, and a @test annotation into a test prefix.
+     */
+    public function testPhpUnitAnnotationsBecomeImportedAttributes(): void
+    {
+        $file = $this->copyToTempFile(null, <<<'PHP'
+            <?php
+
+            declare(strict_types=1);
+
+            namespace Vendor\Tests;
+
+            use PHPUnit\Framework\TestCase;
+
+            final class CalculatorTest extends TestCase
+            {
+                /**
+                 * Adds.
+                 *
+                 * @test
+                 * @dataProvider provideCases
+                 */
+                public function addsNumbers(int $a): void
+                {
+                    $this->assertSame($a, $a);
+                }
+
+                /** @return list<array{int}> */
+                public static function provideCases(): array
+                {
+                    return [[1]];
+                }
+            }
+            PHP);
+
+        try {
+            $this->runTool('phpcbf', ['--standard=Jumbo', self::EXCLUDE_CLASS_FILE_NAME, $file]);
+            $fixed = (string) file_get_contents($file);
+        } finally {
+            unlink($file);
+        }
+
+        $this->assertStringContainsString("use PHPUnit\\Framework\\Attributes\\DataProvider;\n", $fixed);
+        $expected = "    /**\n     * Adds.\n     */\n    #[DataProvider('provideCases')]\n    public function "
+            . "testAddsNumbers(int \$a): void\n";
+        $this->assertStringContainsString($expected, $fixed);
+    }
+
     #endregion
 
     #region Tests comparing PERCS31 and Jumbo.

@@ -570,6 +570,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - `Squiz.PHP.DisallowMultipleAssignments`: no `$a = $b = 1`, as `Found`. An assignment in a condition is still only
     a warning.
   - `Squiz.PHP.Eval`: a warning for `eval()`.
+- **PHPUnit test classes, in Jumbo (breaking).** The new `Jumbo.PhpUnit.TestClass` reports a PHPUnit annotation,
+  which PHPUnit 12 ignores, and fixes it to its attribute, or `@test` to a `test` prefix on the method's name, as
+  `Annotation` and `TestAnnotation`. It also reports `setUp()`, `tearDown()`, `setUpBeforeClass()` and
+  `tearDownAfterClass()` declared `public`, as `HookVisibility`, and fixes them to `protected`. Only a class that
+  extends `PHPUnit\Framework\TestCase` is checked.
 - **`#` comments, in Jumbo (breaking).** The new `Jumbo.Commenting.DisallowHashComments` reports a `#` comment as
   `HashComment`, and fixes it to `//`. `#region` and `#endregion` are allowed; set its `exceptions` property to change
   the list. PERCS31 is unchanged, as PER Coding Style 3.1 has no rule for comments.
