@@ -557,6 +557,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   `@type` or `@link`, as `Alias`. It also reports an inline tag that isn't written `{@name description}`, such as
   `@{see Foo}` or `{ @see Foo }`, as `InlineFormat`. Both block and inline tags are checked. All are auto-fixable.
   PERCS31 is unchanged, as PER Coding Style 3.1 has no rule for docblocks.
+- **`@param` and `@return` tags, in Jumbo (breaking).** `Jumbo.Commenting.PhpDocTags` now also checks a function's
+  `@param` and `@return` tags: a name that matches no parameter (`UnknownParam`) or repeats one (`DuplicateParam`), a
+  type that doesn't match the native type, allowing PHPStan's more specific types (`ParamTypeMismatch` and
+  `ReturnTypeMismatch`), and a missing type (`MissingType`), none of them fixed. Exactly one space between a tag's
+  parts (`Spacing`), and `$this` or `self` in a `@return` written as `this`, `@this`, `$self` or `@self`
+  (`SelfReference`), are fixed.
 - **Six more extra rules in Jumbo (breaking).** Jumbo now includes:
   - `Generic.CodeAnalysis.ForLoopShouldBeWhileLoop`: a warning for a `for` loop with only a condition.
   - `Generic.PHP.DeprecatedFunctions`: no call to a native function that PHP marks deprecated.

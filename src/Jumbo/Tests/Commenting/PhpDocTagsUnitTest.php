@@ -14,10 +14,33 @@ class PhpDocTagsUnitTest extends AbstractSniffTestCase
     /**
      * Returns the lines where errors should occur.
      *
+     * @param string $testFile The name of the test input file.
      * @return array<int, int> Line number => error count.
      */
-    protected function getErrorList(): array
+    protected function getErrorList(string $testFile = ''): array
     {
+        // A function's @param and @return tags.
+        if ($testFile === 'PhpDocTagsUnitTest.2.inc') {
+            return [
+                // A wrong type, spacing, unknown and repeated names, a missing type, and an alias with a wrong type.
+                39 => 1,
+                40 => 1,
+                41 => 1,
+                42 => 1,
+                43 => 1,
+                44 => 2,
+                // Malformed self-references.
+                49 => 1,
+                54 => 1,
+                // A @return with nothing after it.
+                59 => 1,
+                // Spaces after the tag.
+                64 => 1,
+                65 => 1,
+            ];
+        }
+
+        // Tag names and inline tags.
         return [
             // Casing, in a block tag.
             32 => 1,

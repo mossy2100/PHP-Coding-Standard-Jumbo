@@ -253,13 +253,20 @@ const DAY = 86400;
 
 ## Jumbo.Commenting.PhpDocTags
 
-Normalizes docblock tag names, and the format of inline tags.
+Checks the tags in a docblock: their names, the format of inline tags, and a function's `@param` and `@return` tags.
 
-| Code           | Reported when                                                                   |
-| -------------- | ------------------------------------------------------------------------------- |
-| `Casing`       | A known tag name is in the wrong case, such as `@Return` or `@inheritdoc`       |
-| `Alias`        | A tag is an alias, in any case: see the table below                             |
-| `InlineFormat` | An inline tag isn't written `{@name description}`, such as `@{see Foo}`         |
+| Code                 | Reported when                                                                   |
+| -------------------- | ------------------------------------------------------------------------------- |
+| `Casing`             | A known tag name is in the wrong case, such as `@Return` or `@inheritdoc`       |
+| `Alias`              | A tag is an alias, in any case: see the table below                             |
+| `InlineFormat`       | An inline tag isn't written `{@name description}`, such as `@{see Foo}`         |
+| `UnknownParam`       | A `@param`'s name matches no parameter. Not fixed                               |
+| `DuplicateParam`     | A `@param` repeats one before it. Not fixed                                     |
+| `ParamTypeMismatch`  | A `@param`'s type doesn't match the parameter's native type. Not fixed          |
+| `ReturnTypeMismatch` | A `@return`'s type doesn't match the native return type. Not fixed              |
+| `MissingType`        | A `@param` or `@return` has no type, as in `@param $x The value.` Not fixed     |
+| `Spacing`            | A `@param` or `@return` hasn't exactly one space between its parts              |
+| `SelfReference`      | A `@return` has `this` or `@this` for `$this`, or `$self` or `@self` for `self` |
 
 | Alias          | Replaced by   |
 | -------------- | ------------- |
@@ -284,14 +291,29 @@ Normalizes docblock tag names, and the format of inline tags.
   - `@property-read` and `@property-write`, which aren't really aliases: PHPStan reports a write to a `@property-read`
   - text that only looks like a tag, in the middle of a sentence
   - an inline tag split over two lines
+- **`@param` and `@return`:** checked in the docblock of a function or method, each by its main name, so `@returns`
+  is checked as `@return` before it's renamed.
+  - A type matches if each of its members is the native type or a more specific form of it, going by
+    [PHPStan's types](https://phpstan.org/writing-php-code/phpdoc-types): `list<int>` or `array<string, int>` for
+    `array`, `positive-int` for `int`, `true` for `bool`, `int|null` for `?int`, `$this` for `static`. A class, a
+    template type or a type alias can't be compared without loading code, so a type with one isn't reported, and nor
+    is a variadic parameter's.
+  - An unknown or repeated `@param` isn't fixed, as its description may be worth keeping, or the parameter may be
+    what's missing.
+  - **Spacing:** exactly one space between the tag, its type, the variable and the start of the description. The
+    description isn't touched.
+  - A tag isn't required, and one that only repeats the native type is removed by the `UselessAnnotation` codes of
+    `Jumbo.TypeHints.ParameterTypeHint` and `SlevomatCodingStandard.TypeHints.ReturnTypeHint`.
 
 **Why:** PER Coding Style 3.1 has no rule for docblocks, so this is an extra rule. It replaces
 `SlevomatCodingStandard.Commenting.AnnotationName`, whose block tag check skips every tag in a file with a `namespace`
 statement, so it hardly ever ran. The tag names are from that sniff, the aliases from PHP-CS-Fixer's
 `phpdoc_no_alias_tag` and `general_phpdoc_tag_rename`, and the inline format check is adapted from its
-`phpdoc_inline_tag_normalizer`.
+`phpdoc_inline_tag_normalizer`. The spacing and self-reference checks are from its `phpdoc_single_line_var_spacing`
+(widened to `@param` and `@return`) and `phpdoc_return_self_reference`. A type that doesn't match is a bug in the
+documentation, and these replace `PhpCollective.Commenting.DocBlockParamNotJustNull`'s `EmptyType`.
 
-**Auto-fixable:** yes.
+**Auto-fixable:** partly: the names, inline tags, spacing and self-references.
 
 **Good:**
 
@@ -299,10 +321,11 @@ statement, so it hardly ever ran. The tag names are from that sniff, the aliases
 /**
  * {@inheritDoc}
  *
- * @param int $count The number of items.
+ * @param positive-int $count The number of items.
  * @return int The total.
  * @see Basket::total()
  */
+public function total(int $count): int
 ```
 
 **Bad:**
@@ -311,10 +334,11 @@ statement, so it hardly ever ran. The tag names are from that sniff, the aliases
 /**
  * { @inheritdoc }
  *
- * @Param int $count The number of items.
+ * @Param string  $count The number of items.
  * @returns int The total.
  * @link Basket::total()
  */
+public function total(int $count): int
 ```
 
 ---

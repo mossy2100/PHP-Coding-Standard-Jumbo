@@ -4,16 +4,28 @@ declare(strict_types=1);
 
 namespace Jumbo\Sniffs\Commenting;
 
+use Jumbo\Helpers\DocTypeMatchHelper;
+use PHP_CodeSniffer\Exceptions\RuntimeException;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
+use PHP_CodeSniffer\Util\Tokens;
+use PHPStan\PhpDocParser\Ast\Attribute;
+use PHPStan\PhpDocParser\Ast\PhpDoc\ParamTagValueNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagValueNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\ReturnTagValueNode;
+use PHPStan\PhpDocParser\Ast\PhpDoc\TypelessParamTagValueNode;
+use PHPStan\PhpDocParser\Ast\Type\TypeNode;
+use PHPStan\PhpDocParser\Lexer\Lexer;
+use PHPStan\PhpDocParser\Parser\TokenIterator;
+use SlevomatCodingStandard\Helpers\PhpDocParserHelper;
 use SlevomatCodingStandard\Helpers\UseStatement;
 use SlevomatCodingStandard\Helpers\UseStatementHelper;
 
 /**
- * Normalizes docblock tag names, and the format of inline tags.
+ * Checks the tags in a docblock: their names, the format of inline tags, and the `@param` and `@return` tags of a
+ * function.
  *
- * PER Coding Style 3.1 has no rule for docblocks, so this is an extra rule. Three things are checked, each with its own
- * code:
+ * PER Coding Style 3.1 has no rule for docblocks, so this is an extra rule. Each check has its own code:
  *
  * - Casing: a known tag name in its usual case, such as `return` for `Return`. The names are the ones
  *   SlevomatCodingStandard.Commenting.AnnotationName knows, so `inheritDoc` is written in camel case.
@@ -21,6 +33,18 @@ use SlevomatCodingStandard\Helpers\UseStatementHelper;
  *   and `const` by `var`, and `link` by `see`.
  * - InlineFormat: an inline tag written as `{@name description}`, with the `@` inside a single brace at each end, and
  *   no space after the opening brace or before the closing one. Only the tags that can be inline are checked.
+ *
+ * - The `@param` and `@return` tags of a function or method, each read by its main name, so `@returns` is checked as
+ *   `@return`:
+ *   - UnknownParam and DuplicateParam: a `@param` whose name matches no parameter, or repeats one. Not fixed, as the
+ *     description may be worth keeping, or the parameter may be what's missing.
+ *   - ParamTypeMismatch and ReturnTypeMismatch: a type that doesn't match the native type, allowing the more specific
+ *     PHPStan types, such as `list<int>` for `array`. A class, template or alias can't be compared without loading
+ *     code, so a type with one isn't reported. Not fixed.
+ *   - MissingType: a `@param` or `@return` without a type, as in `@param $x The value.` Not fixed.
+ *   - Spacing: more than one space, or none, between the tag, its type, the variable and the description. The
+ *     description itself isn't touched.
+ *   - SelfReference: `this` or `@this` in a `@return`, fixed to `$this`, and `$self` or `@self`, fixed to `self`.
  *
  * Block tags and inline tags are both checked. A block tag that a `use` statement imports, such as a Doctrine or JMS
  * annotation, is left alone, as is a name followed by `(` or `\`. Text that only looks like a tag, in the middle of a
@@ -41,6 +65,27 @@ class PhpDocTagsSniff implements Sniff
     public const string CODE_ALIAS = 'Alias';
 
     public const string CODE_INLINE_FORMAT = 'InlineFormat';
+
+    public const string CODE_UNKNOWN_PARAM = 'UnknownParam';
+
+    public const string CODE_DUPLICATE_PARAM = 'DuplicateParam';
+
+    public const string CODE_PARAM_TYPE_MISMATCH = 'ParamTypeMismatch';
+
+    public const string CODE_RETURN_TYPE_MISMATCH = 'ReturnTypeMismatch';
+
+    public const string CODE_MISSING_TYPE = 'MissingType';
+
+    public const string CODE_SPACING = 'Spacing';
+
+    public const string CODE_SELF_REFERENCE = 'SelfReference';
+
+    /**
+     * The malformed self-references in a `@return`, with their fixes.
+     *
+     * @var array<string, string>
+     */
+    private const array SELF_REFERENCES = ['this' => '$this', '@this' => '$this', '$self' => 'self', '@self' => 'self'];
 
     /**
      * Aliases, in lower case, and the main tag that replaces each one.
@@ -235,6 +280,246 @@ class PhpDocTagsSniff implements Sniff
 
         if ($first !== null && $last !== null) {
             $this->processLine($phpcsFile, $first, $last);
+        }
+
+        $function = $this->findFunction($phpcsFile, $stackPtr);
+        if ($function !== null) {
+            $this->processFunctionTags($phpcsFile, $stackPtr, $function);
+        }
+    }
+
+    /**
+     * Find the function or method a docblock is for.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $opener The position of the docblock's `/**`.
+     * @return ?int The position of the `function` keyword, or null if the docblock isn't for one.
+     */
+    private function findFunction(File $phpcsFile, int $opener): ?int
+    {
+        $tokens = $phpcsFile->getTokens();
+        $skip = [T_WHITESPACE, T_STATIC, T_FINAL, T_ABSTRACT, ...array_keys(Tokens::SCOPE_MODIFIERS)];
+        $closer = $tokens[$opener]['comment_closer'];
+        if (!is_int($closer)) {
+            return null;
+        }
+
+        for ($i = ($closer + 1); isset($tokens[$i]); $i++) {
+            $attributeCloser = $tokens[$i]['code'] === T_ATTRIBUTE ? ($tokens[$i]['attribute_closer'] ?? null) : null;
+            if (is_int($attributeCloser)) {
+                $i = $attributeCloser;
+                continue;
+            }
+
+            if (!in_array($tokens[$i]['code'], $skip, true)) {
+                return $tokens[$i]['code'] === T_FUNCTION ? $i : null;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Check a function's `@param` and `@return` tags.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $opener The position of the docblock's `/**`.
+     * @param int $function The position of the `function` keyword.
+     */
+    private function processFunctionTags(File $phpcsFile, int $opener, int $function): void
+    {
+        try {
+            $parameters = [];
+            foreach ($phpcsFile->getMethodParameters($function) as $parameter) {
+                $parameters[$parameter['name']] = $parameter;
+            }
+
+            $returnType = $phpcsFile->getMethodProperties($function)['return_type'];
+        } catch (RuntimeException) {
+            return;
+        }
+
+        $tokens = $phpcsFile->getTokens();
+        $seen = [];
+        foreach ($tokens[$opener]['comment_tags'] as $tag) {
+            $lower = strtolower(substr($tokens[$tag]['content'], 1));
+            $name = self::ALIASES[$lower] ?? $lower;
+            if ($name !== 'param' && $name !== 'return') {
+                continue;
+            }
+
+            $stringPtr = $tag + 2;
+            $hasValue = ($tokens[$stringPtr]['code'] ?? null) === T_DOC_COMMENT_STRING
+                && $tokens[$stringPtr]['line'] === $tokens[$tag]['line'];
+            $value = $hasValue ? $tokens[$stringPtr]['content'] : '';
+            if ($name === 'return' && $hasValue && $this->checkSelfReference($phpcsFile, $stringPtr, $value)) {
+                continue;
+            }
+
+            if (trim($value) === '') {
+                $phpcsFile->addError('The @%s tag must have a type', $tag, self::CODE_MISSING_TYPE, [$name]);
+                continue;
+            }
+
+            $lexTokens = PhpDocParserHelper::getLexer()->tokenize($value);
+            $node = PhpDocParserHelper::getParser()->parseTagValue(new TokenIterator($lexTokens), "@{$name}");
+            if ($node instanceof TypelessParamTagValueNode) {
+                $phpcsFile->addError('The @%s tag must have a type', $tag, self::CODE_MISSING_TYPE, [$name]);
+            }
+
+            if ($node instanceof ParamTagValueNode || $node instanceof TypelessParamTagValueNode) {
+                $this->checkParamName($phpcsFile, $tag, $node->parameterName, $parameters, $seen);
+            }
+
+            if ($node instanceof ParamTagValueNode && isset($parameters[$node->parameterName])) {
+                $parameter = $parameters[$node->parameterName];
+                if (!$node->isVariadic && $parameter['variable_length'] !== true && $parameter['type_hint'] !== '') {
+                    $this->checkType(
+                        $phpcsFile,
+                        $tag,
+                        $node->type,
+                        $parameter['type_hint'],
+                        self::CODE_PARAM_TYPE_MISMATCH,
+                    );
+                }
+            }
+
+            if ($node instanceof ReturnTagValueNode && $returnType !== '') {
+                $this->checkType($phpcsFile, $tag, $node->type, $returnType, self::CODE_RETURN_TYPE_MISMATCH);
+            }
+
+            if ($hasValue && ($node instanceof ParamTagValueNode || $node instanceof ReturnTagValueNode)) {
+                $this->checkSpacing($phpcsFile, $tag, $stringPtr, $node, $lexTokens);
+            }
+        }
+    }
+
+    /**
+     * Report a `@return` whose type is a malformed self-reference, such as `this` for `$this`, and fix it.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $stringPtr The position of the tag's value.
+     * @param string $value The value.
+     * @return bool True if it was reported.
+     */
+    private function checkSelfReference(File $phpcsFile, int $stringPtr, string $value): bool
+    {
+        if (preg_match('/^(@?this|[@$]self)(?=\s|$)/', $value, $match) !== 1) {
+            return false;
+        }
+
+        $expected = self::SELF_REFERENCES[$match[1]];
+        $error = 'Use "%s", not "%s", in a @return tag';
+        if ($phpcsFile->addFixableError($error, $stringPtr, self::CODE_SELF_REFERENCE, [$expected, $match[1]])) {
+            $phpcsFile->fixer->replaceToken($stringPtr, $expected . substr($value, strlen($match[1])));
+        }
+
+        return true;
+    }
+
+    /**
+     * Report a `@param` whose name matches no parameter, or one already documented.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $tag The position of the tag.
+     * @param string $variable The parameter's name in the tag, with its `$`.
+     * @param array<string, mixed> $parameters The function's parameters, by name.
+     * @param array<string, true> $seen The parameters already documented.
+     */
+    private function checkParamName(File $phpcsFile, int $tag, string $variable, array $parameters, array &$seen): void
+    {
+        if (!isset($parameters[$variable])) {
+            $error = 'The @param tag for %s matches no parameter';
+            $phpcsFile->addError($error, $tag, self::CODE_UNKNOWN_PARAM, [$variable]);
+            return;
+        }
+
+        if (isset($seen[$variable])) {
+            $phpcsFile->addError(
+                'The @param tag for %s repeats one before it',
+                $tag,
+                self::CODE_DUPLICATE_PARAM,
+                [$variable],
+            );
+            return;
+        }
+
+        $seen[$variable] = true;
+    }
+
+    /**
+     * Report a doc type that doesn't match the native type.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $tag The position of the tag.
+     * @param TypeNode $docType The doc type.
+     * @param string $nativeType The native type.
+     * @param string $code The error code.
+     */
+    private function checkType(File $phpcsFile, int $tag, TypeNode $docType, string $nativeType, string $code): void
+    {
+        if (DocTypeMatchHelper::matches($docType, $nativeType) !== false) {
+            return;
+        }
+
+        $error = 'The type "%s" doesn\'t match the native type "%s"';
+        $phpcsFile->addError($error, $tag, $code, [PhpDocParserHelper::getPrinter()->print($docType), $nativeType]);
+    }
+
+    /**
+     * Report a `@param` or `@return` without exactly one space between its parts, and fix it.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $tag The position of the tag.
+     * @param int $stringPtr The position of the tag's value.
+     * @param ParamTagValueNode|ReturnTagValueNode $node The value, as parsed.
+     * @param list<array{string, int, int}> $lexTokens The value's tokens.
+     */
+    private function checkSpacing(
+        File $phpcsFile,
+        int $tag,
+        int $stringPtr,
+        PhpDocTagValueNode $node,
+        array $lexTokens,
+    ): void {
+        $tokens = $phpcsFile->getTokens();
+        $value = $tokens[$stringPtr]['content'];
+        $start = $node->type->getAttribute(Attribute::START_INDEX);
+        $end = $node->type->getAttribute(Attribute::END_INDEX);
+        if (!is_int($start) || !is_int($end)) {
+            return;
+        }
+
+        $type = implode('', array_map(
+            static fn(array $token): string => $token[Lexer::VALUE_OFFSET],
+            array_slice($lexTokens, $start, ($end - $start + 1)),
+        ));
+        if (!str_starts_with($value, $type)) {
+            return;
+        }
+
+        $rest = substr($value, strlen($type));
+        $pattern = $node instanceof ParamTagValueNode
+            ? '/^\s+(&?(?:\.\.\.)?\$\S+)(?:\s+(.*))?$/s'
+            : '/^()(?:\s+(.*))?$/s';
+        if (preg_match($pattern, $rest, $match) !== 1) {
+            return;
+        }
+
+        $parts = array_filter([$type, $match[1], $match[2] ?? ''], static fn(string $part): bool => $part !== '');
+        $expected = implode(' ', $parts);
+        $gap = $tokens[($tag + 1)]['content'];
+        if ($expected === $value && $gap === ' ') {
+            return;
+        }
+
+        $error = 'Expected one space between the parts of a @%s tag';
+        $name = $node instanceof ParamTagValueNode ? 'param' : 'return';
+        if ($phpcsFile->addFixableError($error, $tag, self::CODE_SPACING, [$name])) {
+            $phpcsFile->fixer->beginChangeset();
+            $phpcsFile->fixer->replaceToken(($tag + 1), ' ');
+            $phpcsFile->fixer->replaceToken($stringPtr, $expected);
+            $phpcsFile->fixer->endChangeset();
         }
     }
 

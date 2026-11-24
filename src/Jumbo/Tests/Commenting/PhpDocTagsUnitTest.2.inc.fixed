@@ -1,0 +1,68 @@
+<?php
+
+class Valid
+{
+    /**
+     * More specific types, a nullable type, a class, a variadic and $this.
+     *
+     * @param list<int> $a The list.
+     * @param positive-int|null $b A count.
+     * @param Foo $c A class, which isn't compared.
+     * @param int[] ...$d The rest, which isn't compared.
+     * @param true $e Only true.
+     * @param array<string, int> $f An iterable.
+     * @param mixed $g Anything.
+     * @return $this
+     */
+    public function valid(array $a, ?int $b, Bar $c, bool $e, iterable $f, mixed $g, int ...$d): static {}
+
+    /**
+     * A description that continues
+     * on the next line.
+     *
+     * @param int $a The value,
+     *     described over two lines.
+     * @return void
+     */
+    public function described(int $a): void {}
+
+    // Not a function's docblock.
+    /** @param string $a Not checked. */
+    public int $property = 0;
+}
+
+class Invalid
+{
+    /**
+     * Wrong types, spacing, an unknown and a repeated name, a missing type, and an alias.
+     *
+     * @param string $a Wrong type.
+     * @param int $b Spaced.
+     * @param int $x Unknown.
+     * @param int $b Repeated.
+     * @param $c No type.
+     * @return string Wrong return, through an alias.
+     */
+    public function invalid(int $a, int $b, $c): int {}
+
+    /**
+     * @return $this
+     */
+    public function thisWithoutDollar(): static {}
+
+    /**
+     * @return self
+     */
+    public static function selfWithAt(): static {}
+
+    /**
+     * @return
+     */
+    public function nothing(): void {}
+
+    /**
+     * @param int $a Spaces after the tag.
+     * @return int
+     */
+    public function spacedTag(int $a): int {}
+}
