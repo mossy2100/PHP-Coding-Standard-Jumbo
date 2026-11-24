@@ -326,22 +326,27 @@ const DAY = 86400;
 Checks the tags in a docblock: their names, the format of inline tags, a function's `@param` and `@return` tags, and
 every `@var` tag.
 
-| Code                 | Reported when                                                                   |
-| -------------------- | ------------------------------------------------------------------------------- |
-| `Casing`             | A known tag name is in the wrong case, such as `@Return` or `@inheritdoc`       |
-| `Alias`              | A tag is an alias, in any case: see the table below                             |
-| `InlineFormat`       | An inline tag isn't written `{@name description}`, such as `@{see Foo}`         |
-| `UnknownParam`       | A `@param`'s name matches no parameter. Not fixed                               |
-| `DuplicateParam`     | A `@param` repeats one before it. Not fixed                                     |
-| `ParamTypeMismatch`  | A `@param`'s type doesn't match the parameter's native type. Not fixed          |
-| `ReturnTypeMismatch` | A `@return`'s type doesn't match the native return type. Not fixed              |
-| `MissingType`        | A `@param` or `@return` has no type, as in `@param $x The value.` Not fixed     |
-| `Spacing`            | A `@param` or `@return` hasn't exactly one space between its parts              |
-| `SelfReference`      | A `@return` has `this` or `@this` for `$this`, or `$self` or `@self` for `self` |
-| `VarTypeMismatch`    | A property's or constant's `@var` type doesn't match its native type. Not fixed |
-| `VarName`            | A property's or constant's `@var` names the variable, which is redundant        |
-| `VarNameOrder`       | An inline `@var` has the name before the type, as in `@var $a int`              |
-| `VarInBlockComment`  | An inline `@var` is in a `/* */` comment, which tools ignore                    |
+| Code                   | Reported when                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `Casing`               | A known tag name is in the wrong case, such as `@Return` or `@inheritdoc`       |
+| `Alias`                | A tag is an alias, in any case: see the table below                             |
+| `InlineFormat`         | An inline tag isn't written `{@name description}`, such as `@{see Foo}`         |
+| `UnknownParam`         | A `@param`'s name matches no parameter. Not fixed                               |
+| `DuplicateParam`       | A `@param` repeats one before it. Not fixed                                     |
+| `ParamTypeMismatch`    | A `@param`'s type doesn't match the parameter's native type. Not fixed          |
+| `ReturnTypeMismatch`   | A `@return`'s type doesn't match the native return type. Not fixed              |
+| `MissingType`          | A `@param` or `@return` has no type, as in `@param $x The value.` Not fixed     |
+| `Spacing`              | A `@param` or `@return` hasn't exactly one space between its parts              |
+| `SelfReference`        | A `@return` has `this` or `@this` for `$this`, or `$self` or `@self` for `self` |
+| `VarTypeMismatch`      | A property's or constant's `@var` type doesn't match its native type. Not fixed |
+| `VarName`              | A property's or constant's `@var` names the variable, which is redundant        |
+| `VarNameOrder`         | An inline `@var` has the name before the type, as in `@var $a int`              |
+| `VarInBlockComment`    | An inline `@var` is in a `/* */` comment, which tools ignore                    |
+| `SpacingBeforeTags`    | The first tag hasn't exactly one blank line before it                           |
+| `ParamOrder`           | The `@param` tags aren't in the order of the parameters. Not fixed              |
+| `ParamsNotTogether`    | Another tag or a blank line is between `@param` tags. Not fixed                 |
+| `ReturnNotAfterParams` | A `@return` comes before a `@param`. Not fixed                                  |
+| `ThrowsNotAfterReturn` | A `@throws` comes before the `@return` or a `@param`. Not fixed                 |
 
 | Alias          | Replaced by   |
 | -------------- | ------------- |
@@ -386,6 +391,30 @@ every `@var` tag.
   is reordered, and one in a `/* */` comment becomes a doc comment. In Jumbo, this replaces
   `PhpCollective.Commenting.InlineDocBlock`. An inline `@var` on an assignment becomes an `assert()`, by
   `SlevomatCodingStandard.PHP.RequireExplicitAssertion`, where it can be.
+
+- **Where the tags are:** no tag has to be in any place, so `@see`, `@todo`, `@fixme` and the rest can go where they
+  read best. Only the `@param` tags must be together and in order, then `@return`, then `@throws`. These replace
+  `Generic.Commenting.DocComment`'s `ParamNotFirst`, `ParamGroup` and `TagsNotGrouped`, which put the `@param` tags
+  first and every tag with the others of its name.
+- **`@see` in the description:** an `@see` straight after the description, or in its own paragraph, is part of it,
+  not the first tag, so `SpacingBeforeTags` checks the blank line before the tag after it. Both of these are allowed:
+
+  ```php
+  /**
+   * Like uasort(), but returns a new Dictionary.
+   * @see https://www.php.net/manual/en/function.uasort.php
+   *
+   * @param callable $fn The comparison function.
+   */
+  ```
+
+  ```php
+  /**
+   * Like {@see https://www.php.net/manual/en/function.uasort.php uasort()}, but returns a new Dictionary.
+   *
+   * @param callable $fn The comparison function.
+   */
+  ```
 
 **Why:** PER Coding Style 3.1 has no rule for docblocks, so this is an extra rule. It replaces
 `SlevomatCodingStandard.Commenting.AnnotationName`, whose block tag check skips every tag in a file with a `namespace`

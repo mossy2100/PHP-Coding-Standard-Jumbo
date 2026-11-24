@@ -8,10 +8,10 @@ class Valid
      * @param list<int> $a The list.
      * @param positive-int|null $b A count.
      * @param Foo $c A class, which isn't compared.
-     * @param int[] ...$d The rest, which isn't compared.
      * @param true $e Only true.
      * @param array<string, int> $f An iterable.
      * @param mixed $g Anything.
+     * @param int[] ...$d The rest, which isn't compared.
      * @return $this
      */
     public function valid(array $a, ?int $b, Bar $c, bool $e, iterable $f, mixed $g, int ...$d): static {}

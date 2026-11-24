@@ -29,8 +29,8 @@ use Some\Annotation\Since;
 // Casing.
 
 /**
- * @Return int
  * @PARAM int $a
+ * @Return int
  * @inheritdoc
  * @phpstan-Param int $a
  * @CodeCoverageIgnore
