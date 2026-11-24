@@ -58,7 +58,7 @@ class Example
                 . 'more text.'
             : 'none';
 
-        return $someLongVariableName !== null && $anotherLongVariableName > 10
-            || $yetAnotherLongVariableName < 5 && $isMatch;
+        return ($someLongVariableName !== null && $anotherLongVariableName > 10)
+            || ($yetAnotherLongVariableName < 5 && $isMatch);
     }
 }

@@ -15,6 +15,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.Classes.RequireSingleLineClassHeader`               | A split class, interface or enum header fits on a line          | Yes     |
 | `Jumbo.Classes.RequireSingleLineMethodSignature`           | A short signature on one line, skipping a promoted hook         | Yes     |
 | `Jumbo.Commenting.BlockComment`                            | A block comment's indents, and the spaces around one on a line  | Yes     |
+| `Jumbo.Commenting.DisallowHashComments`                    | `//` for a comment, not `#`, except `#region` and `#endregion`  | Yes     |
 | `Jumbo.Commenting.NormalizePhpDocTags`                     | Docblock tag names in their usual case, with no aliases         | Yes     |
 | `Jumbo.Commenting.TrailingComment`                         | One space between code and a `//` comment after it              | Yes     |
 | `Jumbo.ControlStructures.HeaderLayout`                     | A header on one line if it fits, else split with its condition  | Yes     |
@@ -205,6 +206,45 @@ if ($ready) {
         */
     $speed =   /*metres per second*/   $engine->start();
 }
+```
+
+---
+
+## Jumbo.Commenting.DisallowHashComments
+
+Requires `//` for a single-line comment, not `#`, except for the words in its `exceptions` property, `region` and
+`endregion` by default. `# Text` is fixed to `// Text`, and `#Text` to `// Text`, adding the space
+`Squiz.Commenting.InlineComment` requires. Only the marker changes, never the comment's text.
+
+- An exception is a whole word straight after the `#`, then a space or the end of the line. Matching is
+  case-sensitive, so `#region Constants` and `#endregion` are allowed, but `#regional`, `#Region` and `# region`
+  aren't.
+- An attribute (`#[...]`), a shebang line before `<?php`, and a `#` in a string or block comment aren't comments, so
+  they aren't checked.
+- Set `exceptions` to a comma-separated list of words, or to an empty string to report every `#` comment.
+
+**Why:** PER Coding Style 3.1 has no rule for comments, so this is an extra rule. `//` is the usual marker, and one
+marker is easier to read and search for. The vendor sniffs for this (Squiz and PEAR) report every `#` comment,
+including `#region`, which editors fold code on.
+
+**Auto-fixable:** yes.
+
+**Good:**
+
+```php
+#region Constants
+
+// Seconds in a day.
+const DAY = 86400;
+
+#endregion
+```
+
+**Bad:**
+
+```php
+# Seconds in a day.
+const DAY = 86400;
 ```
 
 ---

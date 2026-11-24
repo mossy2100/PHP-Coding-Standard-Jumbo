@@ -1,0 +1,28 @@
+#!/usr/bin/env php
+<?php
+
+// === VALID ===
+
+// A // comment.
+#region Constants
+#endregion
+#region
+#[Attribute]
+class Foo {}
+$a = '# Not a comment.';
+$b = <<<'TEXT'
+    # Not a comment either.
+    TEXT;
+/* # A block comment. */
+
+// === INVALID ===
+
+# Some text
+#Some text
+#regional notes
+#Region
+# region
+$c = 1; # Trailing.
+#
+##  Two hashes.
+	#	A tab after the hash.

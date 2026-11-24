@@ -10,16 +10,38 @@ sections link to it.
 
 | Sniff                                                                                    | Checks                                                         | Fixable |
 |------------------------------------------------------------------------------------------|----------------------------------------------------------------|---------|
+| `Generic.Classes.DuplicateClassName`                                                     | A warning for a class name declared twice                      | No      |
 | `Generic.CodeAnalysis.AssignmentInCondition`                                             | A warning for an assignment in a condition                     | No      |
+| `Generic.CodeAnalysis.EmptyStatement`                                                    | No empty control structure body                                | No      |
 | `Generic.CodeAnalysis.ForLoopShouldBeWhileLoop`                                          | A warning for a `for` loop with only a condition               | No      |
+| `Generic.CodeAnalysis.RequireExplicitBooleanOperatorPrecedence`                          | Parentheses where `&&` and `\|\|` are mixed                    | No      |
+| `Generic.CodeAnalysis.UnconditionalIfStatement`                                          | A warning for an `if` that is only `true` or `false`           | No      |
+| `Generic.CodeAnalysis.UnnecessaryFinalModifier`                                          | A warning for `final` on a method of a final class             | No      |
 | `Generic.CodeAnalysis.UnusedFunctionParameter`                                           | A warning for an unused parameter                              | No      |
+| `Generic.CodeAnalysis.UselessOverridingMethod`                                           | A warning for a method that only calls its parent              | No      |
+| `Generic.Commenting.DocComment`                                                          | A doc comment's summary, spacing and tag groups                | Partly  |
+| `Generic.Files.ExecutableFile`                                                           | No executable PHP file                                         | No      |
 | `Generic.Metrics.NestingLevel`                                                           | Blocks nested no more than 5 deep                              | No      |
 | `Generic.PHP.DeprecatedFunctions`                                                        | No deprecated native functions                                 | No      |
 | `Generic.PHP.DisallowRequestSuperglobal`                                                 | No `$_REQUEST`                                                 | No      |
 | `Generic.PHP.DiscourageGoto`                                                             | A warning for `goto`                                           | No      |
+| `Generic.PHP.ForbiddenFunctions`                                                         | No `extract()`                                                 | No      |
+| `Generic.VersionControl.GitMergeConflict`                                                | No merge conflict markers                                      | No      |
 | `Generic.WhiteSpace.ArbitraryParenthesesSpacing`                                         | No space inside grouping parentheses                           | Yes     |
 | `Generic.WhiteSpace.HereNowdocIdentifierSpacing`                                         | No space in `<<< END`                                          | Yes     |
+| `Modernize.FunctionCalls.Dirname`                                                        | `__DIR__`, not `dirname(__FILE__)`                             | Yes     |
+| `PhpCollective.Commenting.DocBlockReturnSelf`                                            | `@return $this` where every `return` is `return $this;`        | Yes     |
+| `PhpCollective.Commenting.DocBlockReturnTag`                                             | No `@return` description starting with a variable              | No      |
+| `PhpCollective.Commenting.DocBlockStructure`                                             | `/**` and `*/`, not `/***` or `**/`                            | Yes     |
+| `PhpCollective.Commenting.DocBlockTagIterable`                                           | The spacing inside a generic doc type                          | Yes     |
+| `PhpCollective.Commenting.InlineDocBlock`                                                | An inline `@var` in a doc comment, with its type first         | Yes     |
+| `PhpCollective.ControlStructures.UnneededElse`                                           | No `else` after branches that all exit early                   | Yes     |
+| `PhpCollective.PHP.NoIsNull`                                                             | `$x === null`, not `is_null($x)`                               | Yes     |
+| `PhpCollective.PHP.NotEqual`                                                             | `!=`, not `<>`                                                 | Yes     |
+| `PhpCollective.PHP.PreferCastOverFunction`                                               | A cast, not `intval()` and similar                             | Yes     |
 | `PhpCollective.PHP.RemoveFunctionAlias`                                                  | No function aliases, such as `sizeof()`                        | Yes     |
+| `PhpCollective.Testing.AssertPrimitives`                                                 | `assertNull()`, not `assertSame(null, ...)`                    | Yes     |
+| `PhpCollective.WhiteSpace.DocBlockSpacing`                                               | No blank line after a doc comment                              | Yes     |
 | `PhpCollective.WhiteSpace.EmptyLines`                                                    | No more than one blank line in a row                           | Yes     |
 | `SlevomatCodingStandard.Arrays.ArrayAccess`                                              | No white space around an array access's brackets               | Partly  |
 | `SlevomatCodingStandard.Arrays.DisallowImplicitArrayCreation`                            | No array created by assigning to an undefined variable         | No      |
@@ -39,9 +61,11 @@ sections link to it.
 | `SlevomatCodingStandard.Classes.RequireMultiLineMethodSignature`                         | A long method signature split over lines                       | Yes     |
 | `SlevomatCodingStandard.Classes.RequireSelfReference`                                    | `self::`, not the class's own name                             | Yes     |
 | `SlevomatCodingStandard.Classes.RequireSingleLineMethodSignature`                        | A short method signature on one line, through a Jumbo sniff    | Yes     |
+| `SlevomatCodingStandard.Classes.TraitUseOrder`                                           | Trait `use` statements in alphabetical order                   | Yes     |
 | `SlevomatCodingStandard.Commenting.DeprecatedAnnotationDeclaration`                      | The `@deprecated` annotation format                            | No      |
 | `SlevomatCodingStandard.Commenting.EmptyComment`                                         | No empty comments                                              | Yes     |
-| `SlevomatCodingStandard.Commenting.RequireOneLinePropertyDocComment`                     | A short property doc comment on one line                       | Yes     |
+| `SlevomatCodingStandard.Commenting.RequireOneDocComment`                                 | One doc comment per declaration                                | No      |
+| `SlevomatCodingStandard.Commenting.RequireOneLineDocComment`                             | A doc comment with one tag on one line                         | Yes     |
 | `SlevomatCodingStandard.Commenting.UselessInheritDocComment`                             | No useless `@inheritDoc` comments                              | Yes     |
 | `SlevomatCodingStandard.ControlStructures.DisallowContinueWithoutIntegerOperandInSwitch` | No `continue` without an operand in a `switch`                 | Yes     |
 | `SlevomatCodingStandard.ControlStructures.LanguageConstructWithParentheses`              | No `echo(...)`, through a Jumbo sniff                          | Yes     |
@@ -52,9 +76,11 @@ sections link to it.
 | `SlevomatCodingStandard.ControlStructures.RequireShortTernaryOperator`                   | `?:` where possible, through a Jumbo sniff                     | Yes     |
 | `SlevomatCodingStandard.ControlStructures.RequireTernaryOperator`                        | A ternary where possible                                       | Partly  |
 | `SlevomatCodingStandard.ControlStructures.UselessIfConditionWithReturn`                  | No `if` that only returns `true` or `false`                    | Partly  |
+| `SlevomatCodingStandard.ControlStructures.UselessTernaryOperator`                        | No `$a > $b ? true : false`                                    | Partly  |
 | `SlevomatCodingStandard.Exceptions.DeadCatch`                                            | No unreachable `catch` blocks                                  | No      |
 | `SlevomatCodingStandard.Exceptions.RequireNonCapturingCatch`                             | No variable on a `catch` that doesn't use it                   | Yes     |
 | `SlevomatCodingStandard.Functions.FunctionLength`                                        | A function of no more than 100 lines                           | No      |
+| `SlevomatCodingStandard.Functions.RequireArrowFunction`                                  | An arrow function for a closure that only returns              | Yes     |
 | `SlevomatCodingStandard.Functions.RequireMultiLineCall`                                  | A long call split over lines                                   | Yes     |
 | `SlevomatCodingStandard.Functions.RequireSingleLineCall`                                 | A short call on one line, through a Jumbo sniff                | Yes     |
 | `SlevomatCodingStandard.Functions.StaticClosure`                                         | `static` on a closure that doesn't use `$this`                 | Yes     |
@@ -72,6 +98,7 @@ sections link to it.
 | `SlevomatCodingStandard.Operators.RequireCombinedAssignmentOperator`                     | `+=`, `-=` and the like, where possible                        | Partly  |
 | `SlevomatCodingStandard.Operators.RequireOnlyStandaloneIncrementAndDecrementOperators`   | `++` and `--` only as standalone statements                    | No      |
 | `SlevomatCodingStandard.PHP.DisallowDirectMagicInvokeCall`                               | No direct `__invoke()` calls                                   | Yes     |
+| `SlevomatCodingStandard.PHP.RequireExplicitAssertion`                                    | An `assert()`, not an inline `@var`                            | Yes     |
 | `SlevomatCodingStandard.PHP.ShortList`                                                   | `[]`, not `list()`                                             | Yes     |
 | `SlevomatCodingStandard.PHP.UselessSemicolon`                                            | No useless semicolons                                          | Yes     |
 | `SlevomatCodingStandard.Strings.DisallowVariableParsing`                                 | No variables parsed in strings                                 | No      |
@@ -91,25 +118,58 @@ sections link to it.
 | `Squiz.Arrays.ArrayDeclaration`                                                          | No mix of keyed and unkeyed values in an array                 | No      |
 | `Squiz.Classes.ClassFileName`                                                            | A file named after its class                                   | No      |
 | `Squiz.Commenting.DocCommentAlignment`                                                   | A docblock's stars lined up, with one space after each         | Yes     |
+| `Squiz.Commenting.EmptyCatchComment`                                                     | A comment in an empty `catch`                                  | No      |
 | `Squiz.Commenting.InlineComment`                                                         | One space after `//`                                           | Yes     |
+| `Squiz.NamingConventions.ValidFunctionName`                                              | A global function's name in camelCase                          | No      |
 | `Squiz.NamingConventions.ValidVariableName`                                              | `$camelCase` variable, parameter and property names            | No      |
 | `Squiz.Operators.IncrementDecrementUsage`                                                | `$i++`, not `$i += 1`                                          | No      |
 | `Squiz.Operators.ValidLogicalOperators`                                                  | `&&` and `\|\|`, not `and` and `or`                            | No      |
 | `Squiz.PHP.DisallowMultipleAssignments`                                                  | No `$a = $b = 1`                                               | No      |
 | `Squiz.PHP.Eval`                                                                         | A warning for `eval()`                                         | No      |
+| `Squiz.PHP.GlobalKeyword`                                                                | No `global` statement                                          | No      |
+| `Squiz.PHP.InnerFunctions`                                                               | No function declared inside a function                         | No      |
+| `Squiz.PHP.LowercasePHPFunctions`                                                        | A native function's name in lower case                         | Yes     |
+| `Squiz.Scope.StaticThisUsage`                                                            | No `$this` in a static method                                  | No      |
 | `Squiz.Strings.DoubleQuoteUsage.NotRequired`                                             | Single quotes, unless double quotes are needed                 | Yes     |
 | `Squiz.WhiteSpace.FunctionOpeningBraceSpace.SpacingAfter`                                | No blank line after a function's opening brace                 | Yes     |
 | `Squiz.WhiteSpace.OperatorSpacing`                                                       | Exactly one space around operators                             | Yes     |
 | `Squiz.WhiteSpace.SemicolonSpacing`                                                      | No white space before a semicolon                              | Yes     |
+| `Universal.Arrays.DuplicateArrayKey`                                                     | No key repeated in an array                                    | No      |
+| `Universal.CodeAnalysis.ConstructorDestructorReturn`                                     | A warning for a value returned from a constructor              | No      |
+| `Universal.CodeAnalysis.ForeachUniqueAssignment`                                         | No `foreach` with the same key and value variable              | Yes     |
+| `Universal.CodeAnalysis.NoDoubleNegative`                                                | No `!!$x`                                                      | Yes     |
+| `Universal.CodeAnalysis.NoEchoSprintf`                                                   | `printf()`, not `echo sprintf()`                               | Yes     |
 | `Universal.CodeAnalysis.StaticInFinalClass`                                              | `self`, not `static`, in a final class                         | Yes     |
 | `Universal.Constants.UppercaseMagicConstants`                                            | Magic constants in upper case, e.g. `__DIR__`                  | Yes     |
+| `Universal.Files.SeparateFunctionsFromOO`                                                | Functions and classes in separate files                        | No      |
+| `Universal.FunctionDeclarations.NoLongClosures`                                          | A closure of no more than 20 lines of code                     | No      |
+| `Universal.OOStructures.AlphabeticExtendsImplements`                                     | An `implements` list in alphabetical order                     | Yes     |
+| `Universal.PHP.NoFQNTrueFalseNull`                                                       | `true`, not `\true`                                            | Yes     |
+| `Universal.PHP.OneStatementInShortEchoTag`                                               | One statement in a short echo tag                              | Yes     |
 | `Zend.Files.ClosingTag`                                                                  | No closing tag at the end of a file                            | Yes     |
+
+---
+
+## Generic.Classes.DuplicateClassName
+
+A warning for a class, interface, trait or enum name declared twice, across all the files in a run.
+
+**Auto-fixable:** no.
 
 ---
 
 ## Generic.CodeAnalysis.AssignmentInCondition
 
 Warns about assignments in conditions. See [Yoda-style Comparisons](../README.md#yoda-style-comparisons).
+
+**Auto-fixable:** no.
+
+---
+
+## Generic.CodeAnalysis.EmptyStatement
+
+Disallows an empty control structure body, such as `if ($a) {}`. Jumbo excludes `DetectedCatch`: an empty `catch` is
+left to `Squiz.Commenting.EmptyCatchComment`, which allows one with a comment saying why.
 
 **Auto-fixable:** no.
 
@@ -124,6 +184,30 @@ A warning for a `for` loop with only a condition, such as `for (; $i < 10;)`, wh
 
 ---
 
+## Generic.CodeAnalysis.RequireExplicitBooleanOperatorPrecedence
+
+Requires parentheses where `&&` and `||` are mixed, as in `($a && $b) || $c`, so the precedence is clear.
+
+**Auto-fixable:** no.
+
+---
+
+## Generic.CodeAnalysis.UnconditionalIfStatement
+
+A warning for an `if` or `elseif` whose condition is only `true` or `false`, usually debug code.
+
+**Auto-fixable:** no.
+
+---
+
+## Generic.CodeAnalysis.UnnecessaryFinalModifier
+
+A warning for `final` on a method of a final class, where it has no effect.
+
+**Auto-fixable:** no.
+
+---
+
 ## Generic.CodeAnalysis.UnusedFunctionParameter
 
 A warning for a function or method parameter that the body never uses. Jumbo excludes these codes:
@@ -132,6 +216,41 @@ A warning for a function or method parameter that the body never uses. Jumbo exc
   interface is skipped, as a parent or the interface may fix the signature.
 - `FoundBeforeLastUsed`: an unused parameter before a used one is allowed, as it can't be dropped without moving the
   used one, which a callback's caller may not allow, as in `fn($value, $key) => $key > 0`.
+
+**Auto-fixable:** no.
+
+---
+
+## Generic.CodeAnalysis.UselessOverridingMethod
+
+A warning for a method that only calls the parent method of the same name, with the same arguments. It doesn't
+compare signatures, so an override that only widens visibility or narrows a type needs a `phpcs:ignore`.
+
+**Auto-fixable:** no.
+
+---
+
+## Generic.Commenting.DocComment
+
+Checks a doc comment's layout. Jumbo includes nine codes, each by name, so codes added upstream stay out:
+
+- `ShortNotCapital` and `LongNotCapital`: the summary and the description start with a capital letter. Code at the
+  start can go in backticks.
+- `SpacingAfter`, `SpacingBetween`, `SpacingBeforeTags` and `SpacingAfterTagGroup`: one blank line between the
+  summary, the description and the tags, and none after the last line.
+- `ParamNotFirst`, `ParamGroup` and `TagsNotGrouped`: the `@param` tags first, together, and the other tags grouped.
+
+A one-line doc comment isn't checked, a doc comment needn't start with a summary (an inline `@var`), and an empty one
+is `SlevomatCodingStandard.Commenting.EmptyComment`'s.
+
+**Auto-fixable:** partly. Only the spacing codes are fixed.
+
+---
+
+## Generic.Files.ExecutableFile
+
+Disallows a PHP file with its executable permission set. A script meant to be run can be excluded in a project's
+ruleset.
 
 **Auto-fixable:** no.
 
@@ -171,6 +290,25 @@ A warning for `goto`, and for its labels.
 
 ---
 
+## Generic.PHP.ForbiddenFunctions
+
+Disallows `extract()`, which creates variables from an array's keys, so a reader can't tell where they come from.
+Jumbo replaces the sniff's default list (`sizeof()` and `delete()`), as `PhpCollective.PHP.RemoveFunctionAlias`
+covers aliases.
+
+**Auto-fixable:** no.
+
+---
+
+## Generic.VersionControl.GitMergeConflict
+
+Disallows a merge conflict marker. In code a marker is a parse error, but in a comment, heredoc, nowdoc or inline HTML
+PHP accepts it.
+
+**Auto-fixable:** no.
+
+---
+
 ## Generic.WhiteSpace.ArbitraryParenthesesSpacing
 
 Disallows a space just inside grouping parentheses, as in `( $a + $b ) * 2`. A line break inside them is allowed
@@ -190,10 +328,114 @@ Disallows a space between `<<<` and a heredoc's or nowdoc's identifier, as in `<
 
 ---
 
+## Modernize.FunctionCalls.Dirname
+
+Requires `__DIR__`, not `dirname(__FILE__)`, and the `levels` argument, as in `dirname(__DIR__, 2)`, not nested
+`dirname()` calls.
+
+**Auto-fixable:** yes.
+
+---
+
+## PhpCollective.Commenting.DocBlockReturnSelf
+
+Requires `@return $this`, not `@return self` or the class's name, where every `return` in the method is
+`return $this;`. Jumbo includes `SelfVsThis` and `ClassVsThis` only, not `InvalidChainable`, which can't tell when a
+called method returns `$this`.
+
+**Auto-fixable:** yes.
+
+---
+
+## PhpCollective.Commenting.DocBlockReturnTag
+
+Disallows a `@return` description that starts with a variable, usually a copied `@param` line.
+
+**Auto-fixable:** no.
+
+---
+
+## PhpCollective.Commenting.DocBlockStructure
+
+Requires `/**` and `*/`, not `/***` or `**/`, and moves text on the `/**` line of a multi-line doc comment to the
+next line. A one-line doc comment is left alone.
+
+**Auto-fixable:** yes.
+
+---
+
+## PhpCollective.Commenting.DocBlockTagIterable
+
+Requires one space after each comma in a generic doc type, and none inside the brackets, as in `array<string, int>`.
+
+**Auto-fixable:** yes.
+
+---
+
+## PhpCollective.Commenting.InlineDocBlock
+
+Requires an inline `@var` in a doc comment, `/** @var int $a */`, not `/* @var int $a */`, which tools ignore, and
+its type before the variable, not `@var $a int`.
+
+**Auto-fixable:** yes.
+
+---
+
+## PhpCollective.ControlStructures.UnneededElse
+
+Disallows an `else` or `elseif` after branches that all exit early, with `return`, `throw`, `continue` or `break`.
+The fix removes the `else` and moves its body out.
+
+**Auto-fixable:** yes.
+
+---
+
+## PhpCollective.PHP.NoIsNull
+
+Requires `$x === null`, not `is_null($x)`.
+
+**Auto-fixable:** yes.
+
+---
+
+## PhpCollective.PHP.NotEqual
+
+Requires `!=`, not `<>`.
+
+**Auto-fixable:** yes.
+
+---
+
+## PhpCollective.PHP.PreferCastOverFunction
+
+Requires a cast, not `strval()`, `intval()`, `floatval()` or `boolval()`, as in `(int) $a`. A call with a base
+argument, or used as a callable, is left alone.
+
+**Auto-fixable:** yes.
+
+---
+
 ## PhpCollective.PHP.RemoveFunctionAlias
 
 Disallows a function alias, such as `sizeof()`, `join()` or `is_integer()`, and replaces it with the main function:
 `count()`, `implode()` or `is_int()`.
+
+**Auto-fixable:** yes.
+
+---
+
+## PhpCollective.Testing.AssertPrimitives
+
+Requires `assertNull()`, `assertTrue()` or `assertFalse()`, not `assertSame()` with `null`, `true` or `false`. Only
+checks `$this->assert...()` calls in files named `*Test.php`.
+
+**Auto-fixable:** yes.
+
+---
+
+## PhpCollective.WhiteSpace.DocBlockSpacing
+
+Disallows a blank line between a doc comment and its class, interface, trait or function.
 
 **Auto-fixable:** yes.
 
@@ -362,6 +604,14 @@ which skips a method with a hook on a promoted parameter.
 
 ---
 
+## SlevomatCodingStandard.Classes.TraitUseOrder
+
+Requires a class's trait `use` statements in alphabetical order, ignoring case.
+
+**Auto-fixable:** yes.
+
+---
+
 ## SlevomatCodingStandard.Commenting.DeprecatedAnnotationDeclaration
 
 Enforces the `@deprecated` annotation format.
@@ -378,9 +628,18 @@ Disallows empty comments.
 
 ---
 
-## SlevomatCodingStandard.Commenting.RequireOneLinePropertyDocComment
+## SlevomatCodingStandard.Commenting.RequireOneDocComment
 
-Requires one-line format for short property doc comments.
+Disallows a second doc comment before a declaration. Merge it into the first, at the end of the tags.
+
+**Auto-fixable:** no.
+
+---
+
+## SlevomatCodingStandard.Commenting.RequireOneLineDocComment
+
+Requires a doc comment with one tag and no description on one line, as in `/** @var list<int> */`, for every
+declaration and inline `@var`.
 
 **Auto-fixable:** yes.
 
@@ -468,6 +727,15 @@ Disallows useless if conditions returning true or false.
 
 ---
 
+## SlevomatCodingStandard.ControlStructures.UselessTernaryOperator
+
+Disallows a ternary that only gives `true` or `false`, such as `$a > $b ? true : false`. It's fixed only where the
+condition is certainly boolean.
+
+**Auto-fixable:** partly. Only where the condition is certainly boolean.
+
+---
+
 ## SlevomatCodingStandard.Exceptions.DeadCatch
 
 Disallows unreachable catch blocks, e.g. a catch after `catch (Throwable)`.
@@ -489,6 +757,15 @@ Requires catch without variable when exception is not used.
 Enforces maximum function length of 100 lines.
 
 **Auto-fixable:** no.
+
+---
+
+## SlevomatCodingStandard.Functions.RequireArrowFunction
+
+Requires an arrow function for a closure whose body is only a `return`, as in `fn($x) => $x * 2`. A closure that
+captures a variable by reference is left alone.
+
+**Auto-fixable:** yes.
 
 ---
 
@@ -630,6 +907,15 @@ Disallows direct `__invoke()` calls.
 
 ---
 
+## SlevomatCodingStandard.PHP.RequireExplicitAssertion
+
+Requires an `assert()` after an assignment, not an inline `@var` before it, as `assert()` is checked whenever
+assertions are on. A type that `assert()` can't express, such as `list<int>`, keeps its `@var`.
+
+**Auto-fixable:** yes.
+
+---
+
 ## SlevomatCodingStandard.PHP.ShortList
 
 Requires short list syntax `[]`.
@@ -656,7 +942,8 @@ Disallows variable parsing in strings.
 
 ## SlevomatCodingStandard.TypeHints.ClassConstantTypeHint
 
-Requires class constant type hints.
+Requires class constant type hints. Its `UselessVarAnnotation` code removes a `@var` that only repeats the native
+type, with no description.
 
 **Auto-fixable:** partly. Some of its codes can't be fixed.
 
@@ -698,7 +985,8 @@ for a native type.
 ## SlevomatCodingStandard.TypeHints.ParameterTypeHint
 
 Requires parameter type hints. Used through [`Jumbo.TypeHints.ParameterTypeHint`](Jumbo_Custom_Sniffs.md#jumbotypehintsparametertypehint), which skips a function with a hook on a
-promoted parameter.
+promoted parameter. Its `UselessAnnotation` code removes a `@param` that only repeats the native type, with no
+description; one with a more specific type, such as `list<int>` for `array`, is kept.
 
 **Auto-fixable:** partly. Some of its codes can't be fixed.
 
@@ -715,7 +1003,8 @@ function with a hook on a promoted parameter.
 
 ## SlevomatCodingStandard.TypeHints.PropertyTypeHint
 
-Requires property type hints.
+Requires property type hints. Its `UselessAnnotation` code removes a `@var` that only repeats the native type, with
+no description.
 
 **Auto-fixable:** partly. Some of its codes can't be fixed.
 
@@ -723,7 +1012,8 @@ Requires property type hints.
 
 ## SlevomatCodingStandard.TypeHints.ReturnTypeHint
 
-Requires return type hints.
+Requires return type hints. Its `UselessAnnotation` code removes a `@return` that only repeats the native type, with
+no description.
 
 **Auto-fixable:** partly. Some of its codes can't be fixed.
 
@@ -793,12 +1083,30 @@ it. Only a docblock before a declaration, or at the top of a file, is checked, s
 
 ---
 
+## Squiz.Commenting.EmptyCatchComment
+
+Requires a comment in an empty `catch` block, saying why the exception is ignored.
+
+**Auto-fixable:** no.
+
+---
+
 ## Squiz.Commenting.InlineComment
 
 Requires one space after `//`, as in `// Text`. Only its `NoSpaceBefore`, `SpacingBefore` and `TabBefore` codes are
 used, so `//Text`, `// Text` and `///` are reported. A `#` comment isn't checked.
 
 **Auto-fixable:** yes.
+
+---
+
+## Squiz.NamingConventions.ValidFunctionName
+
+Requires a global function's name in camelCase, without a leading `__`, which is for magic methods. Jumbo includes
+the `NotCamelCaps` and `DoubleUnderscore` codes only, not the method codes, which require an underscore before a
+private method's name. The ASCII-only case check also rejects a name with non-ASCII or invisible characters.
+
+**Auto-fixable:** no.
 
 ---
 
@@ -851,6 +1159,40 @@ A warning for `eval()`.
 
 ---
 
+## Squiz.PHP.GlobalKeyword
+
+Disallows the `global` statement.
+
+**Auto-fixable:** no.
+
+---
+
+## Squiz.PHP.InnerFunctions
+
+Disallows a named function declared inside a function. It becomes global when the outer one runs, so a second call
+fails with "cannot redeclare". A closure is fine.
+
+**Auto-fixable:** no.
+
+---
+
+## Squiz.PHP.LowercasePHPFunctions
+
+Requires a native function's name in lower case, in calls and `use function` imports, as in `strlen()`, not
+`StrLen()`.
+
+**Auto-fixable:** yes.
+
+---
+
+## Squiz.Scope.StaticThisUsage
+
+Disallows `$this` in a static method, which PHP only rejects when the line runs.
+
+**Auto-fixable:** no.
+
+---
+
 ## Squiz.Strings.DoubleQuoteUsage.NotRequired
 
 Ensures strings use single quotes unless double quotes are necessary.
@@ -887,6 +1229,47 @@ Disallows white space before a semicolon, including a line break. In a `for` hea
 
 ---
 
+## Universal.Arrays.DuplicateArrayKey
+
+Disallows a key repeated in an array literal, where PHP silently keeps the last value.
+
+**Auto-fixable:** no.
+
+---
+
+## Universal.CodeAnalysis.ConstructorDestructorReturn
+
+A warning for returning a value from a constructor or destructor, which PHP allows but ignores when called by
+`new`. Jumbo includes the `ReturnValueFound` code only.
+
+**Auto-fixable:** no.
+
+---
+
+## Universal.CodeAnalysis.ForeachUniqueAssignment
+
+Disallows the same variable as a `foreach`'s key and value, as in `foreach ($a as $k => $k)`.
+
+**Auto-fixable:** yes.
+
+---
+
+## Universal.CodeAnalysis.NoDoubleNegative
+
+Disallows a double negative: `!!$x` is fixed to `(bool) $x`, and `!!!$x` to `!$x`. Not fixed beside `instanceof`.
+
+**Auto-fixable:** mostly.
+
+---
+
+## Universal.CodeAnalysis.NoEchoSprintf
+
+Requires `printf()`, not `echo sprintf()`, and `vprintf()`, not `echo vsprintf()`.
+
+**Auto-fixable:** yes.
+
+---
+
 ## Universal.CodeAnalysis.StaticInFinalClass
 
 Requires `self` instead of `static` in a final class, where they mean the same: in `self::`, `new self` and `instanceof
@@ -901,6 +1284,48 @@ type that a parent declares.
 
 Requires a magic constant in upper case, as in `__DIR__`, not `__dir__`. PHP ignores their case. Section 2.5's rule that
 keywords are in lower case isn't read as covering them, so PERCS31 doesn't check their case.
+
+**Auto-fixable:** yes.
+
+---
+
+## Universal.Files.SeparateFunctionsFromOO
+
+Disallows functions declared in a file with a class, interface, trait or enum. A file of functions can be loaded by
+Composer's `files` autoloading.
+
+**Auto-fixable:** no.
+
+---
+
+## Universal.FunctionDeclarations.NoLongClosures
+
+A warning for a closure over 10 lines of code, and an error over 20. Blank lines and comments aren't counted. A
+longer one is clearer as a named function or method.
+
+**Auto-fixable:** no.
+
+---
+
+## Universal.OOStructures.AlphabeticExtendsImplements
+
+Requires the interfaces in an `implements` or interface `extends` list in alphabetical order, by short name.
+
+**Auto-fixable:** yes.
+
+---
+
+## Universal.PHP.NoFQNTrueFalseNull
+
+Disallows a leading backslash on `true`, `false` and `null`.
+
+**Auto-fixable:** yes.
+
+---
+
+## Universal.PHP.OneStatementInShortEchoTag
+
+Requires one statement in a short echo tag. A tag with more becomes `<?php echo`.
 
 **Auto-fixable:** yes.
 

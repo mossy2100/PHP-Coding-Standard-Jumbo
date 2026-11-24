@@ -28,6 +28,15 @@
 
     <rule ref="SlevomatCodingStandard.PHP.UselessSemicolon"/>
 
+    <!-- A warning for a merge conflict marker left in a comment, heredoc, nowdoc or inline HTML, where PHP accepts it -->
+    <rule ref="Generic.VersionControl.GitMergeConflict"/>
+
+    <!-- No executable PHP file -->
+    <rule ref="Generic.Files.ExecutableFile"/>
+
+    <!-- A warning for a class, interface, trait or enum name declared twice in the files checked -->
+    <rule ref="Generic.Classes.DuplicateClassName"/>
+
     <!-- No more than one blank line in a row, anywhere in PHP code. PERCS31 allows any number, as PER 2.3 does. -->
     <rule ref="PhpCollective.WhiteSpace.EmptyLines"/>
 
@@ -128,12 +137,14 @@
          rule on keywords isn't read as covering them. -->
     <rule ref="Universal.Constants.UppercaseMagicConstants"/>
 
+    <!-- true, false and null, not \true, \false and \null -->
+    <rule ref="Universal.PHP.NoFQNTrueFalseNull"/>
+
     <!-- The Jumbo versions of ParameterTypeHintSpacing and ParameterTypeHint, which skip a function with a hook on a
          promoted constructor parameter, as the parents read the variables in the hook as parameters -->
     <rule ref="Jumbo.TypeHints.ParameterTypeHintSpacing"/>
-    <rule ref="Jumbo.TypeHints.ParameterTypeHint">
-        <exclude name="Jumbo.TypeHints.ParameterTypeHint.UselessAnnotation"/>
-    </rule>
+    <!-- A @param, @return or @var that only repeats the native type, with no description, is removed -->
+    <rule ref="Jumbo.TypeHints.ParameterTypeHint"/>
     <rule ref="SlevomatCodingStandard.TypeHints.ReturnTypeHintSpacing"/>
     <rule ref="SlevomatCodingStandard.TypeHints.LongTypeHints"/>
     <!-- ?T for a nullable type is an error here, not PERCS31's warning -->
@@ -141,15 +152,9 @@
         <type>error</type>
     </rule>
     <rule ref="SlevomatCodingStandard.TypeHints.NullableTypeForNullDefaultValue"/>
-    <rule ref="SlevomatCodingStandard.TypeHints.PropertyTypeHint">
-        <exclude name="SlevomatCodingStandard.TypeHints.PropertyTypeHint.UselessAnnotation"/>
-    </rule>
-    <rule ref="SlevomatCodingStandard.TypeHints.ReturnTypeHint">
-        <exclude name="SlevomatCodingStandard.TypeHints.ReturnTypeHint.UselessAnnotation"/>
-    </rule>
-    <rule ref="SlevomatCodingStandard.TypeHints.ClassConstantTypeHint">
-        <exclude name="SlevomatCodingStandard.TypeHints.ClassConstantTypeHint.UselessVarAnnotation"/>
-    </rule>
+    <rule ref="SlevomatCodingStandard.TypeHints.PropertyTypeHint"/>
+    <rule ref="SlevomatCodingStandard.TypeHints.ReturnTypeHint"/>
+    <rule ref="SlevomatCodingStandard.TypeHints.ClassConstantTypeHint"/>
 
     <!-- Docblock types: array<int>, not int[], and null last in a union, as PERCS31.TypeHints.CompoundType requires
          for a native type -->
@@ -165,6 +170,12 @@
     <!-- A multi-line PHP block in a file with markup: its tags on their own lines, level with its code, and no multi-line
          short echo tag. A tag on one line is exempt. PERCS31 also allows the code one level past the tags. -->
     <rule ref="Jumbo.PHP.EmbeddedPhp"/>
+
+    <!-- One statement in a short echo tag; a tag with more becomes <?php echo -->
+    <rule ref="Universal.PHP.OneStatementInShortEchoTag"/>
+
+    <!-- Functions and OO structures (classes, interfaces, traits and enums) in separate files -->
+    <rule ref="Universal.Files.SeparateFunctionsFromOO"/>
 
     <!-- declare(strict_types=1) in every file -->
     <rule ref="Jumbo.TypeHints.DeclareStrictTypes"/>
@@ -222,6 +233,20 @@
     <rule ref="SlevomatCodingStandard.Classes.RequireSelfReference"/>
     <rule ref="SlevomatCodingStandard.Classes.ReadonlyClass"/>
     <rule ref="SlevomatCodingStandard.Classes.RequireConstructorPropertyPromotion"/>
+
+    <!-- Trait use statements in alphabetical order, and a class's extends and implements lists too -->
+    <rule ref="SlevomatCodingStandard.Classes.TraitUseOrder"/>
+    <rule ref="Universal.OOStructures.AlphabeticExtendsImplements"/>
+
+    <!-- A warning for a method that only calls its parent, and for final on a method of a final class -->
+    <rule ref="Generic.CodeAnalysis.UselessOverridingMethod"/>
+    <rule ref="Generic.CodeAnalysis.UnnecessaryFinalModifier"/>
+
+    <!-- A warning for returning a value from a constructor or destructor -->
+    <rule ref="Universal.CodeAnalysis.ConstructorDestructorReturn.ReturnValueFound"/>
+
+    <!-- No $this in a static method -->
+    <rule ref="Squiz.Scope.StaticThisUsage"/>
 
     <rule ref="SlevomatCodingStandard.Classes.ClassLength">
         <properties>
@@ -315,6 +340,35 @@
     <!-- No function alias, such as sizeof() or join() -->
     <rule ref="PhpCollective.PHP.RemoveFunctionAlias"/>
 
+    <!-- No extract(), which creates variables from an array's keys -->
+    <rule ref="Generic.PHP.ForbiddenFunctions">
+        <properties>
+            <property name="forbiddenFunctions" type="array">
+                <element key="extract" value="null"/>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- A global function's name in camelCase, without a leading __. A method's name is checked by PSR1. -->
+    <rule ref="Squiz.NamingConventions.ValidFunctionName.NotCamelCaps"/>
+    <rule ref="Squiz.NamingConventions.ValidFunctionName.DoubleUnderscore"/>
+
+    <!-- A native function's name in lower case, and no function declared inside another -->
+    <rule ref="Squiz.PHP.LowercasePHPFunctions"/>
+    <rule ref="Squiz.PHP.InnerFunctions"/>
+
+    <!-- No global statement -->
+    <rule ref="Squiz.PHP.GlobalKeyword"/>
+
+    <!-- A cast, not strval(), intval(), floatval() or boolval(), and $x === null, not is_null($x) -->
+    <rule ref="PhpCollective.PHP.PreferCastOverFunction"/>
+    <rule ref="PhpCollective.PHP.NoIsNull"/>
+
+    <!-- printf(), not echo sprintf(), and __DIR__ or dirname()'s levels argument, not dirname(__FILE__) or nested
+         dirname() calls -->
+    <rule ref="Universal.CodeAnalysis.NoEchoSprintf"/>
+    <rule ref="Modernize.FunctionCalls.Dirname"/>
+
     <!-- ====== CONTROL STRUCTURES (5) ====== -->
 
     <!-- Every empty body as {}, as an error, including a control structure's. PERCS31 warns for a class or function,
@@ -335,6 +389,22 @@
     </rule>
 
     <rule ref="Generic.CodeAnalysis.AssignmentInCondition"/>
+
+    <!-- A warning for an if whose condition is only true or false -->
+    <rule ref="Generic.CodeAnalysis.UnconditionalIfStatement"/>
+
+    <!-- No empty control structure body. An empty catch is left to Squiz.Commenting.EmptyCatchComment, which allows one
+         with a comment saying why. -->
+    <rule ref="Generic.CodeAnalysis.EmptyStatement">
+        <exclude name="Generic.CodeAnalysis.EmptyStatement.DetectedCatch"/>
+    </rule>
+    <rule ref="Squiz.Commenting.EmptyCatchComment"/>
+
+    <!-- No else or elseif after branches that all exit early -->
+    <rule ref="PhpCollective.ControlStructures.UnneededElse"/>
+
+    <!-- No foreach with the same variable as its key and value -->
+    <rule ref="Universal.CodeAnalysis.ForeachUniqueAssignment"/>
 
     <!-- A warning for a for loop with only a condition, which can be a while loop, and for goto -->
     <rule ref="Generic.CodeAnalysis.ForLoopShouldBeWhileLoop"/>
@@ -428,6 +498,14 @@
     <!-- && and ||, not and and or, which bind more loosely than = -->
     <rule ref="Squiz.Operators.ValidLogicalOperators"/>
 
+    <!-- Parentheses where && and || are mixed -->
+    <rule ref="Generic.CodeAnalysis.RequireExplicitBooleanOperatorPrecedence"/>
+
+    <!-- No $a > $b ? true : false, no !!$x, and != rather than <> -->
+    <rule ref="SlevomatCodingStandard.ControlStructures.UselessTernaryOperator"/>
+    <rule ref="Universal.CodeAnalysis.NoDoubleNegative"/>
+    <rule ref="PhpCollective.PHP.NotEqual"/>
+
     <!-- No whitespace after a prefix unary +, -, !, ~ or @, as well as the reference & that PERCS31 checks -->
     <rule ref="PERCS31.Operators.UnaryOperatorSpacing">
         <properties>
@@ -480,6 +558,17 @@
 
     <rule ref="SlevomatCodingStandard.Functions.StaticClosure"/>
 
+    <!-- An arrow function for a closure that only returns -->
+    <rule ref="SlevomatCodingStandard.Functions.RequireArrowFunction"/>
+
+    <!-- A warning for a closure over 10 lines of code, and an error over 20 -->
+    <rule ref="Universal.FunctionDeclarations.NoLongClosures">
+        <properties>
+            <property name="recommendedLines" value="10"/>
+            <property name="maxLines" value="20"/>
+        </properties>
+    </rule>
+
     <!-- ====== ARRAYS (11) ====== -->
 
     <!-- Arrays: the check PERCS31 leaves out. No mix of keyed and unkeyed values. The spacing around => is left to
@@ -513,6 +602,9 @@
     <rule ref="SlevomatCodingStandard.Arrays.DisallowPartiallyKeyed"/>
     <rule ref="SlevomatCodingStandard.PHP.ShortList"/>
 
+    <!-- No key repeated in an array, where PHP silently keeps the last value -->
+    <rule ref="Universal.Arrays.DuplicateArrayKey"/>
+
     <!-- Multi-line arrays that fit on one line must be written on one line -->
     <rule ref="Jumbo.Arrays.ArrayDeclaration">
         <properties>
@@ -540,6 +632,9 @@
     <rule ref="Squiz.Commenting.InlineComment.SpacingBefore"/>
     <rule ref="Squiz.Commenting.InlineComment.TabBefore"/>
 
+    <!-- // for a comment, not #, except #region and #endregion, which editors fold code on -->
+    <rule ref="Jumbo.Commenting.DisallowHashComments"/>
+
     <!-- One space between code and a // comment after it -->
     <rule ref="Jumbo.Commenting.TrailingComment"/>
 
@@ -557,8 +652,45 @@
     <!-- A docblock's stars lined up, with one space after each -->
     <rule ref="Squiz.Commenting.DocCommentAlignment"/>
 
-    <rule ref="SlevomatCodingStandard.Commenting.RequireOneLinePropertyDocComment"/>
+    <!-- A doc comment with one tag and no description on one line, and one doc comment per declaration -->
+    <rule ref="SlevomatCodingStandard.Commenting.RequireOneLineDocComment"/>
+    <rule ref="SlevomatCodingStandard.Commenting.RequireOneDocComment"/>
+
     <rule ref="SlevomatCodingStandard.Commenting.UselessInheritDocComment"/>
+
+    <!-- A doc comment's layout: these codes by name, so codes added upstream stay out. A one-line doc comment isn't
+         checked, a doc comment needn't start with a summary, and an empty one is
+         SlevomatCodingStandard.Commenting.EmptyComment's. -->
+    <rule ref="Generic.Commenting.DocComment.SpacingAfter"/>
+    <rule ref="Generic.Commenting.DocComment.LongNotCapital"/>
+    <rule ref="Generic.Commenting.DocComment.ShortNotCapital"/>
+    <rule ref="Generic.Commenting.DocComment.SpacingBetween"/>
+    <rule ref="Generic.Commenting.DocComment.SpacingBeforeTags"/>
+    <rule ref="Generic.Commenting.DocComment.ParamNotFirst"/>
+    <rule ref="Generic.Commenting.DocComment.ParamGroup"/>
+    <rule ref="Generic.Commenting.DocComment.TagsNotGrouped"/>
+    <rule ref="Generic.Commenting.DocComment.SpacingAfterTagGroup"/>
+
+    <!-- /** and */, not /*** or **/, and nothing after the /** of a multi-line doc comment -->
+    <rule ref="PhpCollective.Commenting.DocBlockStructure"/>
+
+    <!-- No blank line between a doc comment and its class, interface, trait or function -->
+    <rule ref="PhpCollective.WhiteSpace.DocBlockSpacing"/>
+
+    <!-- An inline @var in a doc comment, not a /* */ comment, with its type before the variable -->
+    <rule ref="PhpCollective.Commenting.InlineDocBlock"/>
+
+    <!-- One space after each comma in a generic doc type, as in array<string, int>, and none inside the brackets -->
+    <rule ref="PhpCollective.Commenting.DocBlockTagIterable"/>
+
+    <!-- @return $this, not self or the class's name, where every return is return $this; and no @return description
+         that starts with a variable -->
+    <rule ref="PhpCollective.Commenting.DocBlockReturnSelf.SelfVsThis"/>
+    <rule ref="PhpCollective.Commenting.DocBlockReturnSelf.ClassVsThis"/>
+    <rule ref="PhpCollective.Commenting.DocBlockReturnTag"/>
+
+    <!-- An inline @var on an assignment as an assert() after it -->
+    <rule ref="SlevomatCodingStandard.PHP.RequireExplicitAssertion"/>
 
     <!-- ====== STRINGS (NOT IN PER) ====== -->
 
@@ -590,5 +722,10 @@
 
     <!-- No $_REQUEST, whose contents depend on the request_order and variables_order ini settings -->
     <rule ref="Generic.PHP.DisallowRequestSuperglobal"/>
+
+    <!-- ====== PHPUNIT (NOT IN PER) ====== -->
+
+    <!-- assertNull(), assertTrue() and assertFalse(), not assertSame() with null, true or false -->
+    <rule ref="PhpCollective.Testing.AssertPrimitives"/>
 
 </ruleset>

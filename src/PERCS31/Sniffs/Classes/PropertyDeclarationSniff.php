@@ -39,7 +39,6 @@ class PropertyDeclarationSniff extends Psr2Sniff
      *
      * @param File $phpcsFile The file where this token was found.
      * @param int $stackPtr The position where the token was found.
-     * @return void
      */
     protected function processMemberVar(File $phpcsFile, int $stackPtr): void
     {
@@ -74,7 +73,6 @@ class PropertyDeclarationSniff extends Psr2Sniff
      *
      * @param File $phpcsFile The file where this token was found.
      * @param int $stackPtr The position where the token was found.
-     * @return void
      */
     protected function processVariable(File $phpcsFile, int $stackPtr): void
     {

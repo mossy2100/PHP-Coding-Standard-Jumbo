@@ -195,7 +195,6 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
      * @param int $stackPtr The position of the function keyword.
      * @param int $indent The number of spaces code should be indented.
      * @param string $type The type of the token the brackets belong to.
-     * @return void
      */
     public function processArgumentList(File $phpcsFile, int $stackPtr, int $indent, string $type = 'function'): void
     {
@@ -295,7 +294,6 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the current token in the stack.
      * @param array<int, array<string, mixed>> $tokens The stack of tokens that make up the file.
-     * @return void
      */
     public function processSingleLineDeclaration(File $phpcsFile, int $stackPtr, array $tokens): void
     {
@@ -312,7 +310,6 @@ class MultiLineFunctionDeclarationSniff extends SquizSniff
      * @param File $phpcsFile The file being scanned.
      * @param int $stackPtr The position of the current token in the stack.
      * @param array<int, array<string, mixed>> $tokens The stack of tokens that make up the file.
-     * @return void
      */
     public function processMultiLineDeclaration(File $phpcsFile, int $stackPtr, array $tokens): void
     {

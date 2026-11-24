@@ -570,9 +570,51 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - `Squiz.PHP.DisallowMultipleAssignments`: no `$a = $b = 1`, as `Found`. An assignment in a condition is still only
     a warning.
   - `Squiz.PHP.Eval`: a warning for `eval()`.
+- **`#` comments, in Jumbo (breaking).** The new `Jumbo.Commenting.DisallowHashComments` reports a `#` comment as
+  `HashComment`, and fixes it to `//`. `#region` and `#endregion` are allowed; set its `exceptions` property to change
+  the list. PERCS31 is unchanged, as PER Coding Style 3.1 has no rule for comments.
+- **43 more extra rules in Jumbo (breaking).** Jumbo now includes:
+  - Bugs and dead code: `Generic.Classes.DuplicateClassName` (a warning), `Generic.CodeAnalysis.UnconditionalIfStatement`
+    (a warning), `Generic.CodeAnalysis.UnnecessaryFinalModifier` (a warning),
+    `Generic.CodeAnalysis.UselessOverridingMethod` (a warning), `Generic.VersionControl.GitMergeConflict`,
+    `Squiz.PHP.InnerFunctions`, `Squiz.Scope.StaticThisUsage`, `Universal.Arrays.DuplicateArrayKey`,
+    `Universal.CodeAnalysis.ConstructorDestructorReturn` (`ReturnValueFound` only, a warning) and
+    `Universal.CodeAnalysis.ForeachUniqueAssignment`.
+  - Code: `Generic.CodeAnalysis.RequireExplicitBooleanOperatorPrecedence` (parentheses where `&&` and `||` are mixed),
+    `Generic.Files.ExecutableFile`, `Generic.PHP.ForbiddenFunctions` (`extract()` only), `Squiz.PHP.GlobalKeyword`,
+    `Squiz.PHP.LowercasePHPFunctions`, `Squiz.NamingConventions.ValidFunctionName` (a global function's name in
+    camelCase, as `NotCamelCaps` and `DoubleUnderscore` only), `Universal.Files.SeparateFunctionsFromOO`,
+    `Universal.FunctionDeclarations.NoLongClosures` (a warning over 10 lines of code, an error over 20) and
+    `Universal.PHP.OneStatementInShortEchoTag`.
+  - Simpler forms, all auto-fixable: `Modernize.FunctionCalls.Dirname`, `PhpCollective.ControlStructures.UnneededElse`,
+    `PhpCollective.PHP.NoIsNull`, `PhpCollective.PHP.NotEqual`, `PhpCollective.PHP.PreferCastOverFunction`,
+    `PhpCollective.Testing.AssertPrimitives`, `SlevomatCodingStandard.ControlStructures.UselessTernaryOperator`
+    (partly), `SlevomatCodingStandard.Functions.RequireArrowFunction`, `Universal.CodeAnalysis.NoDoubleNegative`,
+    `Universal.CodeAnalysis.NoEchoSprintf` and `Universal.PHP.NoFQNTrueFalseNull`.
+  - Order: `SlevomatCodingStandard.Classes.TraitUseOrder` and `Universal.OOStructures.AlphabeticExtendsImplements`, both
+    auto-fixable.
+  - Empty bodies: `Generic.CodeAnalysis.EmptyStatement`, except a `catch`, where `Squiz.Commenting.EmptyCatchComment`
+    requires a comment saying why.
+  - Doc comments: nine `Generic.Commenting.DocComment` codes (capitals, blank lines, and `@param` tags first and
+    together), `PhpCollective.Commenting.DocBlockReturnSelf` (`@return $this`, as `SelfVsThis` and `ClassVsThis`),
+    `PhpCollective.Commenting.DocBlockReturnTag`, `PhpCollective.Commenting.DocBlockStructure`,
+    `PhpCollective.Commenting.DocBlockTagIterable`, `PhpCollective.Commenting.InlineDocBlock`,
+    `PhpCollective.WhiteSpace.DocBlockSpacing`, `SlevomatCodingStandard.Commenting.RequireOneDocComment` and
+    `SlevomatCodingStandard.PHP.RequireExplicitAssertion` (an `assert()`, not an inline `@var`). Most are
+    auto-fixable.
 
 ### Changed
 
+- **Redundant doc tags, in Jumbo (breaking).** Jumbo now reports a `@param`, `@return` or `@var` that only repeats the
+  native type, with no description, and removes it: the `UselessAnnotation` codes of
+  `Jumbo.TypeHints.ParameterTypeHint`, `SlevomatCodingStandard.TypeHints.PropertyTypeHint` and
+  `SlevomatCodingStandard.TypeHints.ReturnTypeHint`, and the `UselessVarAnnotation` code of
+  `SlevomatCodingStandard.TypeHints.ClassConstantTypeHint`. A tag with a description, or a more specific type such as
+  `list<int>`, is kept.
+- **One-line doc comments, in Jumbo (breaking).** `SlevomatCodingStandard.Commenting.RequireOneLineDocComment` replaces
+  `SlevomatCodingStandard.Commenting.RequireOneLinePropertyDocComment`, so a doc comment with one tag and no
+  description goes on one line for every declaration and inline `@var`, not only for a property. Auto-fixable. A
+  `phpcs:ignore` for the old sniff's code needs the new one.
 - **`Jumbo.TypeHints.DeclareStrictTypes` no longer extends Slevomat's sniff (breaking).** It accepts `strict_types=1` in
   any declare statement at the top of the file, in any case, as in `declare(ticks=1);` then `declare(strict_types=1);`,
   and checks a template with only `<?=` tags. Its fix adds `declare(strict_types=1);` as a statement of its own, before

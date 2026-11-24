@@ -1,0 +1,12 @@
+<?php
+// phpcs:set Jumbo.Commenting.DisallowHashComments exceptions
+
+// No exceptions: every # comment is reported.
+#region Constants
+#endregion
+
+// phpcs:set Jumbo.Commenting.DisallowHashComments exceptions todo
+
+// A custom list.
+#todo Allowed.
+#region Reported.
