@@ -502,6 +502,21 @@ be split anywhere, even inside a group while the operators around the group stay
    its new lines keep the same indent. In grouping parentheses, the parentheses stay with its contents, and its new
    lines are indented once past the line with the `(`.
 
+**A `key => value` pair**, in an array or in a `match` arm with one condition, is one expression. One that doesn't fit
+on one line is laid out by the first of these that applies:
+
+1. A value with operators of its own is split at them, with `key =>` kept on the first line. A string expression that
+   becomes one string, such as `'a ' . 'b'`, counts as one operand.
+2. A value that fits on a line of its own goes there, starting with the `=>`, indented once.
+3. Otherwise, the value stays after `key =>`, and a string is split, as below.
+
+A key too long for its line is split as any string is. There's never a line break after a `=>`. A `match` arm with
+several conditions is left to [`MatchArmWrapIndent`](#jumbocontrolstructuresmatcharmwrapindent).
+
+An expression fits on its line if its own text, and any punctuation straight after it, such as a `;`, `,` or `)`, fit
+within `maxLineLength`. What follows that, such as an array value after its key, or a comment, is never a reason to
+split it.
+
 Each new line starts with its operator, and is indented once past the line the expression starts on. In a control
 structure's condition or a loop header, the lines split at `&&` or `||` are indented once past the line with the `(`,
 and a line split at any other operator once past the line its operand starts on. These are the indents
@@ -511,7 +526,7 @@ of a line, is that sniff's to report.
 
 It covers every binary operator, including `.`, `instanceof` and, on PHP 8.5, `|>`. An assignment operator, or `and`,
 `or` or `xor`, ends an expression, so `$total = $price` then `+ $tax` is checked as `$price + $tax`. So does a `,`,
-`=>`, ternary `?` or `:`, or the brackets of a call, array or control structure. Each argument of a call is its own
+any other `=>`, ternary `?` or `:`, or the brackets of a call, array or control structure. Each argument of a call is its own
 expression.
 
 These are left alone, and `RequireSingleLineStatement` still checks the first:
@@ -519,8 +534,8 @@ These are left alone, and `RequireSingleLineStatement` still checks the first:
 - An expression with a comment, a heredoc or nowdoc, a multi-line string or an arrow function, or a line break inside
   an operand, such as a multi-line call or closure.
 - A `case` condition.
-- An expression written on one line that's too long, unless it's a whole statement, a value after an assignment,
-  `return` or `=>`, or a condition on its own line. Anywhere else, such as in an argument, a split would clash with the
+- An expression written on one line that's too long, unless it's a whole statement, a value after an assignment or
+  `return`, a `key => value` pair that starts its line, or a condition on its own line. Anywhere else, such as in an argument, a split would clash with the
   layout around it.
 - A ternary's condition or value that's too long. One that's split but fits on one line is still joined.
 
@@ -581,6 +596,13 @@ $result = $cachedValue
 $isValid = !empty($type)
     && (self::isBasicType($type) || self::isPseudoType($type) || self::isResourceType($type)
         || self::isClassType($type));
+
+$labels = [
+    'description'
+        => 'A long description that fits on a line of its own, so the line breaks before its => to put it there.',
+    'canCheckout' => $age >= 18 && !$isBanned && $balance - $price * (1 - $discount / 100) >= 0 && $creditLimit > 0
+        && $hasAddress,
+];
 ```
 
 **Bad:**
@@ -600,6 +622,11 @@ $message = 'Cannot convert ' .
 $message = 'Hello, ' . $name . '!';
 
 echo (string) $total;
+
+$labels = [
+    'description' => 'A long description that fits on a line of its own, so the line breaks before its => to put it '
+        . 'there.',
+];
 ```
 
 **Configuration:**

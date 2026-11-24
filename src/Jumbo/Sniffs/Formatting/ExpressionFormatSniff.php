@@ -27,14 +27,26 @@ use PHP_CodeSniffer\Util\Tokens;
  *   parentheses keeps the same indent, as `$b` then `&& $c` does in `$a` then `|| $b` then `&& $c`. One in grouping
  *   parentheses keeps them with its contents, and its new lines are indented once past the line with its `(`.
  *
- * An expression ends at anything that isn't part of it: a `;`, `,`, `=>`, assignment, ternary `?` or `:`, or the
- * brackets of a call, array or control structure. Each argument of a call is its own expression. An operand isn't
+ * A `key => value` pair, in an array or a `match` arm with one condition, is one expression, but its `=>` isn't split
+ * at first. A pair that doesn't fit on one line is laid out by the first of these that applies:
+ * - A value with operators of its own is split at them, with `key =>` kept on the first line. A string expression
+ *   that becomes one string counts as one operand.
+ * - A value that fits on a line of its own goes there, starting with the `=>`, indented once.
+ * - Otherwise, the value stays after `key =>`, and a string is split.
+ * A key too long for its line is split as any string is. There's never a line break after a `=>`.
+ *
+ * An expression fits on its line if its own text, and any punctuation straight after it, such as a `;`, `,` or `)`,
+ * fit within the line length. What follows that, such as an array value after its key or a comment, has a place of
+ * its own to break at, so it's never a reason to split the expression, or a string in it.
+ *
+ * An expression ends at anything that isn't part of it: a `;`, `,`, any other `=>`, assignment, ternary `?` or `:`, or
+ * the brackets of a call, array or control structure. Each argument of a call is its own expression. An operand isn't
  * changed inside, so the sniff skips an expression with a line break inside an operand, such as a multi-line call or
  * closure, and one with a comment, a heredoc, a nowdoc, a multi-line string or an arrow function. It also skips a
  * `case` condition. It never splits a ternary's condition or value, which share their lines with the rest of the
  * ternary, or an expression written on one line that's too long, unless it's a whole statement, a value after an
- * assignment, `return`, `=>` or the like, or a control structure's condition on its own line, where a split can't
- * clash with the layout of the code around it.
+ * assignment, `return` or the like, a `key => value` pair that starts its line, or a control structure's condition on
+ * its own line, where a split can't clash with the layout of the code around it.
  *
  * It covers every binary operator except the assignment operators and `and`, `or` and `xor`, which bind more loosely
  * than assignment. It only decides where the lines break. An operator at the end of a line counts as a break at it,
@@ -196,10 +208,28 @@ class ExpressionFormatSniff implements Sniff
         }
 
         $breaks = [];
-        $trailing = $this->trailingLength($phpcsFile, $end);
+        $trailing = LayoutHelper::attachedLength($phpcsFile, $end);
         $inCondition = $conditionOpener !== null;
         $this->delegated = [];
         $this->layout($phpcsFile, $root, $column, $lineIndent, $continuationIndent, $trailing, $inCondition, $breaks);
+        $current = [];
+        $misplaced = false;
+        $this->findCurrentBreaks($phpcsFile, $root, $current, $misplaced);
+        ksort($current);
+        ksort($breaks);
+        $isLaidOut = !$misplaced && array_keys($current) === array_keys($breaks);
+
+        // A ternary's condition or value shares its lines with the rest of the ternary, so it's never split. An
+        // expression on one line is only split where that can't clash with the layout around it. Neither is checked,
+        // and nor are the strings laid out to fit the layout.
+        $isLeftAlone = !$isLaidOut
+            && (($breaks !== [] && $this->isInTernary($phpcsFile, $before, $after))
+                || ($current === [] && !$misplaced && !$isCondition && !$this->isSplittableAfter($phpcsFile, $before)
+                    && !$this->isPairOnItsOwnLine($phpcsFile, $root)));
+        if ($isLeftAlone) {
+            $this->delegated = [];
+        }
+
         if ($this->reflowStringExpressions) {
             $this->processNestedStrings($phpcsFile, $root);
             foreach ($this->delegated as [$node, $code]) {
@@ -207,22 +237,7 @@ class ExpressionFormatSniff implements Sniff
             }
         }
 
-        $current = [];
-        $misplaced = false;
-        $this->findCurrentBreaks($phpcsFile, $root, $current, $misplaced);
-        ksort($current);
-        ksort($breaks);
-        if (!$misplaced && array_keys($current) === array_keys($breaks)) {
-            return;
-        }
-
-        // A ternary's condition or value shares its lines with the rest of the ternary, so it's never split.
-        if ($breaks !== [] && $this->isInTernary($phpcsFile, $before, $after)) {
-            return;
-        }
-
-        // An expression on one line is only split where that can't clash with the layout around it.
-        if ($current === [] && !$misplaced && !$isCondition && !$this->isSplittableAfter($phpcsFile, $before)) {
+        if ($isLaidOut || $isLeftAlone) {
             return;
         }
 
@@ -272,6 +287,32 @@ class ExpressionFormatSniff implements Sniff
 
         return $before < 0 || in_array($tokens[$before]['code'], self::SPLITTABLE_AFTER, true)
             || isset(Tokens::ASSIGNMENT_TOKENS[$tokens[$before]['code']]);
+    }
+
+    /**
+     * Check whether a node is a `key => value` pair: an array element, or a `match` arm with one condition.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $node The node.
+     * @return bool True if it is.
+     */
+    private function isPair(File $phpcsFile, ExpressionNode $node): bool
+    {
+        return $node->kind === ExpressionNode::LEVEL
+            && in_array($phpcsFile->getTokens()[$node->operators[0]]['code'], [T_DOUBLE_ARROW, T_MATCH_ARROW], true);
+    }
+
+    /**
+     * Check whether an expression is a `key => value` pair that starts its line, such as an element of a multi-line
+     * array, which can be split without clashing with the code around it.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $root The expression.
+     * @return bool True if it is.
+     */
+    private function isPairOnItsOwnLine(File $phpcsFile, ExpressionNode $root): bool
+    {
+        return $this->isPair($phpcsFile, $root) && LayoutHelper::startsLine($phpcsFile, $root->start);
     }
 
     /**
@@ -431,8 +472,8 @@ class ExpressionFormatSniff implements Sniff
         }
 
         $column = $tokens[$node->start]['column'] - 1;
-        $trailing = $this->trailingLength($phpcsFile, $node->end);
-        if ($current !== $flat && ($column + mb_strlen($flat) + $trailing) <= $this->maxLineLength) {
+        $attached = LayoutHelper::attachedLength($phpcsFile, $node->end);
+        if ($current !== $flat && ($column + mb_strlen($flat) + $attached) <= $this->maxLineLength) {
             $this->reportString($phpcsFile, $node->start, $node->end, $flat);
         }
     }
@@ -502,7 +543,8 @@ class ExpressionFormatSniff implements Sniff
     {
         $column = $phpcsFile->getTokens()[$start]['column'] - 1;
         $indent = LayoutHelper::lineIndent($phpcsFile, $start) + LayoutHelper::INDENT;
-        $code = $helper->layout($column, $indent, $this->trailingLength($phpcsFile, $end), $this->maxLineLength);
+        $attached = LayoutHelper::attachedLength($phpcsFile, $end);
+        $code = $helper->layout($column, $indent, $attached, $this->maxLineLength);
 
         return str_replace("\n", $phpcsFile->eolChar, $code);
     }
@@ -633,31 +675,6 @@ class ExpressionFormatSniff implements Sniff
     }
 
     /**
-     * Get the length of the code after an expression on its last line.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $end The position of the expression's last token.
-     * @return int The number of characters, without trailing whitespace.
-     */
-    private function trailingLength(File $phpcsFile, int $end): int
-    {
-        $tokens = $phpcsFile->getTokens();
-        $text = '';
-        for ($i = ($end + 1); isset($tokens[$i]); $i++) {
-            $content = $tokens[$i]['content'];
-            $newline = strpos($content, "\n");
-            if ($newline !== false) {
-                $text .= substr($content, 0, $newline);
-                break;
-            }
-
-            $text .= $content;
-        }
-
-        return mb_strlen(rtrim($text));
-    }
-
-    /**
      * Work out where a node's lines break, splitting it only if it doesn't fit, and as few times as it can.
      *
      * @param File $phpcsFile The file being scanned.
@@ -665,7 +682,8 @@ class ExpressionFormatSniff implements Sniff
      * @param int $column The number of characters before the node on its first line.
      * @param int $lineIndent The indent of the node's first line.
      * @param int $indent The indent for a level's new lines.
-     * @param int $trailing The number of characters after the node on its last line.
+     * @param int $trailing The number of characters straight after the node on its last line, which can't move to
+     * another line without it, such as a `;` or `,`.
      * @param bool $inCondition Whether the node is directly in a control structure's condition, outside any group or
      * operator other than `&&` and `||`.
      * @param array<int, int> $breaks The operators to break the line before, with each one's indent.
@@ -705,6 +723,10 @@ class ExpressionFormatSniff implements Sniff
             ) + 1;
         }
 
+        if ($this->isPair($phpcsFile, $node)) {
+            return $this->layoutPair($phpcsFile, $node, $column, $lineIndent, $indent, $trailing, $breaks);
+        }
+
         // In a condition, the parts joined by `&&` and `||` line up, but any other operator's new lines are indented
         // once past the line its operand starts on, as PERCS31.Operators.OperatorPlacement requires.
         $tokens = $phpcsFile->getTokens();
@@ -730,20 +752,10 @@ class ExpressionFormatSniff implements Sniff
             $childColumn = $indent + $operatorLength + 1;
 
             // A string expression that doesn't fit on its own line is laid out as a string, at the same indent.
-            if (
-                $this->reflowStringExpressions && $this->isConcatenation($phpcsFile, $child)
-                && ($childColumn + $child->flatLength + $childTrailing) > $this->maxLineLength
-            ) {
-                $helper = new StringHelper($phpcsFile);
-                if ($helper->read($child)) {
-                    $code = $helper->layout($childColumn, $indent, $childTrailing, $this->maxLineLength);
-                    $this->delegated[$child->start] = [$child, str_replace("\n", $phpcsFile->eolChar, $code)];
-                    $lastNewline = strrpos($code, "\n");
-                    $end = $lastNewline === false
-                        ? $childColumn + mb_strlen($code)
-                        : mb_strlen(substr($code, ($lastNewline + 1)));
-                    continue;
-                }
+            $stringEnd = $this->delegateString($phpcsFile, $child, $childColumn, $indent, $childTrailing, false);
+            if ($stringEnd !== null) {
+                $end = $stringEnd;
+                continue;
             }
 
             $end = $this->layout(
@@ -759,6 +771,110 @@ class ExpressionFormatSniff implements Sniff
         }
 
         return $end;
+    }
+
+    /**
+     * Work out where a `key => value` pair's lines break, when it doesn't fit on one line.
+     *
+     * A value with operators of its own, a string expression included, is split at those, with `key =>` kept on the
+     * first line. Any other value goes on a line of its own, starting with the `=>`, if it fits there. Otherwise, it
+     * stays after `key =>`, and a string is split. A key too long for its line is split as any string is.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $node The pair.
+     * @param int $column The number of characters before the pair on its first line.
+     * @param int $lineIndent The indent of the pair's first line.
+     * @param int $indent The indent for the pair's new lines.
+     * @param int $trailing The number of characters straight after the pair on its last line.
+     * @param array<int, int> $breaks The operators to break the line before, with each one's indent.
+     * @return int The number of characters before the pair's end, on its last line.
+     */
+    private function layoutPair(
+        File $phpcsFile,
+        ExpressionNode $node,
+        int $column,
+        int $lineIndent,
+        int $indent,
+        int $trailing,
+        array &$breaks,
+    ): int {
+        [$key, $value] = $node->children;
+        $arrow = $node->operators[0];
+        $keyEnd = $this->delegateString($phpcsFile, $key, $column, $indent, 0, true)
+            ?? $this->layout($phpcsFile, $key, $column, $lineIndent, $indent, 0, false, $breaks);
+        $valueColumn = $keyEnd + 4;
+        $valueLineIndent = $this->isDelegated($key) ? $indent : $lineIndent;
+
+        // A string expression that becomes one string is one operand.
+        $string = null;
+        $valueLength = $value->flatLength;
+        if ($this->reflowStringExpressions && $this->isConcatenation($phpcsFile, $value)) {
+            $helper = new StringHelper($phpcsFile);
+            if ($helper->read($value) && count($helper->segments()) === 1) {
+                $string = $helper;
+                $valueLength = mb_strlen($helper->flat());
+            }
+        }
+
+        if (($valueColumn + $valueLength + $trailing) <= $this->maxLineLength) {
+            return $valueColumn + $valueLength;
+        }
+
+        if ($value->kind !== ExpressionNode::LEVEL || $string !== null) {
+            $ownLineEnd = $indent + 3 + $valueLength;
+            if (($ownLineEnd + $trailing) <= $this->maxLineLength) {
+                $breaks[$arrow] = $indent;
+                if ($string !== null) {
+                    $this->delegated[$value->start] = [$value, $string->flat()];
+                }
+
+                return $ownLineEnd;
+            }
+        }
+
+        return $this->delegateString($phpcsFile, $value, $valueColumn, $indent, $trailing, true)
+            ?? $this->layout($phpcsFile, $value, $valueColumn, $valueLineIndent, $indent, $trailing, false, $breaks);
+    }
+
+    /**
+     * Lay out a string expression that doesn't fit on its line as a string, whose line breaks aren't checked here.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $node The node.
+     * @param int $column The number of characters before the node on its first line.
+     * @param int $indent The indent for its new lines.
+     * @param int $trailing The number of characters straight after it on its last line.
+     * @param bool $includeLiteral Whether a single string literal is laid out too, not only a chain of `.` operations.
+     * @return int|null The number of characters before its end, on its last line, or null if it isn't laid out.
+     */
+    private function delegateString(
+        File $phpcsFile,
+        ExpressionNode $node,
+        int $column,
+        int $indent,
+        int $trailing,
+        bool $includeLiteral,
+    ): ?int {
+        $isString = $this->isConcatenation($phpcsFile, $node)
+            || ($includeLiteral && $node->kind === ExpressionNode::OPERAND
+                && $this->isStringLiteral($phpcsFile, $node));
+        if (
+            !$this->reflowStringExpressions || !$isString
+            || ($column + $node->flatLength + $trailing) <= $this->maxLineLength
+        ) {
+            return null;
+        }
+
+        $helper = new StringHelper($phpcsFile);
+        if (!$helper->read($node)) {
+            return null;
+        }
+
+        $code = $helper->layout($column, $indent, $trailing, $this->maxLineLength);
+        $this->delegated[$node->start] = [$node, str_replace("\n", $phpcsFile->eolChar, $code)];
+        $lastNewline = strrpos($code, "\n");
+
+        return $lastNewline === false ? $column + mb_strlen($code) : mb_strlen(substr($code, ($lastNewline + 1)));
     }
 
     /**

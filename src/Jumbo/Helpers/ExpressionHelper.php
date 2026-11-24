@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Jumbo\Helpers;
 
+use PERCS31\Helpers\MatchHelper;
 use PERCS31\Helpers\OperatorHelper;
 use PERCS31\Helpers\TokenHelper;
 use PHP_CodeSniffer\Files\File;
@@ -20,11 +21,15 @@ class ExpressionHelper
      * Binary operators by precedence, from the loosest to the tightest, as in the PHP manual. The pipe operator `|>` is
      * added when PHP defines it.
      *
-     * Assignment operators, and `and`, `or` and `xor`, which bind more loosely than assignment, aren't included.
+     * Assignment operators, and `and`, `or` and `xor`, which bind more loosely than assignment, aren't included. The
+     * `=>` of an array element, or of a `match` arm with one condition, is put first, so a `key => value` pair is read
+     * as one expression, with the key and value as its operands (see isArrowOperator()). It isn't laid out as the
+     * loosest operator, though: Jumbo.Formatting.ExpressionFormat splits a value at its own operators first.
      *
      * @var list<list<int|string>>
      */
     private const array PRECEDENCE_LEVELS = [
+        [T_DOUBLE_ARROW, T_MATCH_ARROW],
         [T_COALESCE],
         [T_BOOLEAN_OR],
         [T_BOOLEAN_AND],
@@ -45,7 +50,7 @@ class ExpressionHelper
     /**
      * The index of the pipe operator's level in PRECEDENCE_LEVELS.
      */
-    private const int PIPE_LEVEL = 8;
+    private const int PIPE_LEVEL = 9;
 
     /**
      * Tokens that end an expression, besides assignment operators and unmatched brackets.
@@ -87,6 +92,25 @@ class ExpressionHelper
         T_OPEN_CURLY_BRACKET,
         T_OPEN_USE_GROUP,
         T_ATTRIBUTE,
+    ];
+
+    /**
+     * Tokens that show a `=>` isn't in an array, when walking back from it to the bracket it's in: an unmatched opener
+     * of another kind, or the start of a `foreach` value, `yield` or statement.
+     *
+     * @var list<int|string>
+     */
+    private const array NOT_IN_ARRAY = [
+        T_OPEN_SQUARE_BRACKET,
+        T_OPEN_CURLY_BRACKET,
+        T_OPEN_USE_GROUP,
+        T_ATTRIBUTE,
+        T_SEMICOLON,
+        T_AS,
+        T_YIELD,
+        T_YIELD_FROM,
+        T_OPEN_TAG,
+        T_OPEN_TAG_WITH_ECHO,
     ];
 
     /**
@@ -137,8 +161,85 @@ class ExpressionHelper
             return false;
         }
 
+        if ($code === T_DOUBLE_ARROW || $code === T_MATCH_ARROW) {
+            return self::isArrowOperator($phpcsFile, $stackPtr);
+        }
+
         return !in_array($code, [T_PLUS, T_MINUS, T_BITWISE_AND], true)
             || !OperatorHelper::isUnary($phpcsFile, $stackPtr);
+    }
+
+    /**
+     * Check whether a `=>` joins a `key => value` pair that's laid out as one expression: an array element's, or a
+     * `match` arm's with one condition, or `default`.
+     *
+     * A `foreach` or `yield` `=>` isn't one, and neither is the `=>` of a `match` arm with several conditions, whose
+     * place Jumbo.ControlStructures.MatchArmWrapIndent sets, so each of those ends an expression.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $stackPtr The position of the `=>`.
+     * @return bool True if it is.
+     */
+    public static function isArrowOperator(File $phpcsFile, int $stackPtr): bool
+    {
+        $tokens = $phpcsFile->getTokens();
+        if ($tokens[$stackPtr]['code'] === T_MATCH_ARROW) {
+            return self::isSingleConditionArm($phpcsFile, $stackPtr);
+        }
+
+        // Walk back over the array's elements to its opening bracket, skipping anything in brackets.
+        for ($i = ($stackPtr - 1); $i >= 0; $i--) {
+            $opener = TokenHelper::findOpener($tokens[$i]);
+            if ($opener !== null) {
+                $i = $opener;
+                continue;
+            }
+
+            $code = $tokens[$i]['code'];
+            if ($code === T_OPEN_SHORT_ARRAY) {
+                return true;
+            }
+
+            if ($code === T_OPEN_PARENTHESIS) {
+                $owner = $tokens[$i]['parenthesis_owner'] ?? null;
+
+                return is_int($owner) && in_array($tokens[$owner]['code'], [T_ARRAY, T_LIST], true);
+            }
+
+            if (in_array($code, self::NOT_IN_ARRAY, true)) {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Check whether a `match` arm's `=>` follows a single condition, or `default`, with no trailing comma.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $arrow The position of the `=>`.
+     * @return bool True if it does.
+     */
+    private static function isSingleConditionArm(File $phpcsFile, int $arrow): bool
+    {
+        $tokens = $phpcsFile->getTokens();
+        $matches = array_keys($tokens[$arrow]['conditions'], T_MATCH, true);
+        $match = end($matches);
+        $opener = is_int($match) ? ($tokens[$match]['scope_opener'] ?? null) : null;
+        $closer = is_int($match) ? ($tokens[$match]['scope_closer'] ?? null) : null;
+        $previous = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($arrow - 1), null, true);
+        if (!is_int($opener) || !is_int($closer) || $previous === false || $tokens[$previous]['code'] === T_COMMA) {
+            return false;
+        }
+
+        foreach (MatchHelper::findArms($phpcsFile, $opener, $closer) as $arm) {
+            if ($arm['arrow'] === $arrow) {
+                return count(MatchHelper::findConditions($phpcsFile, $arm)) === 1;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -208,7 +309,7 @@ class ExpressionHelper
                 continue;
             }
 
-            if (in_array($code, self::BOUNDARIES, true) || isset(Tokens::ASSIGNMENT_TOKENS[$code])) {
+            if (self::isBoundary($phpcsFile, $before)) {
                 break;
             }
         }
@@ -242,7 +343,7 @@ class ExpressionHelper
                 continue;
             }
 
-            if (in_array($code, self::BOUNDARIES, true) || isset(Tokens::ASSIGNMENT_TOKENS[$code])) {
+            if (self::isBoundary($phpcsFile, $after)) {
                 break;
             }
         }
@@ -254,6 +355,24 @@ class ExpressionHelper
         }
 
         return [$start, $end, $before, $after];
+    }
+
+    /**
+     * Check whether a token ends an expression: one of the boundaries, an assignment operator, or a `=>` that isn't a
+     * `key => value` pair's operator.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $ptr The position of the token.
+     * @return bool True if it does.
+     */
+    private static function isBoundary(File $phpcsFile, int $ptr): bool
+    {
+        $code = $phpcsFile->getTokens()[$ptr]['code'];
+        if (in_array($code, [T_DOUBLE_ARROW, T_MATCH_ARROW], true)) {
+            return !self::isArrowOperator($phpcsFile, $ptr);
+        }
+
+        return in_array($code, self::BOUNDARIES, true) || isset(Tokens::ASSIGNMENT_TOKENS[$code]);
     }
 
     /**

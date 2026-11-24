@@ -605,6 +605,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
+- **`key => value` pairs, in Jumbo (breaking).** `Jumbo.Formatting.ExpressionFormat` now lays out an array element or a
+  `match` arm with one condition as one expression. One too long for its line is split at the value's own operators,
+  keeping `key =>` on the first line. Otherwise, a value that fits on a line of its own goes there, starting with `=>`,
+  and only a value too long for that has its string split. A pair that fits on one line is joined, and a line break
+  after `=>` is moved before it.
 - **Redundant doc tags, in Jumbo (breaking).** Jumbo now reports a `@param`, `@return` or `@var` that only repeats the
   native type, with no description, and removes it: the `UselessAnnotation` codes of
   `Jumbo.TypeHints.ParameterTypeHint`, `SlevomatCodingStandard.TypeHints.PropertyTypeHint` and
@@ -832,6 +837,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
+- **Strings split because of what followed them, in Jumbo.** `Jumbo.Formatting.ExpressionFormat` counted everything
+  after a string or expression on its line as text it had to fit, so on a long line it split a short array key, or a
+  string with a comment after it, and phpcbf then failed to fix the file. Now only its own text, and punctuation
+  straight after it such as `,` or `;`, count.
 - **An empty PHP tag on one line, in Jumbo.** `Jumbo.PHP.EmbeddedPhp` now reports `<?php ?>` on one line in a
   file with markup, as `Empty`, as it already did for an empty block over several lines. Auto-fixable, by removing it.
 - **A comment in `<?php declare(strict_types=1) ?>`.** `PERCS31.Files.FileHeader` reported

@@ -47,6 +47,37 @@ class LayoutHelper
     }
 
     /**
+     * Get the length of the code straight after a span on its line, up to the first whitespace or comment: the
+     * punctuation that can't move to another line without the span, such as the `,` after an array value or the `);`
+     * after a call's last argument.
+     *
+     * A span fits on its line if its own text and this fit within the line length. Anything after that, such as a
+     * `=> value` after an array key, or a comment, has a place of its own to break at, so it's left out.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $end The position of the span's last token.
+     * @return int The number of characters.
+     */
+    public static function attachedLength(File $phpcsFile, int $end): int
+    {
+        $tokens = $phpcsFile->getTokens();
+        $length = 0;
+        for ($i = ($end + 1); isset($tokens[$i]); $i++) {
+            $code = $tokens[$i]['code'];
+            if (
+                $code === T_WHITESPACE || isset(Tokens::COMMENT_TOKENS[$code])
+                || str_contains($tokens[$i]['content'], "\n")
+            ) {
+                break;
+            }
+
+            $length += mb_strlen($tokens[$i]['content']);
+        }
+
+        return $length;
+    }
+
+    /**
      * Count the blank lines between two tokens. A line with a comment on it isn't blank.
      *
      * @param File $phpcsFile The file being scanned.

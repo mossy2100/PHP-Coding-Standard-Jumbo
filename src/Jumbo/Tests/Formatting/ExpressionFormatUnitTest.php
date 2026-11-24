@@ -26,6 +26,20 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
             return array_fill_keys($lines, 1) + [64 => 2];
         }
 
+        if ($testFile === 'ExpressionFormatUnitTest.3.inc') {
+            return [
+                // A value that fits on a line of its own: a string, one that becomes one string, and a match arm's.
+                29 => 1,
+                30 => 2,
+                34 => 1,
+                // A key too long for its line.
+                40 => 1,
+                // A pair that fits, split before or after its `=>`.
+                45 => 1,
+                47 => 1,
+            ];
+        }
+
         return [
             // Fits on one line.
             46 => 1,
