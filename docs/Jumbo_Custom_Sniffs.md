@@ -29,11 +29,12 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.Namespaces.UnusedUses`                              | No unused `use` statements, safe with a miscased `use Function` | Yes     |
 | `Jumbo.NamingConventions.ValidNamespaceName`               | A namespace's name in ASCII                                     | No      |
 | `Jumbo.NamingConventions.ValidVariableName`                | No leading underscore on a variable or parameter in a class     | No      |
-| `Jumbo.PHP.DisallowInvisibleCharacters`                    | No invisible characters, such as a tab or zero-width space      | Mostly  |
 | `Jumbo.Operators.IncrementStyle`                           | `$i++;`, not `++$i;`, where the value isn't used                | Yes     |
+| `Jumbo.PHP.DisallowInvisibleCharacters`                    | No invisible characters, such as a tab or zero-width space      | Mostly  |
 | `Jumbo.PHP.EmbeddedPhp`                                    | A block's tags on their own lines, level with its code          | Mostly  |
 | `Jumbo.PHP.FunctionCalls`                                  | Calls with a better form, such as a cast for `intval()`         | Mostly  |
 | `Jumbo.PHP.IntegerLiteral`                                 | `0xFF` and `0o755`, not `0XFF`, `0xff` or `0755`                | Yes     |
+| `Jumbo.PHP.SimplifySyntax`                                 | The simpler form, such as `while ($a)` for `for (; $a;)`        | Mostly  |
 | `Jumbo.PhpUnit.RequireDedicatedAssertions`                 | PHPUnit's dedicated assertions, such as `assertIsInt($a)`       | Yes     |
 | `Jumbo.PhpUnit.TestClass`                                  | No PHPUnit annotations, and the `setUp()` hooks `protected`     | Yes     |
 | `Jumbo.Strings.RequireBracedVariables`                     | Braces around every variable in a string, as in `"{$name}"`     | Yes     |
@@ -1137,6 +1138,57 @@ $mode = 0o755;
 ```php
 $mask = 0xff;
 $mode = 0755;
+```
+
+---
+
+## Jumbo.PHP.SimplifySyntax
+
+Requires the simpler of two ways to write the same thing, where both behave the same:
+
+| Code                | Bad                         | Good                       |
+| ------------------- | --------------------------- | -------------------------- |
+| `CanSimplify`       | `for (; $i < 10;)`          | `while ($i < 10)`          |
+| `Infinite`          | `for (;;)`                  | `while (true)`             |
+| `ConsecutiveIssets` | `isset($a) && isset($b)`    | `isset($a, $b)`            |
+| `ConsecutiveUnsets` | `unset($a);` `unset($b);`   | `unset($a, $b);`           |
+| `NullsafeThis`      | `$this?->name`              | `$this->name`              |
+| `BinaryString`      | `b'abc'`                    | `'abc'`                    |
+| `UnneededBraces`    | `{ foo(); }`, on its own    | `foo();`                   |
+| `UselessReturn`     | `return;` at a function end | nothing                    |
+
+- **`isset()`:** only calls that are whole operands of `&&`, so `!isset($a) && isset($b)` and
+  `isset($a) && isset($b) === $c` are left alone.
+- **`unset()`:** only statements with nothing between them, not even a comment.
+- **Braces:** a block that isn't a control structure's, function's or class's, including one after `case 1:`. A block
+  with a function or class declared in it is left alone, as the braces make the declaration conditional.
+- **`return;`:** only the last statement of a function or closure. One that ends a branch early is left alone.
+
+**Why:** PER Coding Style 3.1 has no rule for these, so this is an extra rule. Each pair behaves the same, so the
+shorter form says it with less to read: `$this` is never null, the `b` prefix has done nothing since PHP 6 was
+dropped, and braces don't make a scope in PHP. These are Generic.CodeAnalysis.ForLoopShouldBeWhileLoop, which it
+replaces, with a fix, php-cs-fixer's `empty_loop_condition`, `combine_consecutive_issets`,
+`combine_consecutive_unsets` and `no_useless_nullsafe_operator`, and Laravel Pint's `no_binary_string`,
+`no_unneeded_braces` and `no_useless_return`.
+
+**Auto-fixable:** yes, unless a comment is in the code the fix would remove. The fix for braces leaves the block's
+code indented as it was, for the indent sniff to fix.
+
+**Good:**
+
+```php
+while ($i < 10) {
+    unset($a[$i], $b[$i]);
+}
+```
+
+**Bad:**
+
+```php
+for (; $i < 10;) {
+    unset($a[$i]);
+    unset($b[$i]);
+}
 ```
 
 ---

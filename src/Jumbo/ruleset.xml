@@ -350,6 +350,11 @@
          with php_version 8.1 or later -->
     <rule ref="Jumbo.PHP.IntegerLiteral"/>
 
+    <!-- The simpler of two ways to write the same thing: while, not a for loop with only a condition; one isset() or
+         unset(), not several in a row; $this->, not $this?->; no b prefix on a string; no braces around a block on
+         its own; and no return; at the end of a function. Replaces Generic.CodeAnalysis.ForLoopShouldBeWhileLoop. -->
+    <rule ref="Jumbo.PHP.SimplifySyntax"/>
+
     <!-- No extract(), which creates variables from an array's keys -->
     <rule ref="Generic.PHP.ForbiddenFunctions">
         <properties>
@@ -415,8 +420,7 @@
     <!-- No foreach with the same variable as its key and value -->
     <rule ref="Universal.CodeAnalysis.ForeachUniqueAssignment"/>
 
-    <!-- A warning for a for loop with only a condition, which can be a while loop, and for goto -->
-    <rule ref="Generic.CodeAnalysis.ForLoopShouldBeWhileLoop"/>
+    <!-- A warning for goto -->
     <rule ref="Generic.PHP.DiscourageGoto"/>
 
     <rule ref="SlevomatCodingStandard.ControlStructures.DisallowContinueWithoutIntegerOperandInSwitch"/>

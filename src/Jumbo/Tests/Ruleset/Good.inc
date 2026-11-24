@@ -168,4 +168,19 @@ final class Inventory implements Countable, Stringable
     {
         return __DIR__;
     }
+
+    /**
+     * Remove items, and empty the list.
+     *
+     * @param string $first The first item.
+     * @param string $second The second item.
+     */
+    public function remove(string $first, string $second): void
+    {
+        if (isset($this->items[$first], $this->items[$second])) {
+            unset($this->items[$first], $this->items[$second]);
+        }
+
+        $this->items = [];
+    }
 }

@@ -13,7 +13,6 @@ sections link to it.
 | `Generic.Classes.DuplicateClassName`                                                     | A warning for a class name declared twice                      | No      |
 | `Generic.CodeAnalysis.AssignmentInCondition`                                             | A warning for an assignment in a condition                     | No      |
 | `Generic.CodeAnalysis.EmptyStatement`                                                    | No empty control structure body                                | No      |
-| `Generic.CodeAnalysis.ForLoopShouldBeWhileLoop`                                          | A warning for a `for` loop with only a condition               | No      |
 | `Generic.CodeAnalysis.RequireExplicitBooleanOperatorPrecedence`                          | Parentheses where `&&` and `\|\|` are mixed                    | No      |
 | `Generic.CodeAnalysis.UnconditionalIfStatement`                                          | A warning for an `if` that is only `true` or `false`           | No      |
 | `Generic.CodeAnalysis.UnnecessaryFinalModifier`                                          | A warning for `final` on a method of a final class             | No      |
@@ -163,15 +162,6 @@ Warns about assignments in conditions. See [Yoda-style Comparisons](../README.md
 
 Disallows an empty control structure body, such as `if ($a) {}`. Jumbo excludes `DetectedCatch`: an empty `catch` is
 left to `Squiz.Commenting.EmptyCatchComment`, which allows one with a comment saying why.
-
-**Auto-fixable:** no.
-
----
-
-## Generic.CodeAnalysis.ForLoopShouldBeWhileLoop
-
-A warning for a `for` loop with only a condition, such as `for (; $i < 10;)`, which can be a `while` loop.
-`for (;;)` isn't reported.
 
 **Auto-fixable:** no.
 

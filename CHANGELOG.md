@@ -568,8 +568,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   the parts, and around a one-line doc comment's text (`Spacing`), a redundant variable name on a property or constant
   (`VarName`), an inline `@var` with its name first (`VarNameOrder`), and one in a `/* */` comment (`VarInBlockComment`),
   all but the type fixed. It replaces `PhpCollective.Commenting.InlineDocBlock` in Jumbo.
-- **Five more extra rules in Jumbo (breaking).** Jumbo now includes:
-  - `Generic.CodeAnalysis.ForLoopShouldBeWhileLoop`: a warning for a `for` loop with only a condition.
+- **Four more extra rules in Jumbo (breaking).** Jumbo now includes:
   - `Generic.PHP.DeprecatedFunctions`: no call to a native function that PHP marks deprecated.
   - `Generic.PHP.DisallowRequestSuperglobal`: no `$_REQUEST`.
   - `Generic.PHP.DiscourageGoto`: a warning for `goto`.
@@ -609,6 +608,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Integer literals, in Jumbo (breaking).** The new `Jumbo.PHP.IntegerLiteral` reports a prefix not in lower case, or
   hex digits not in upper case, as `LiteralCase`, so `0xff` becomes `0xFF`, and, when `php_version` is 8.1 or later, a
   legacy octal literal, as `OctalPrefix`, so `0755` becomes `0o755`. Both are auto-fixable.
+- **Simpler syntax, in Jumbo (breaking).** The new `Jumbo.PHP.SimplifySyntax` requires the simpler of two forms that
+  behave the same: `while`, not a `for` loop with only a condition or none (`CanSimplify` and `Infinite`), one
+  `isset()` for several joined by `&&` (`ConsecutiveIssets`), one `unset()` for several in a row
+  (`ConsecutiveUnsets`), `$this->`, not `$this?->` (`NullsafeThis`), no `b` prefix on a string (`BinaryString`), no
+  braces around a block on its own (`UnneededBraces`), and no `return;` at the end of a function (`UselessReturn`).
+  All are auto-fixable, unless a comment is in the way.
 - **PHPUnit's dedicated assertions, in Jumbo (breaking).** The new `Jumbo.PhpUnit.RequireDedicatedAssertions` reports
   `assertSame()` with `null`, `true` or `false`, as `InvalidAssert`, and `assertTrue()` or `assertFalse()` of a check
   with its own assertion, such as `is_int()` for `assertIsInt()` or `array_key_exists()` for `assertArrayHasKey()`, as

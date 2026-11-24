@@ -365,7 +365,7 @@ class ExpressionHelper
      * @param int $ptr The position of the token.
      * @return bool True if it does.
      */
-    private static function isBoundary(File $phpcsFile, int $ptr): bool
+    public static function isBoundary(File $phpcsFile, int $ptr): bool
     {
         $code = $phpcsFile->getTokens()[$ptr]['code'];
         if (in_array($code, [T_DOUBLE_ARROW, T_MATCH_ARROW], true)) {
