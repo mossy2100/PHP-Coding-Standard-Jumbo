@@ -437,3 +437,19 @@ switch ($a) {
         $c = 7;
         break;
 }
+
+// An array or call in a ternary branch in a match arm, valid: its closing bracket doesn't start an arm.
+$a = match (true) {
+    $x === 1 => $y
+        ? [
+            foo(
+                2,
+            ),
+        ]
+        : null,
+    default => $z
+        ? bar(
+            3,
+        )
+        : null,
+};

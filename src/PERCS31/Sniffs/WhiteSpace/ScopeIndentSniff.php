@@ -1703,8 +1703,14 @@ class ScopeIndentSniff implements Sniff
             return false;
         }
 
-        // An arm's comma has a => before it, with no comma between them.
+        // An arm's comma has a => before it, with no comma between them. A bracket opened and not closed before the
+        // comma holds it, so the comma is inside the arm's value, as after the last element of an array in a ternary.
+        $openers = [T_OPEN_PARENTHESIS, T_OPEN_SHORT_ARRAY, T_OPEN_SQUARE_BRACKET, T_OPEN_CURLY_BRACKET];
         for ($i = ($previous - 1); $i > $opener; $i--) {
+            if (in_array($tokens[$i]['code'], $openers, true) === true) {
+                return false;
+            }
+
             if ($tokens[$i]['code'] === T_MATCH_ARROW) {
                 return true;
             }
