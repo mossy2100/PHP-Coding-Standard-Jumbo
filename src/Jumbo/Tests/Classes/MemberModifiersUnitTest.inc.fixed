@@ -21,18 +21,18 @@ final class Three
 // Protected: reported.
 final class Four
 {
-    protected const A = 1;
-    protected int $b = 2;
-    public protected(set) int $c = 3;
+    private const A = 1;
+    private int $b = 2;
+    public private(set) int $c = 3;
 
-    public function __construct(protected int $d)
+    public function __construct(private int $d)
     {
         $e = new class {
             protected $f;
         };
     }
 
-    protected function g(): void
+    private static function g(): void
     {
     }
 }
@@ -93,7 +93,7 @@ class Five extends One
 // Static methods: reported.
 class Six
 {
-    private function a(int $x): int
+    private static function a(int $x): int
     {
         return $x * self::b() + static::b();
     }
@@ -105,51 +105,28 @@ class Six
 
     public function c(): int
     {
-        return $this->a(1) + $this->a(2);
+        return self::a(1) + self::a(2);
     }
 
-    private function d(object $x): string
+    private static function d(object $x): string
     {
         return get_class($x) . strlen('$this');
     }
 }
 
-// Stringable: allowed.
-class Seven implements Countable
+// Protected in an enum: allowed with a trait, reported without.
+enum Seven
 {
-    public function __toString(): string
-    {
-        return '';
-    }
+    use SomeTrait;
+
+    protected const A = 1;
 }
 
-class Eight extends One
+enum Eight
 {
-    public function __toString(): string
-    {
-        return '';
-    }
-}
+    private const B = 2;
 
-// Stringable: reported.
-class Nine
-{
-    public function __toString(): string
+    private static function c(): void
     {
-        return '';
-    }
-}
-
-// Serialization: warnings.
-class Ten
-{
-    public function __sleep(): array
-    {
-        return [];
-    }
-
-    public function __wakeup(): void
-    {
-        echo 1;
     }
 }

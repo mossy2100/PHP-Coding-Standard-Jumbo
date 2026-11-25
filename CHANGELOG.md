@@ -614,11 +614,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   so `@see`, `@todo` and the rest can go anywhere, except that the `@param` tags must be together
   (`ParamsNotTogether`) and in the order of the parameters (`ParamOrder`), then `@return` (`ReturnNotAfterParams`),
   then `@throws` (`ThrowsNotAfterReturn`). None is fixed.
-- **Class members, in Jumbo (breaking).** The new `Jumbo.Classes.ClassMembers` checks a class's members against its
-  header: `private`, not `protected`, in a final class that extends no class and uses no trait (`ProtectedToPrivate`),
-  `static` for a private method that doesn't use `$this`, with its calls changed to `self::` (`StaticPrivateMethod`),
-  `implements \Stringable` for a class with `__toString()` and no other parent or interface (`MissingStringable`), all
-  fixed, and a warning for `__sleep()` and `__wakeup()` (`SleepWakeup`).
+- **Member modifiers, in Jumbo (breaking).** The new `Jumbo.Classes.MemberModifiers` reports `protected` where
+  nothing else can see the member, in a final class that extends no class and uses no trait, or an enum that uses no
+  trait (`ProtectedToPrivate`), and a private method that doesn't use `$this` (`StaticPrivateMethod`), and fixes them
+  to `private`, and to `static` with its calls changed to `self::`.
+- **Magic methods, in Jumbo (breaking).** The new `Jumbo.Classes.MagicMethods` reports a class with `__toString()` and
+  no other parent or interface that doesn't say `implements \Stringable` (`MissingStringable`), and fixes it, and warns
+  about `__sleep()` and `__wakeup()` (`SleepWakeup`).
 - **Built-in names in their own case, in Jumbo (breaking).** The new `Jumbo.PHP.BuiltInNameCase` reports a built-in
   class, interface or enum not in its own case, as in `new \datetime()`, as `ClassNameCase`, and a magic method, as in
   `__tostring()`, as `MagicMethodCase`, where it's declared or called. Both are auto-fixable.

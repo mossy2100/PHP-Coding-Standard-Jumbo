@@ -7,9 +7,9 @@ namespace Jumbo\Tests\Classes;
 use PHP_CodeSniffer\Tests\Standards\AbstractSniffTestCase;
 
 /**
- * Unit tests for Jumbo.Classes.ClassMembers sniff.
+ * Unit tests for Jumbo.Classes.MemberModifiers sniff.
  */
-class ClassMembersUnitTest extends AbstractSniffTestCase
+class MemberModifiersUnitTest extends AbstractSniffTestCase
 {
     /**
      * Returns the lines where errors should occur.
@@ -28,8 +28,9 @@ class ClassMembersUnitTest extends AbstractSniffTestCase
             // Static methods: one calling static methods, and one calling get_class() with an argument.
             96 => 1,
             111 => 1,
-            // Stringable.
-            135 => 1,
+            // Protected in an enum without a trait: a constant and a method.
+            127 => 1,
+            129 => 1,
         ];
     }
 
@@ -40,6 +41,6 @@ class ClassMembersUnitTest extends AbstractSniffTestCase
      */
     protected function getWarningList(): array
     {
-        return [146 => 1, 151 => 1];
+        return [];
     }
 }

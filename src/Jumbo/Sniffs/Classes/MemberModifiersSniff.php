@@ -13,39 +13,24 @@ use PHPCSUtils\Utils\ObjectDeclarations;
 use SlevomatCodingStandard\Helpers\UseStatementHelper;
 
 /**
- * Checks a class's members against what its header allows: no `protected` member in a final class, a private method
- * that doesn't use `$this` made static, `Stringable` said outright, and no `__sleep()` or `__wakeup()`.
+ * Checks a member's modifiers against what its class allows or needs: `private`, not `protected`, where nothing else
+ * can see the member, and `static` for a private method that doesn't use `$this`.
  *
- * PER Coding Style 3.1 has no rules for these, so this is an extra rule. The first three are fixed:
- * - ProtectedToPrivate: a `protected` property, method or constant in a final class that neither extends a class nor
- *   uses a trait, so nothing else can see it, is made `private`. From php-cs-fixer's `protected_to_private`.
+ * PER Coding Style 3.1 has no rules for these, so this is an extra rule. Both are fixed:
+ * - ProtectedToPrivate: a `protected` property, method, constant or set visibility, in a final class that neither
+ *   extends a class nor uses a trait, or an enum that uses no trait, is made `private`, as nothing else can see it.
+ *   From php-cs-fixer's `protected_to_private`.
  * - StaticPrivateMethod: a private method whose body never uses `$this` is made static, and its `$this->name()` calls
  *   in the class become `self::name()`. From php-cs-fixer's `static_private_method`. The method is left alone if it
  *   calls a method of the class that isn't static, or one the sniff can't see, uses `parent::`, a closure that isn't
  *   static, or `get_class()` with no argument. A method that calls another that's made static qualifies on the next
- *   phpcbf pass.
- * - MissingStringable: a class with `__toString()` that neither extends a class nor implements an interface gets
- *   `implements \Stringable`, which PHP adds anyway. From php-cs-fixer's `stringable_for_to_string`.
- * - SleepWakeup, a warning: `__sleep()` and `__wakeup()` are superseded by `__serialize()` and `__unserialize()`. From
- *   php-cs-fixer's `modern_serialization_methods`, which renames them, but `__sleep()` returns property names where
- *   `__serialize()` returns data, so a renamed method would be wrong. Not fixed.
+ *   phpcbf pass. A magic method is never made static, and a trait's methods aren't checked.
  */
-class ClassMembersSniff implements Sniff
+class MemberModifiersSniff implements Sniff
 {
     public const string CODE_PROTECTED_TO_PRIVATE = 'ProtectedToPrivate';
 
     public const string CODE_STATIC_PRIVATE_METHOD = 'StaticPrivateMethod';
-
-    public const string CODE_MISSING_STRINGABLE = 'MissingStringable';
-
-    public const string CODE_SLEEP_WAKEUP = 'SleepWakeup';
-
-    /**
-     * The serialization methods that are superseded, by lower-case name, with what replaces each.
-     *
-     * @var array<string, string>
-     */
-    private const array SUPERSEDED = ['__sleep' => '__serialize', '__wakeup' => '__unserialize'];
 
     /**
      * Returns an array of tokens this test wants to listen for.
@@ -54,7 +39,7 @@ class ClassMembersSniff implements Sniff
      */
     public function register(): array
     {
-        return [T_CLASS, T_ANON_CLASS, T_ENUM, T_TRAIT];
+        return [T_CLASS, T_ANON_CLASS, T_ENUM];
     }
 
     /**
@@ -70,42 +55,26 @@ class ClassMembersSniff implements Sniff
             return;
         }
 
-        $methods = ObjectDeclarations::getDeclaredMethods($phpcsFile, $stackPtr);
-        self::checkSerialization($phpcsFile, $methods);
+        self::checkStaticMethods($phpcsFile, $stackPtr, ObjectDeclarations::getDeclaredMethods($phpcsFile, $stackPtr));
+
+        // Nothing else can see a member of an enum, or of a final class with no parent.
         $code = $tokens[$stackPtr]['code'];
-        if ($code === T_TRAIT) {
-            return;
+        $isFinalClass = $code === T_CLASS && ObjectDeclarations::getClassProperties($phpcsFile, $stackPtr)['is_final']
+            && ObjectDeclarations::findExtendedClassName($phpcsFile, $stackPtr) === false;
+        if ($isFinalClass || $code === T_ENUM) {
+            self::checkProtected($phpcsFile, $stackPtr);
         }
-
-        self::checkStaticMethods($phpcsFile, $stackPtr, $methods);
-        if ($code !== T_CLASS) {
-            return;
-        }
-
-        $extends = ObjectDeclarations::findExtendedClassName($phpcsFile, $stackPtr);
-        if ($extends !== false) {
-            return;
-        }
-
-        self::checkProtected($phpcsFile, $stackPtr);
-        self::checkStringable($phpcsFile, $stackPtr, $methods);
     }
 
-    // region Visibility and Stringable
-
     /**
-     * Report each `protected` member of a final class that uses no trait, and fix it to `private`.
+     * Report each `protected` member of a final class or an enum that uses no trait, and fix it to `private`.
      *
      * @param File $phpcsFile The file being scanned.
-     * @param int $classPtr The position of the `class` keyword.
+     * @param int $classPtr The position of the `class` or `enum` keyword.
      */
     private static function checkProtected(File $phpcsFile, int $classPtr): void
     {
         $tokens = $phpcsFile->getTokens();
-        if (!ObjectDeclarations::getClassProperties($phpcsFile, $classPtr)['is_final']) {
-            return;
-        }
-
         $members = [];
         for ($i = $tokens[$classPtr]['scope_opener']; $i < $tokens[$classPtr]['scope_closer']; $i++) {
             if (self::findClass($tokens[$i]) !== $classPtr) {
@@ -123,63 +92,13 @@ class ClassMembersSniff implements Sniff
 
         foreach ($members as $ptr) {
             $isSet = $tokens[$ptr]['code'] === T_PROTECTED_SET;
-            $error = 'A member of a final class that extends no class and uses no trait must be private, not protected';
+            $error = 'A member of a final class or an enum that uses no trait, with no parent, must be private, not '
+                . 'protected';
             if ($phpcsFile->addFixableError($error, $ptr, self::CODE_PROTECTED_TO_PRIVATE)) {
                 $phpcsFile->fixer->replaceToken($ptr, $isSet ? 'private(set)' : 'private');
             }
         }
     }
-
-    /**
-     * Report a class with `__toString()` that doesn't say it implements `Stringable`, and fix it.
-     *
-     * Only a class that implements no interface is reported, as another interface may extend `Stringable`.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $classPtr The position of the `class` keyword.
-     * @param array<string, int> $methods The class's methods, by name.
-     */
-    private static function checkStringable(File $phpcsFile, int $classPtr, array $methods): void
-    {
-        $hasToString = array_any(
-            array_keys($methods),
-            static fn(string $name): bool => strtolower($name) === '__tostring',
-        );
-        $namePtr = $phpcsFile->findNext(T_STRING, ($classPtr + 1), $phpcsFile->getTokens()[$classPtr]['scope_opener']);
-        if (
-            !$hasToString || $namePtr === false
-            || ObjectDeclarations::findImplementedInterfaceNames($phpcsFile, $classPtr) !== false
-        ) {
-            return;
-        }
-
-        $error = 'A class with __toString() must say it implements Stringable';
-        if ($phpcsFile->addFixableError($error, $classPtr, self::CODE_MISSING_STRINGABLE)) {
-            $phpcsFile->fixer->addContent($namePtr, ' implements \\Stringable');
-        }
-    }
-
-    /**
-     * Warn about `__sleep()` and `__wakeup()` methods.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param array<string, int> $methods The class's methods, by name.
-     */
-    private static function checkSerialization(File $phpcsFile, array $methods): void
-    {
-        foreach ($methods as $name => $functionPtr) {
-            $replacement = self::SUPERSEDED[strtolower($name)] ?? null;
-            if ($replacement !== null) {
-                $warning = '%s() is superseded by %s(), which works with the data itself, not property names; '
-                    . 'implement that instead';
-                $phpcsFile->addWarning($warning, $functionPtr, self::CODE_SLEEP_WAKEUP, [$name, $replacement]);
-            }
-        }
-    }
-
-    // endregion
-
-    // region Static private methods
 
     /**
      * Report each private method that doesn't use `$this` and isn't static, and fix it.
@@ -309,8 +228,6 @@ class ClassMembersSniff implements Sniff
 
         $phpcsFile->fixer->endChangeset();
     }
-
-    // endregion
 
     /**
      * Find the class, interface, trait or enum a token is directly in, not counting one nested in it.

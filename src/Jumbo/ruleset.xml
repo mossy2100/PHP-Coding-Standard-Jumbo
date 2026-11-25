@@ -260,10 +260,13 @@
     <!-- No $this in a static method -->
     <rule ref="Squiz.Scope.StaticThisUsage"/>
 
-    <!-- A class's members as its header allows: private, not protected, in a final class that extends no class and
-         uses no trait; static for a private method that doesn't use $this; implements Stringable with __toString();
-         and a warning for __sleep() and __wakeup() -->
-    <rule ref="Jumbo.Classes.ClassMembers"/>
+    <!-- A member's modifiers as its class allows or needs: private, not protected, where nothing else can see it, and
+         static for a private method that doesn't use $this -->
+    <rule ref="Jumbo.Classes.MemberModifiers"/>
+
+    <!-- What magic methods imply: implements Stringable with __toString(), and a warning for __sleep() and
+         __wakeup() -->
+    <rule ref="Jumbo.Classes.MagicMethods"/>
 
     <rule ref="SlevomatCodingStandard.Classes.ClassLength">
         <properties>

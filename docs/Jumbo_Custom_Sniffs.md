@@ -8,10 +8,11 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | ---------------------------------------------------------- | --------------------------------------------------------------- | ------- |
 | `Jumbo.Arrays.ArrayDeclaration`                            | A multi-line array is on one line if it fits                    | Yes     |
 | `Jumbo.Arrays.ElementComma`                                | A multi-line array element's comma on the element's last line   | Yes     |
-| `Jumbo.Classes.ClassMembers`                               | Members as the header allows, as `private` in a final class     | Mostly  |
 | `Jumbo.Classes.ConstantSpacing`                            | Blank lines after a constant, safe on the last line             | Yes     |
 | `Jumbo.Classes.EmptyLinesAroundClassBraces`                | No blank lines inside class braces, allowing `{}`               | Yes     |
 | `Jumbo.Classes.EnumCaseSpacing`                            | Blank lines after an enum case, safe on the last line           | Yes     |
+| `Jumbo.Classes.MagicMethods`                               | `implements \Stringable` with `__toString()`; no `__sleep()`    | Mostly  |
+| `Jumbo.Classes.MemberModifiers`                            | `private` where nothing else sees it; `static` without `$this`  | Yes     |
 | `Jumbo.Classes.PropertySpacing`                            | Blank lines after a property, safe on the last line             | Yes     |
 | `Jumbo.Classes.RequireSingleLineClassHeader`               | A split class, interface or enum header fits on a line          | Yes     |
 | `Jumbo.Classes.RequireSingleLineMethodSignature`           | A short signature on one line, skipping a promoted hook         | Yes     |
@@ -131,32 +132,73 @@ $messages = [
 
 ---
 
-## Jumbo.Classes.ClassMembers
+## Jumbo.Classes.ConstantSpacing, EnumCaseSpacing and PropertySpacing
 
-Checks a class's members against what its header allows:
+Enforce the blank lines after a class constant, enum case or property. These replace
+`SlevomatCodingStandard.Classes.ConstantSpacing`, `EnumCaseSpacing` and `PropertySpacing`, and skip a member on the last
+line of a file.
 
-- **`ProtectedToPrivate`:** a `protected` constant, property, method or set visibility, as in `protected(set)`, in a
-  final class that extends no class and uses no trait becomes `private`, as nothing else can see it.
-- **`StaticPrivateMethod`:** a private method whose body never uses `$this` becomes `static`, and its `$this->name()`
-  calls in the class become `self::name()`. It's left alone if it calls a method of the class that isn't static, or
-  one the sniff can't see, or uses `parent::`, a closure that isn't static, or `get_class()` with no argument. A method
-  that calls one made static qualifies on phpcbf's next pass. A magic method is never made static.
+**Why:** the parents assume there's a line after every member, so `public int $a = 1; }` on a file's last line is a PHP
+fatal error. That ends the whole run, and loses the report for every other file. PERCS31 reports the closing brace
+anyway. Each sniff only adds that one check, and can go once Slevomat fixes it.
+
+**Auto-fixable:** yes, as the parents.
+
+---
+
+## Jumbo.Classes.EmptyLinesAroundClassBraces
+
+Disallows blank lines after a class's opening brace and before its closing brace. This replaces
+`SlevomatCodingStandard.Classes.EmptyLinesAroundClassBraces`.
+
+**Why:** `SlevomatCodingStandard.Classes.EmptyLinesAroundClassBraces` rejects an empty body written as `{}` on one line,
+which [PER Coding Style 3.1, Sections 4 and 4.4](https://www.php-fig.org/per/coding-style/#4-classes-properties-and-methods) recommends. This sniff skips that case, and leaves everything else to the
+parent. See [PERCS31.Formatting.EmptyBody](PERCS31_Custom_Sniffs.md#percs31formattingemptybody).
+
+**Auto-fixable:** yes, as the parent.
+
+---
+
+## Jumbo.Classes.MagicMethods
+
+Checks what a class's magic methods imply:
+
 - **`MissingStringable`:** a class with `__toString()` that neither extends a class nor implements an interface gets
   `implements \Stringable`, which PHP adds anyway. With another interface, `Stringable` may already be inherited.
 - **`SleepWakeup`,** a warning: `__sleep()` and `__wakeup()` are superseded by `__serialize()` and
   `__unserialize()`. Not fixed, as `__sleep()` returns property names where `__serialize()` returns the data.
 
-**Why:** PER Coding Style 3.1 has no rules for these, so this is an extra rule. Each says what the code already does:
-a member nothing else can reach is private, a method that needs no object is static, and a class that can be a string
-says so. These are php-cs-fixer's `protected_to_private`, `static_private_method`, `stringable_for_to_string` and
+**Why:** PER Coding Style 3.1 has no rules for these, so this is an extra rule. A class that can be a string says so,
+and the newer serialization methods work with the data itself. These are php-cs-fixer's `stringable_for_to_string` and
 `modern_serialization_methods`.
 
-**Auto-fixable:** yes, except `SleepWakeup`.
+**Auto-fixable:** `MissingStringable` only.
+
+---
+
+## Jumbo.Classes.MemberModifiers
+
+Checks a member's modifiers against what its class allows or needs:
+
+- **`ProtectedToPrivate`:** a `protected` constant, property, method or set visibility, as in `protected(set)`, becomes
+  `private` where nothing else can see it: in a final class that extends no class and uses no trait, or an enum that
+  uses no trait.
+- **`StaticPrivateMethod`:** a private method whose body never uses `$this` becomes `static`, and its `$this->name()`
+  calls in the class become `self::name()`. It's left alone if it calls a method of the class that isn't static, or
+  one the sniff can't see, or uses `parent::`, a closure that isn't static, or `get_class()` with no argument. A method
+  that calls one made static qualifies on phpcbf's next pass. A magic method is never made static, and a trait's
+  methods aren't checked.
+
+**Why:** PER Coding Style 3.1 has no rules for these, so this is an extra rule. Each says what the code already does:
+a member nothing else can reach is private, and a method that needs no object is static. These are php-cs-fixer's
+`protected_to_private` and `static_private_method`.
+
+**Auto-fixable:** yes.
 
 **Good:**
 
 ```php
-final class Price implements \Stringable
+final class Price
 {
     private int $cents;
 
@@ -190,33 +232,6 @@ final class Price
     }
 }
 ```
-
----
-
-## Jumbo.Classes.ConstantSpacing, EnumCaseSpacing and PropertySpacing
-
-Enforce the blank lines after a class constant, enum case or property. These replace
-`SlevomatCodingStandard.Classes.ConstantSpacing`, `EnumCaseSpacing` and `PropertySpacing`, and skip a member on the last
-line of a file.
-
-**Why:** the parents assume there's a line after every member, so `public int $a = 1; }` on a file's last line is a PHP
-fatal error. That ends the whole run, and loses the report for every other file. PERCS31 reports the closing brace
-anyway. Each sniff only adds that one check, and can go once Slevomat fixes it.
-
-**Auto-fixable:** yes, as the parents.
-
----
-
-## Jumbo.Classes.EmptyLinesAroundClassBraces
-
-Disallows blank lines after a class's opening brace and before its closing brace. This replaces
-`SlevomatCodingStandard.Classes.EmptyLinesAroundClassBraces`.
-
-**Why:** `SlevomatCodingStandard.Classes.EmptyLinesAroundClassBraces` rejects an empty body written as `{}` on one line,
-which [PER Coding Style 3.1, Sections 4 and 4.4](https://www.php-fig.org/per/coding-style/#4-classes-properties-and-methods) recommends. This sniff skips that case, and leaves everything else to the
-parent. See [PERCS31.Formatting.EmptyBody](PERCS31_Custom_Sniffs.md#percs31formattingemptybody).
-
-**Auto-fixable:** yes, as the parent.
 
 ---
 
