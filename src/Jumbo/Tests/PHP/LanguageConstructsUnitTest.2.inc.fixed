@@ -1,0 +1,32 @@
+<?php
+
+// isset(): allowed.
+$a = isset($a) || isset($b);
+$a = !isset($a) && isset($b);
+$a = isset($a) && isset($b) === $c;
+$a = $c == isset($a) && isset($b);
+
+// isset(): reported.
+$a = isset($a, $b);
+$a = isset($a, $b, $c, $d);
+if (isset($a['x'], $b) || $c) {
+}
+$a = !isset($a) && isset($b, $c);
+$a = isset($a, $b) && isset($c) === $d;
+$a = isset($a, $b);
+$a = isset($a) /* why */ && isset($b);
+
+// unset(): allowed.
+unset($a);
+foo();
+unset($b);
+foo();
+unset($a); // Done.
+unset($b);
+if ($a) unset($a);
+
+// unset(): reported.
+unset($a, $b);
+foo();
+unset($a, $b, $c);
+if ($a) unset($a); unset($b, $c);

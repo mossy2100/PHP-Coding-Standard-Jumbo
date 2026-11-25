@@ -23,6 +23,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.ControlStructures.LanguageConstructWithParentheses` | No `echo('x')`, allowing `exit()` and `die()`                   | Yes     |
 | `Jumbo.ControlStructures.MatchArmWrapIndent`               | One line if it fits, else a wrapped `match` arm indented once   | Yes     |
 | `Jumbo.ControlStructures.RequireShortTernaryOperator`      | `$a ?: $b`, skipping a nullable type in a `set` hook            | Yes     |
+| `Jumbo.ControlStructures.SimplifyForLoop`                  | `while ($a)`, not `for (; $a;)`, and `while (true)`             | Yes     |
 | `Jumbo.Formatting.RequireSingleLineStatement`              | A split statement or `case` label fits on a line                | Yes     |
 | `Jumbo.Functions.RequireSingleLineCall`                    | A call that fits is on one line, skipping a class or `match`    | Yes     |
 | `Jumbo.Functions.RequireSingleLineSignature`               | A split function or closure signature fits on a line            | Yes     |
@@ -35,7 +36,8 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.PHP.EmbeddedPhp`                                    | A block's tags on their own lines, level with its code          | Mostly  |
 | `Jumbo.PHP.FunctionCalls`                                  | Calls with a better form, such as a cast for `intval()`         | Mostly  |
 | `Jumbo.PHP.IntegerLiteral`                                 | `0xFF` and `0o755`, not `0XFF`, `0xff` or `0755`                | Yes     |
-| `Jumbo.PHP.SimplifySyntax`                                 | The simpler form, such as `while ($a)` for `for (; $a;)`        | Mostly  |
+| `Jumbo.PHP.LanguageConstructs`                             | `exit`, not `die`, and one `isset()` for several                | Yes     |
+| `Jumbo.PHP.RemoveUselessCode`                              | No code that does nothing, such as `$this?->`                   | Mostly  |
 | `Jumbo.PhpUnit.RequireDedicatedAssertions`                 | PHPUnit's dedicated assertions, such as `assertIsInt($a)`       | Yes     |
 | `Jumbo.PhpUnit.TestClass`                                  | No PHPUnit annotations, and the `setUp()` hooks `protected`     | Yes     |
 | `Jumbo.Strings.RequireBracedVariables`                     | Braces around every variable in a string, as in `"{$name}"`     | Yes     |
@@ -603,6 +605,25 @@ Slevomat sniff then looks for a `:` that isn't there, and the error stops the fi
 
 ---
 
+## Jumbo.ControlStructures.SimplifyForLoop
+
+Requires a `while` loop where a `for` loop has only a condition, or none:
+
+| Code          | Bad                | Good              |
+| ------------- | ------------------ | ----------------- |
+| `CanSimplify` | `for (; $i < 10;)` | `while ($i < 10)` |
+| `Infinite`    | `for (;;)`         | `while (true)`    |
+
+A condition of several expressions, as in `for (; $a, $b;)`, can't be a `while` loop's, so it's left alone.
+
+**Why:** PER Coding Style 3.1 has no rule for this, so this is an extra rule. A `for` loop with nothing to set up or
+step is a `while` loop, written less plainly. This replaces `Generic.CodeAnalysis.ForLoopShouldBeWhileLoop`, which only
+warned, and adds php-cs-fixer's `empty_loop_condition`.
+
+**Auto-fixable:** yes, unless a comment is in a part the fix would remove.
+
+---
+
 ## Jumbo.Formatting.RequireSingleLineStatement, and the signature and class header sniffs
 
 Require code split across lines to be written on one line, if the whole resulting line fits within `maxLineLength`.
@@ -993,15 +1014,14 @@ HTML's whitespace.
 
 Reports calls to PHP's functions that have a better form, and fixes them where the fix is certain to keep what the code
 does. Only calls to PHP's global functions are checked: an unqualified name that a `use function` statement imports
-from elsewhere, or that the file declares a function by, is left alone.
+from elsewhere, or that the file declares a function by, is left alone. Language constructs, such as `die` and
+`print`, are [`LanguageConstructs`](#jumbophplanguageconstructs)'.
 
 | Code                   | Reported                                                     | Fixed to                                    |
 | ---------------------- | ------------------------------------------------------------ | ------------------------------------------- |
 | `CastFunction`         | `strval()`, `intval()`, `floatval()`, `boolval()`            | A cast, as in `(int) $a`                    |
 | `SetType`              | `settype($a, 'int');`, as a statement, with a literal type   | `$a = (int) $a;`                            |
 | `FunctionAlias`        | An alias, such as `sizeof()`, `join()` or `is_integer()`     | The main name: `count()`, `implode()` ...   |
-| `DieAlias`             | `die`                                                        | `exit`                                      |
-| `PrintStatement`       | `print 'x';`, as a statement                                 | `echo 'x';`                                 |
 | `DedicatedIniFunction` | `ini_set()` for a setting with its own function              | The function, as a statement with a literal |
 | `ModernStringFunction` | `strpos($h, $n) !== false`, `=== 0` and the like             | `str_contains()`, `str_starts_with()` ...   |
 | `ArrayFirstLast`       | `$a[array_key_first($a)]`, with `php_version` 8.5 or later   | `array_first($a)`                           |
@@ -1096,54 +1116,55 @@ $mode = 0755;
 
 ---
 
-## Jumbo.PHP.SimplifySyntax
+## Jumbo.PHP.LanguageConstructs
 
-Requires the simpler of two ways to write the same thing, where both behave the same:
+Reports language constructs that have a better form, and fixes them:
 
-| Code                | Bad                         | Good                       |
-| ------------------- | --------------------------- | -------------------------- |
-| `CanSimplify`       | `for (; $i < 10;)`          | `while ($i < 10)`          |
-| `Infinite`          | `for (;;)`                  | `while (true)`             |
-| `ConsecutiveIssets` | `isset($a) && isset($b)`    | `isset($a, $b)`            |
-| `ConsecutiveUnsets` | `unset($a);` `unset($b);`   | `unset($a, $b);`           |
-| `NullsafeThis`      | `$this?->name`              | `$this->name`              |
-| `BinaryString`      | `b'abc'`                    | `'abc'`                    |
-| `UnneededBraces`    | `{ foo(); }`, on its own    | `foo();`                   |
-| `UselessReturn`     | `return;` at a function end | nothing                    |
+| Code                | Bad                                | Good             |
+| ------------------- | ---------------------------------- | ---------------- |
+| `DieAlias`          | `die`                              | `exit`           |
+| `PrintStatement`    | `print 'x';`, as a statement       | `echo 'x';`      |
+| `ConsecutiveIssets` | `isset($a) && isset($b)`           | `isset($a, $b)`  |
+| `ConsecutiveUnsets` | `unset($a);` then `unset($b);`     | `unset($a, $b);` |
 
+- **`print`:** only as a statement. One whose value is used, as in `$a = print 'x';`, is left alone.
 - **`isset()`:** only calls that are whole operands of `&&`, so `!isset($a) && isset($b)` and
   `isset($a) && isset($b) === $c` are left alone.
 - **`unset()`:** only statements with nothing between them, not even a comment.
-- **Braces:** a block that isn't a control structure's, function's or class's, including one after `case 1:`. A block
-  with a function or class declared in it is left alone, as the braces make the declaration conditional.
+
+**Why:** PER Coding Style 3.1 has no rule for these, so this is an extra rule. `exit` is the main name and `die` its
+alias, `echo` is the statement `print` imitates, and one `isset()` or `unset()` says it once. These are
+php-cs-fixer's `no_alias_language_construct_call`, `no_mixed_echo_print`, `combine_consecutive_issets` and
+`combine_consecutive_unsets`.
+
+**Auto-fixable:** yes, unless a comment is in the code the fix would remove.
+
+---
+
+## Jumbo.PHP.RemoveUselessCode
+
+Requires code that does nothing to be removed:
+
+| Code             | Bad                                 | Good          |
+| ---------------- | ----------------------------------- | ------------- |
+| `NullsafeThis`   | `$this?->name`                      | `$this->name` |
+| `BinaryString`   | `b'abc'`                            | `'abc'`       |
+| `UnneededBraces` | `{ foo(); }`, a block on its own    | `foo();`      |
+| `UselessReturn`  | `return;` at the end of a function  | nothing       |
+
+- **Braces:** a block that isn't a control structure's, function's or class's, including one inside a `case` body,
+  followed by more of it. Braces that wrap a whole `case` body are
+  [`PERCS31.ControlStructures.SwitchDeclaration`](PERCS31_Custom_Sniffs.md#percs31controlstructuresswitchdeclaration)'s.
+  A block with a function or class declared in it is left alone, as the braces make the declaration conditional.
 - **`return;`:** only the last statement of a function or closure. One that ends a branch early is left alone.
 
-**Why:** PER Coding Style 3.1 has no rule for these, so this is an extra rule. Each pair behaves the same, so the
-shorter form says it with less to read: `$this` is never null, the `b` prefix has done nothing since PHP 6 was
-dropped, and braces don't make a scope in PHP. These are Generic.CodeAnalysis.ForLoopShouldBeWhileLoop, which it
-replaces, with a fix, php-cs-fixer's `empty_loop_condition`, `combine_consecutive_issets`,
-`combine_consecutive_unsets` and `no_useless_nullsafe_operator`, and Laravel Pint's `no_binary_string`,
-`no_unneeded_braces` and `no_useless_return`.
+**Why:** PER Coding Style 3.1 has no rule for these, so this is an extra rule. `$this` is never null, the `b` prefix
+has done nothing since PHP 6 was dropped, braces don't make a scope in PHP, and a function returns at its end anyway.
+These are php-cs-fixer's `no_useless_nullsafe_operator`, and Laravel Pint's `no_binary_string`, `no_unneeded_braces`
+and `no_useless_return`.
 
-**Auto-fixable:** yes, unless a comment is in the code the fix would remove. The fix for braces leaves the block's
-code indented as it was, for the indent sniff to fix.
-
-**Good:**
-
-```php
-while ($i < 10) {
-    unset($a[$i], $b[$i]);
-}
-```
-
-**Bad:**
-
-```php
-for (; $i < 10;) {
-    unset($a[$i]);
-    unset($b[$i]);
-}
-```
+**Auto-fixable:** yes, unless a comment is in the code the fix would remove. The fix for braces leaves the block's code
+indented as it was, for the indent sniff to fix.
 
 ---
 

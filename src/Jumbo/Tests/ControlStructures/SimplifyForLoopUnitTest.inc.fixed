@@ -1,0 +1,23 @@
+<?php
+
+// For loops: allowed.
+for ($i = 0; $i < 10; $i++) {
+}
+for (; $i < 10; $i++) {
+}
+for (; $a, $b;) {
+}
+
+// For loops: reported.
+while ($i < 10) {
+}
+while ($i < 10) {
+}
+while (true) {
+}
+while ($i < 10):
+endwhile;
+for (/* start */; $i < 10;) {
+}
+for (; /* ever */;) {
+}

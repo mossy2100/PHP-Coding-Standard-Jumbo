@@ -45,11 +45,9 @@ class FunctionCallsUnitTest extends AbstractSniffTestCase
             // settype().
             6 => 1,
             7 => 1,
-            // Aliases, die and a print statement, but not a print whose value is used.
+            // Aliases.
             8 => 1,
             9 => 1,
-            10 => 1,
-            11 => 1,
             // ini_set() with a dedicated function (as a statement, and not), ini_alter(), and a cookie setting.
             13 => 1,
             14 => 1,
@@ -95,6 +93,6 @@ class FunctionCallsUnitTest extends AbstractSniffTestCase
     protected function getWarningList(string $testFile = ''): array
     {
         // fopen()'s text mode.
-        return $testFile === 'FunctionCallsUnitTest.2.inc' ? [] : [42 => 1];
+        return $testFile === 'FunctionCallsUnitTest.inc' ? [42 => 1] : [];
     }
 }

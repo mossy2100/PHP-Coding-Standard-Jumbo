@@ -16,8 +16,7 @@ use PHP_CodeSniffer\Util\Tokens;
  * - CastFunction: `strval()`, `intval()`, `floatval()` and `boolval()` to a cast. A call with a base, or a first-class
  *   callable, is left alone.
  * - SetType: `settype($a, 'int');` to `$a = (int) $a;`, as a statement with a literal type.
- * - FunctionAlias: a function's alias to its main name, such as `sizeof()` to `count()`. DieAlias: `die` to `exit`.
- *   PrintStatement: `print` to `echo`, as a statement, where its value isn't used.
+ * - FunctionAlias: a function's alias to its main name, such as `sizeof()` to `count()`.
  * - DedicatedIniFunction: `ini_set()` for a setting with a function of its own, such as `set_time_limit()` for
  *   `max_execution_time`. Fixed only as a statement with a literal value, as the return values and types differ.
  * - ModernStringFunction: `strpos()`, `substr()`, `strncmp()` and `substr_compare()` comparisons to `str_contains()`,
@@ -31,7 +30,8 @@ use PHP_CodeSniffer\Util\Tokens;
  * - FopenTextMode: a warning for `t` in a literal `fopen()` mode, Windows-only text mode. Not fixed.
  *
  * Only calls to PHP's global functions are checked: an unqualified name that a `use function` statement imports from
- * elsewhere, or that the file declares a function by, is left alone.
+ * elsewhere, or that the file declares a function by, is left alone. Language constructs, such as `die` and `print`,
+ * are Jumbo.PHP.LanguageConstructs'.
  */
 class FunctionCallsSniff implements Sniff
 {
@@ -40,10 +40,6 @@ class FunctionCallsSniff implements Sniff
     public const string CODE_SET_TYPE = 'SetType';
 
     public const string CODE_FUNCTION_ALIAS = 'FunctionAlias';
-
-    public const string CODE_DIE_ALIAS = 'DieAlias';
-
-    public const string CODE_PRINT_STATEMENT = 'PrintStatement';
 
     public const string CODE_DEDICATED_INI_FUNCTION = 'DedicatedIniFunction';
 
@@ -219,7 +215,7 @@ class FunctionCallsSniff implements Sniff
      */
     public function register(): array
     {
-        return [T_STRING, T_NAME_FULLY_QUALIFIED, T_EXIT, T_PRINT];
+        return [T_STRING, T_NAME_FULLY_QUALIFIED];
     }
 
     /**
@@ -230,12 +226,6 @@ class FunctionCallsSniff implements Sniff
      */
     public function process(File $phpcsFile, int $stackPtr): void
     {
-        $code = $phpcsFile->getTokens()[$stackPtr]['code'];
-        if ($code === T_EXIT || $code === T_PRINT) {
-            $code === T_EXIT ? self::processDie($phpcsFile, $stackPtr) : self::processPrint($phpcsFile, $stackPtr);
-            return;
-        }
-
         $name = FunctionCallHelper::globalFunctionName($phpcsFile, $stackPtr);
         $arguments = $name === null ? null : FunctionCallHelper::arguments($phpcsFile, $stackPtr);
         if ($name === null || $arguments === null) {
@@ -263,43 +253,6 @@ class FunctionCallsSniff implements Sniff
             $name === 'fopen' => self::processFopen($phpcsFile, $stackPtr, $arguments),
             default => null,
         };
-    }
-
-    /**
-     * Report `die`, and fix it to `exit`.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $stackPtr The position of the keyword.
-     */
-    private static function processDie(File $phpcsFile, int $stackPtr): void
-    {
-        $content = $phpcsFile->getTokens()[$stackPtr]['content'];
-        if (strtolower($content) !== 'die') {
-            return;
-        }
-
-        if ($phpcsFile->addFixableError('Use exit, not its alias %s', $stackPtr, self::CODE_DIE_ALIAS, [$content])) {
-            $phpcsFile->fixer->replaceToken($stackPtr, 'exit');
-        }
-    }
-
-    /**
-     * Report `print` as a statement, whose value isn't used, and fix it to `echo`.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $stackPtr The position of the keyword.
-     */
-    private static function processPrint(File $phpcsFile, int $stackPtr): void
-    {
-        $end = $phpcsFile->findNext([T_SEMICOLON, T_CLOSE_TAG], ($stackPtr + 1));
-        $last = $end === false ? false : $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($end - 1), null, true);
-        if ($last === false || !FunctionCallHelper::isStatement($phpcsFile, $stackPtr, $last)) {
-            return;
-        }
-
-        if ($phpcsFile->addFixableError('Use echo, not print, as a statement', $stackPtr, self::CODE_PRINT_STATEMENT)) {
-            $phpcsFile->fixer->replaceToken($stackPtr, 'echo');
-        }
     }
 
     /**
@@ -340,7 +293,11 @@ class FunctionCallsSniff implements Sniff
         $variable = $arguments[0]['clean'] ?? '';
         if (
             $type === null || !array_key_exists($type, self::SET_TYPES) || preg_match('/^\$\w+$/', $variable) !== 1
-            || !FunctionCallHelper::isStatement($phpcsFile, $stackPtr, self::closer($phpcsFile, $stackPtr))
+            || !FunctionCallHelper::isStatement(
+                $phpcsFile,
+                $stackPtr,
+                FunctionCallHelper::closer($phpcsFile, $stackPtr),
+            )
         ) {
             return;
         }
@@ -397,8 +354,11 @@ class FunctionCallsSniff implements Sniff
 
         [$replacement, $type] = $function;
         $value = $type === null ? null : self::convertIniValue($phpcsFile, $arguments[1], $type);
-        $isFixable = $value !== null
-            && FunctionCallHelper::isStatement($phpcsFile, $stackPtr, self::closer($phpcsFile, $stackPtr));
+        $isFixable = $value !== null && FunctionCallHelper::isStatement(
+            $phpcsFile,
+            $stackPtr,
+            FunctionCallHelper::closer($phpcsFile, $stackPtr),
+        );
         $error = 'Use %s() instead of %s(\'%s\')';
         $data = [$replacement, $name, (string) $setting];
         if (!$isFixable) {
@@ -541,7 +501,7 @@ class FunctionCallsSniff implements Sniff
     {
         $tokens = $phpcsFile->getTokens();
         $bracket = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
-        $closer = self::closer($phpcsFile, $stackPtr);
+        $closer = FunctionCallHelper::closer($phpcsFile, $stackPtr);
         $after = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($closer + 1), null, true);
         if (
             (FunctionCallHelper::minimumPhpVersion() ?? 0) < 80500 || count($arguments) !== 1 || $bracket === false
@@ -607,7 +567,11 @@ class FunctionCallsSniff implements Sniff
         if (
             count($arguments) !== 2
             || !FunctionCallHelper::isSimpleOperand($phpcsFile, $arguments[0]['start'], $arguments[0]['end'])
-            || !FunctionCallHelper::isStatement($phpcsFile, $stackPtr, self::closer($phpcsFile, $stackPtr))
+            || !FunctionCallHelper::isStatement(
+                $phpcsFile,
+                $stackPtr,
+                FunctionCallHelper::closer($phpcsFile, $stackPtr),
+            )
         ) {
             return;
         }
@@ -667,7 +631,9 @@ class FunctionCallsSniff implements Sniff
             return;
         }
 
-        if (!FunctionCallHelper::isStatement($phpcsFile, $stackPtr, self::closer($phpcsFile, $stackPtr))) {
+        if (
+            !FunctionCallHelper::isStatement($phpcsFile, $stackPtr, FunctionCallHelper::closer($phpcsFile, $stackPtr))
+        ) {
             return;
         }
 
@@ -692,7 +658,12 @@ class FunctionCallsSniff implements Sniff
 
         $code = "{$this->operand($phpcsFile, $arguments[0])} ** {$this->operand($phpcsFile, $arguments[1])}";
         $tokens = $phpcsFile->getTokens();
-        $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, (self::closer($phpcsFile, $stackPtr) + 1), null, true);
+        $next = $phpcsFile->findNext(
+            Tokens::EMPTY_TOKENS,
+            (FunctionCallHelper::closer($phpcsFile, $stackPtr) + 1),
+            null,
+            true,
+        );
         if ($next !== false && $tokens[$next]['code'] === T_POW) {
             // ** is right-associative, so pow($a, $b) ** $c needs the parentheses.
             $code = "({$code})";
@@ -834,7 +805,7 @@ class FunctionCallsSniff implements Sniff
     {
         $tokens = $phpcsFile->getTokens();
         $comparisons = [T_IS_IDENTICAL, T_IS_NOT_IDENTICAL, T_GREATER_THAN, T_LESS_THAN];
-        $closer = self::closer($phpcsFile, $stackPtr);
+        $closer = FunctionCallHelper::closer($phpcsFile, $stackPtr);
         $after = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($closer + 1), null, true);
         $before = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
         if ($after !== false && in_array($tokens[$after]['code'], $comparisons, true)) {
@@ -951,7 +922,12 @@ class FunctionCallsSniff implements Sniff
         }
 
         $inner = FunctionCallHelper::arguments($phpcsFile, $start);
-        if ($inner === null || count($inner) !== 1 || self::closer($phpcsFile, $start) !== $argument['end']) {
+        if (
+            $inner === null || count($inner) !== 1 || FunctionCallHelper::closer(
+                $phpcsFile,
+                $start,
+            ) !== $argument['end']
+        ) {
             return null;
         }
 
@@ -1046,18 +1022,6 @@ class FunctionCallsSniff implements Sniff
     }
 
     /**
-     * Get a call's closing parenthesis.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $stackPtr The position of the function's name.
-     * @return int The position of the parenthesis.
-     */
-    private static function closer(File $phpcsFile, int $stackPtr): int
-    {
-        return $phpcsFile->getTokens()[FunctionCallHelper::opener($phpcsFile, $stackPtr)]['parenthesis_closer'];
-    }
-
-    /**
      * Replace a call, from its name to its closing parenthesis.
      *
      * @param File $phpcsFile The file being fixed.
@@ -1066,7 +1030,7 @@ class FunctionCallsSniff implements Sniff
      */
     private static function replaceCall(File $phpcsFile, int $stackPtr, string $code): void
     {
-        self::replace($phpcsFile, $stackPtr, self::closer($phpcsFile, $stackPtr), $code);
+        self::replace($phpcsFile, $stackPtr, FunctionCallHelper::closer($phpcsFile, $stackPtr), $code);
     }
 
     /**

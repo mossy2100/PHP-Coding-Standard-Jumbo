@@ -120,6 +120,18 @@ class FunctionCallHelper
     }
 
     /**
+     * Get a call's closing parenthesis.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $stackPtr The position of the function's name, or a language construct such as `isset`.
+     * @return int The position of the parenthesis.
+     */
+    public static function closer(File $phpcsFile, int $stackPtr): int
+    {
+        return (int) $phpcsFile->getTokens()[self::opener($phpcsFile, $stackPtr)]['parenthesis_closer'];
+    }
+
+    /**
      * Get a call's arguments, by position.
      *
      * @param File $phpcsFile The file being scanned.

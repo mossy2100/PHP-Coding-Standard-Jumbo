@@ -1,0 +1,73 @@
+<?php
+
+// Nullsafe $this: allowed, then reported.
+$a = $that?->b;
+$a = $this->b?->c;
+$a = $this->b;
+$a = $this->b();
+
+// Binary strings: allowed, then reported.
+$a = 'b';
+$a = 'abc';
+$a = "abc";
+$a = <<<EOT
+    abc
+    EOT;
+$a = <<<'EOT'
+    abc
+    EOT;
+
+// Braces: allowed.
+if ($a) {
+}
+$a = function () {
+};
+$a->{'b'} = 1;
+switch ($a) {
+    case 1: {
+        foo();
+        break;
+    }
+}
+{
+    function bar()
+    {
+    }
+}
+
+// Braces: reported.
+    foo();
+switch ($a) {
+    case 1:
+        foo();
+        break;
+}
+foo();
+
+// Return: allowed.
+function one()
+{
+    if ($a) {
+        return;
+    }
+
+    foo();
+}
+function two()
+{
+    return 1;
+}
+
+// Return: reported.
+function three()
+{
+    foo();
+}
+$a = function () {
+    foo();
+    // Done.
+};
+function four()
+{
+    return /* nothing */;
+}

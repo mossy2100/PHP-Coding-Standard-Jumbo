@@ -1,0 +1,8 @@
+<?php
+
+// die and print: reported, apart from a print whose value is used, and exit.
+exit('Stopped');
+exit;
+echo 'Hello';
+$h = print 'x';
+exit(1);

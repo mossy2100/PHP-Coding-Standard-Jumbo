@@ -2,24 +2,21 @@
 
 // A case body wrapped in braces, before a default. The parent sniff crashed on this, so the file's checks stopped.
 switch ($a) {
-    case 2: {
+    case 2:
         echo 2;
-    }
     default:
         echo 3;
-    break;
+        break;
 }
 
 // Both bodies wrapped in braces.
 switch ($a) {
-    case 1: {
+    case 1:
         echo 1;
         break;
-    }
-    default: {
+    default:
         echo 2;
         break;
-    }
 }
 
 // A switch after them is still checked.
@@ -48,9 +45,9 @@ switch ($a) {
 
 // A block followed by a comment, then the next label, wraps the body.
 switch ($a) {
-    case 1: {
+    case 1:
         echo 1;
-    } // No break.
+    // No break.
     case 2:
         echo 2;
         break;

@@ -240,4 +240,36 @@ class FixerHelper
             $phpcsFile->fixer->addContentBefore($ptr, str_repeat(' ', $spaces));
         }
     }
+
+    /**
+     * Remove a token in a fix, with its line if it's alone on it, or else with the whitespace beside it.
+     *
+     * It doesn't start a changeset, so it can be used inside one.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $ptr The position of the token.
+     */
+    public static function removeWithLine(File $phpcsFile, int $ptr): void
+    {
+        $tokens = $phpcsFile->getTokens();
+        $before = $ptr - 1;
+        $after = $ptr + 1;
+        $hasIndent = $tokens[$before]['code'] === T_WHITESPACE && $tokens[$before]['line'] === $tokens[$ptr]['line']
+            && $tokens[$before]['column'] === 1;
+        $isLineStart = $tokens[$ptr]['column'] === 1 || $hasIndent;
+        $isLineEnd = isset($tokens[$after]) && $tokens[$after]['code'] === T_WHITESPACE
+            && str_starts_with($tokens[$after]['content'], $phpcsFile->eolChar);
+
+        $phpcsFile->fixer->replaceToken($ptr, '');
+        if ($isLineStart && $isLineEnd) {
+            $phpcsFile->fixer->replaceToken($after, substr($tokens[$after]['content'], strlen($phpcsFile->eolChar)));
+            if ($hasIndent) {
+                $phpcsFile->fixer->replaceToken($before, '');
+            }
+        } elseif ($isLineEnd && $tokens[$before]['code'] === T_WHITESPACE) {
+            $phpcsFile->fixer->replaceToken($before, '');
+        } elseif (!$isLineEnd && isset($tokens[$after]) && $tokens[$after]['code'] === T_WHITESPACE) {
+            $phpcsFile->fixer->replaceToken($after, '');
+        }
+    }
 }

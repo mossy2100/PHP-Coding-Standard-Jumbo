@@ -329,4 +329,28 @@ class TokenHelper
 
         return $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($ellipsis + 1), $closer, true) === false ? $ellipsis : null;
     }
+
+    /**
+     * Check whether a block straight after a label wraps the whole of the case's body: the next thing after its `}`,
+     * apart from white space and comments, is another label or the switch's `}`. A block followed by anything else,
+     * even a `break`, is a block inside the body.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $opener The position of the block's `{`.
+     * @return bool True if the block is the whole body.
+     */
+    public static function wrapsCaseBody(File $phpcsFile, int $opener): bool
+    {
+        $tokens = $phpcsFile->getTokens();
+
+        // PHP_CodeSniffer gives a case's braces a scope, but not a bracket_closer.
+        $closer = $tokens[$opener]['scope_closer'] ?? null;
+        if (!is_int($closer)) {
+            return true;
+        }
+
+        $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($closer + 1), null, true);
+
+        return $next === false || in_array($tokens[$next]['code'], [T_CASE, T_DEFAULT, T_CLOSE_CURLY_BRACKET], true);
+    }
 }

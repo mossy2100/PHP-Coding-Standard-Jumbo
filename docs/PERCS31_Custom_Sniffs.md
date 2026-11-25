@@ -1159,15 +1159,17 @@ lines only because a call or array in it does is multi-line too, so `case foo(` 
 indented further is reported as `MultiLineConditionCloserIndent`, and one indented too little by
 [`PERCS31.WhiteSpace.ScopeIndent`](#percs31whitespacescopeindent). See [Further Indents](PER-CS_3.1_Judgement_Calls.md#further-indents).
 
-A `case` or `default` body wrapped in braces is reported as `BodyInBraces`. It's wrapped when a block starts straight
+A `case` or `default` body wrapped in braces is reported as `CaseBodyInBraces`, and fixed by removing the braces. It's
+wrapped when a block starts straight
 after the label, and its `}` is followed by the next label or the switch's `}`. A block followed by more of the body,
 even just `break`, passes, as section 5.2 only forbids wrapping the body, and the case gets every other check, measured
 from its colon. The original reports every block straight after a label. It also crashes after a braced body, so the
 rest of the file wasn't checked, and `phpcbf` stopped, which the fork fixes. See [A Block in a `case`](PER-CS_3.1_Judgement_Calls.md#a-block-in-a-case).
 
-**Auto-fixable:** yes. The fix adds `break;` before the `}`, adds the parentheses, moves the `)` to its own line, moves
-the first condition to the next line, or indents a line. It's left to a person when there's a comment in the way, or the
-`}` follows code on its line. A `default` that falls through isn't fixable, as only a person knows if that's intended.
+**Auto-fixable:** yes. The fix removes the braces around a body, adds `break;` before the `}`, adds the parentheses,
+moves the `)` to its own line, moves the first condition to the next line, or indents a line. It's left to a person when
+there's a comment in the way, or the `}` follows code on its line. A `default` that falls through isn't fixable, as only
+a person knows if that's intended.
 
 **Good:**
 

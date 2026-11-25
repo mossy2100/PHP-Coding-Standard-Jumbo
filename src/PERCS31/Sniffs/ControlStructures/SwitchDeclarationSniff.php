@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PERCS31\Sniffs\ControlStructures;
 
 use PERCS31\Helpers\FixerHelper;
+use PERCS31\Helpers\TokenHelper;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;
@@ -21,9 +22,9 @@ use PHP_CodeSniffer\Util\Tokens;
  *   checks, and stops phpcbf altogether.
  *
  * Every change from the original is marked with a "PERCS31:" comment. They are:
- * - A body is reported as wrapped in braces, as BodyInBraces, only when a block starts straight after the label, and
- *   its `}` is followed by the next label or the switch's `}`. A block followed by anything else is part of the body,
- *   and the case gets every other check, measured from its colon.
+ * - A body is reported as wrapped in braces, as CaseBodyInBraces, only when a block starts straight after the label,
+ *   and its `}` is followed by the next label or the switch's `}`. The fix removes the braces. A block followed by
+ *   anything else is part of the body, and the case gets every other check, measured from its colon.
  * - The closer's scope_condition is checked before it's read, which fixes the crash.
  * - The last case, if not empty, MUST end with a terminating statement, such as `break` or `return`, "even if they are
  *   the final one". The original only checks a case that's followed by another. The fix adds `break;` before the `}`.
@@ -35,9 +36,9 @@ use PHP_CodeSniffer\Util\Tokens;
  * - Code on a label's line, after its colon, is reported as StatementOnLabelLine. A comment there is allowed. The
  *   original's BodyOnNextLine codes report that, and a blank line after the label too, which section 5.2 doesn't
  *   forbid. The PERCS31 ruleset excludes them, and Jumbo uses them in place of StatementOnLabelLine.
- * - Two codes are renamed. The original's WrongOpener, for a body wrapped in braces, is BodyInBraces, and its message
- *   follows section 5.2's words. Its WrongOpenercase and WrongOpenerdefault, for a label that ends in `;` or `?>`, are
- *   MissingColon.
+ * - Two codes are renamed. The original's WrongOpener, for a body wrapped in braces, is CaseBodyInBraces, and its
+ *   message follows section 5.2's words. Its WrongOpenercase and WrongOpenerdefault, for a label that ends in `;` or
+ *   `?>`, are MissingColon.
  *
  * To update the fork to a new PHP_CodeSniffer release, compare the original with the code here that isn't marked, and
  * run the tests. Remove the fork once upstream handles both problems.
@@ -58,7 +59,7 @@ class SwitchDeclarationSniff implements Sniff
 
     public const string CODE_TERMINATING_COMMENT = 'TerminatingComment';
 
-    public const string CODE_BODY_IN_BRACES = 'BodyInBraces';
+    public const string CODE_CASE_BODY_IN_BRACES = 'CaseBodyInBraces';
 
     public const string CODE_MISSING_COLON = 'MissingColon';
 
@@ -158,13 +159,8 @@ class SwitchDeclarationSniff implements Sniff
             return;
         }
 
-        if ($tokens[$opener]['code'] === T_OPEN_CURLY_BRACKET && self::wrapsWholeBody($phpcsFile, $opener)) {
-            $phpcsFile->addError(
-                'The %s body must not be wrapped in braces',
-                $case,
-                self::CODE_BODY_IN_BRACES,
-                [strtoupper($type)],
-            );
+        if ($tokens[$opener]['code'] === T_OPEN_CURLY_BRACKET && TokenHelper::wrapsCaseBody($phpcsFile, $opener)) {
+            self::reportCaseBodyInBraces($phpcsFile, $case, $opener, $type);
             return;
         }
 
@@ -182,6 +178,41 @@ class SwitchDeclarationSniff implements Sniff
         } else {
             $this->checkLastCase($phpcsFile, $case, $colon, $end);
         }
+    }
+
+    /**
+     * PERCS31: report a body wrapped in braces, and fix it by removing them. The original reports it, with no fix.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $case The position of the label's keyword.
+     * @param int $opener The position of the block's `{`.
+     * @param string $type The kind of label, `case` or `default`.
+     */
+    private static function reportCaseBodyInBraces(File $phpcsFile, int $case, int $opener, string $type): void
+    {
+        // PHP_CodeSniffer gives a case's braces a scope, but not a bracket_closer.
+        $tokens = $phpcsFile->getTokens();
+        $closer = $tokens[$opener]['scope_closer'] ?? null;
+        $isFixable = is_int($closer) && $tokens[$closer]['code'] === T_CLOSE_CURLY_BRACKET;
+        $error = 'The %s body must not be wrapped in braces';
+        $data = [strtoupper($type)];
+        if (
+            !FixerHelper::addFixableErrorIf(
+                $phpcsFile,
+                $isFixable,
+                $error,
+                $case,
+                self::CODE_CASE_BODY_IN_BRACES,
+                $data,
+            )
+        ) {
+            return;
+        }
+
+        $phpcsFile->fixer->beginChangeset();
+        FixerHelper::removeWithLine($phpcsFile, $opener);
+        FixerHelper::removeWithLine($phpcsFile, (int) $closer);
+        $phpcsFile->fixer->endChangeset();
     }
 
     /**
@@ -435,30 +466,6 @@ class SwitchDeclarationSniff implements Sniff
         $isCase = $tokens[$start]['code'] === T_CASE || $tokens[$start]['code'] === T_DEFAULT;
 
         return $isCase && is_int($closer) && $closer > $start && $closer < $semicolon ? $closer : $start;
-    }
-
-    /**
-     * Check whether a block straight after a label wraps the whole of the case's body: the next thing after its `}`,
-     * apart from white space and comments, is another label or the switch's `}`. A block followed by anything else,
-     * even a `break`, is a block inside the body.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $opener The position of the block's `{`.
-     * @return bool True if the block is the whole body.
-     */
-    private static function wrapsWholeBody(File $phpcsFile, int $opener): bool
-    {
-        $tokens = $phpcsFile->getTokens();
-
-        // PHP_CodeSniffer gives a case's braces a scope, but not a bracket_closer.
-        $closer = $tokens[$opener]['scope_closer'] ?? null;
-        if (!is_int($closer)) {
-            return true;
-        }
-
-        $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($closer + 1), null, true);
-
-        return $next === false || in_array($tokens[$next]['code'], [T_CASE, T_DEFAULT, T_CLOSE_CURLY_BRACKET], true);
     }
 
     /**

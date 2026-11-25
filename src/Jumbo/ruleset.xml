@@ -347,9 +347,13 @@
     <!-- A warning for eval() -->
     <rule ref="Squiz.PHP.Eval"/>
 
-    <!-- Calls with a better form: a cast, not intval(); no alias, such as sizeof() or die; str_contains() and the like,
-         not strpos() comparisons; a dedicated function, not ini_set(); and simpler calls -->
+    <!-- Calls with a better form: a cast, not intval(); no alias, such as sizeof(); str_contains() and the like, not
+         strpos() comparisons; a dedicated function, not ini_set(); and simpler calls -->
     <rule ref="Jumbo.PHP.FunctionCalls"/>
+
+    <!-- Language constructs with a better form: exit, not die; echo, not a print statement; and one isset() or unset(),
+         not several in a row -->
+    <rule ref="Jumbo.PHP.LanguageConstructs"/>
 
     <!-- An integer literal's prefix in lower case and its hex digits in upper case, as in 0xFF, and 0o755 for an octal
          with php_version 8.1 or later -->
@@ -358,10 +362,9 @@
     <!-- Built-in classes and magic methods in their own case, as in new DateTime() and __toString() -->
     <rule ref="Jumbo.PHP.BuiltInNameCase"/>
 
-    <!-- The simpler of two ways to write the same thing: while, not a for loop with only a condition; one isset() or
-         unset(), not several in a row; $this->, not $this?->; no b prefix on a string; no braces around a block on
-         its own; and no return; at the end of a function. Replaces Generic.CodeAnalysis.ForLoopShouldBeWhileLoop. -->
-    <rule ref="Jumbo.PHP.SimplifySyntax"/>
+    <!-- No code that does nothing: $this->, not $this?->; no b prefix on a string; no braces around a block on its
+         own; and no return; at the end of a function -->
+    <rule ref="Jumbo.PHP.RemoveUselessCode"/>
 
     <!-- No extract(), which creates variables from an array's keys -->
     <rule ref="Generic.PHP.ForbiddenFunctions">
@@ -427,6 +430,10 @@
 
     <!-- No foreach with the same variable as its key and value -->
     <rule ref="Universal.CodeAnalysis.ForeachUniqueAssignment"/>
+
+    <!-- A while loop, not a for loop with only a condition or none. Replaces
+         Generic.CodeAnalysis.ForLoopShouldBeWhileLoop, which has no fix. -->
+    <rule ref="Jumbo.ControlStructures.SimplifyForLoop"/>
 
     <!-- A warning for goto -->
     <rule ref="Generic.PHP.DiscourageGoto"/>

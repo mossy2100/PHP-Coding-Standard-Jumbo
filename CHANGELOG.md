@@ -622,20 +622,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Built-in names in their own case, in Jumbo (breaking).** The new `Jumbo.PHP.BuiltInNameCase` reports a built-in
   class, interface or enum not in its own case, as in `new \datetime()`, as `ClassNameCase`, and a magic method, as in
   `__tostring()`, as `MagicMethodCase`, where it's declared or called. Both are auto-fixable.
-- **Simpler syntax, in Jumbo (breaking).** The new `Jumbo.PHP.SimplifySyntax` requires the simpler of two forms that
-  behave the same: `while`, not a `for` loop with only a condition or none (`CanSimplify` and `Infinite`), one
-  `isset()` for several joined by `&&` (`ConsecutiveIssets`), one `unset()` for several in a row
-  (`ConsecutiveUnsets`), `$this->`, not `$this?->` (`NullsafeThis`), no `b` prefix on a string (`BinaryString`), no
-  braces around a block on its own (`UnneededBraces`), and no `return;` at the end of a function (`UselessReturn`).
-  All are auto-fixable, unless a comment is in the way.
+- **`while`, not `for` with only a condition, in Jumbo (breaking).** The new `Jumbo.ControlStructures.SimplifyForLoop`
+  reports a `for` loop with only a condition, as `CanSimplify`, and `for (;;)`, as `Infinite`, and fixes them to
+  `while ($a)` and `while (true)`. It replaces `Generic.CodeAnalysis.ForLoopShouldBeWhileLoop`, which only warned.
+- **Code that does nothing, in Jumbo (breaking).** The new `Jumbo.PHP.RemoveUselessCode` reports `$this?->`
+  (`NullsafeThis`), the `b` prefix on a string (`BinaryString`), braces around a block on its own (`UnneededBraces`),
+  and `return;` at the end of a function (`UselessReturn`). All are auto-fixable, unless a comment is in the way.
+- **Language constructs with a better form, in Jumbo (breaking).** The new `Jumbo.PHP.LanguageConstructs` reports
+  `die` (`DieAlias`), `print` as a statement (`PrintStatement`), `isset()` calls joined by `&&`
+  (`ConsecutiveIssets`) and `unset()` statements in a row (`ConsecutiveUnsets`), and fixes them to `exit`, `echo`, one
+  `isset()` and one `unset()`.
 - **PHPUnit's dedicated assertions, in Jumbo (breaking).** The new `Jumbo.PhpUnit.RequireDedicatedAssertions` reports
   `assertSame()` with `null`, `true` or `false`, as `InvalidAssert`, and `assertTrue()` or `assertFalse()` of a check
   with its own assertion, such as `is_int()` for `assertIsInt()` or `array_key_exists()` for `assertArrayHasKey()`, as
   `DedicatedAssertion`. Both are fixed. It checks any class that extends `PHPUnit\Framework\TestCase`.
 - **Function calls with a better form, in Jumbo (breaking).** The new `Jumbo.PHP.FunctionCalls` reports, each with its
   own code, and fixes where the fix keeps what the code does: `intval()` and the like, for a cast (`CastFunction`),
-  `settype()` as a statement (`SetType`), a function's alias, such as `sizeof()` (`FunctionAlias`), `die`
-  (`DieAlias`), `print` as a statement (`PrintStatement`), `ini_set()` for a setting with its own function, such as
+  `settype()` as a statement (`SetType`), a function's alias, such as `sizeof()` (`FunctionAlias`), `ini_set()` for a
+  setting with its own function, such as
   `set_time_limit()` (`DedicatedIniFunction`), `strpos()` and similar comparisons for `str_contains()`,
   `str_starts_with()` and `str_ends_with()` (`ModernStringFunction`), `$a[array_key_first($a)]` for `array_first($a)`,
   when `php_version` is 8.5 or later (`ArrayFirstLast`), `strlen($a) === 0` for `$a === ''` (`StringLength`), and
@@ -959,7 +963,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   reported when the block is the whole body: its `}` is followed by the next label or the switch's `}`. A switch with
   such a block also got no other check from the sniff. It's now a fork of `PSR2.ControlStructures.SwitchDeclaration`, so
   every switch gets every check, and a fall-through into a case that starts with a block is handled too. Two of the
-  original's codes are renamed for clarity: `WrongOpener`, for a body wrapped in braces, is now `BodyInBraces`, and
+  original's codes are renamed for clarity: `WrongOpener`, for a body wrapped in braces, is now `CaseBodyInBraces`, and
   `WrongOpenercase` and `WrongOpenerdefault`, for a label that ends in `;` instead of `:`, are now `MissingColon`.
 - **Problems reported twice in PERCS31.** The space after `function` and before a declaration's `(`, and the layout
   of an anonymous class's argument list, each got a second message, from `Squiz.Functions.FunctionDeclaration` and
@@ -1057,7 +1061,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   method of a split chain, and the fix moved it. A chain now ends at an operator, a comma or an enclosing bracket.
 - **A braced `case` body before a `default` no longer stops the run.** `PERCS31.ControlStructures.SwitchDeclaration`
   crashed on some `switch` statements with a `case` body wrapped in braces, so the rest of the file wasn't checked,
-  and `phpcbf` could end with a fatal error. The braces are now reported, as `BodyInBraces`, without the crash.
+  and `phpcbf` could end with a fatal error. The braces are now reported, as `CaseBodyInBraces`, without the crash,
+  and fixed by removing them.
 - **A braced `case` body before another label no longer hangs.** `phpcs` never finished on a `switch` whose braced
   `case` body's `}` shared a line with the next `case` or `default`, as in `} default:`, and `phpcbf` could reach
   that state from other code. `PERCS31.WhiteSpace.ScopeIndent` now gets through it, so the braces are reported.

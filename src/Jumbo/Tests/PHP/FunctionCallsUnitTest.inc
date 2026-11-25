@@ -7,9 +7,9 @@ settype($d, 'integer');
 settype($e, 'null');
 $f = sizeof($list);
 $g = \join(',', $list);
-die('Stopped');
-print 'Hello';
-$h = print 'x';
+// Language constructs are Jumbo.PHP.LanguageConstructs' to check.
+$h = 1;
+$h = 2;
 ini_set('max_execution_time', '30');
 $i = ini_set('max_execution_time', '30');
 ini_set('memory_limit', '1G');
