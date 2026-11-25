@@ -75,7 +75,6 @@ sections link to it.
 | `SlevomatCodingStandard.Exceptions.RequireNonCapturingCatch`                             | No variable on a `catch` that doesn't use it                   | Yes     |
 | `SlevomatCodingStandard.Functions.FunctionLength`                                        | A function of no more than 100 lines                           | No      |
 | `SlevomatCodingStandard.Functions.RequireArrowFunction`                                  | An arrow function for a closure that only returns              | Yes     |
-| `SlevomatCodingStandard.Functions.RequireMultiLineCall`                                  | A long call split over lines                                   | Yes     |
 | `SlevomatCodingStandard.Functions.RequireSingleLineCall`                                 | A short call on one line, through a Jumbo sniff                | Yes     |
 | `SlevomatCodingStandard.Functions.StaticClosure`                                         | `static` on a closure that doesn't use `$this`                 | Yes     |
 | `SlevomatCodingStandard.Functions.StrictCall`                                            | The strict argument in `in_array()` and similar                | No      |
@@ -706,14 +705,6 @@ Enforces maximum function length of 100 lines.
 
 Requires an arrow function for a closure whose body is only a `return`, as in `fn($x) => $x * 2`. A closure that
 captures a variable by reference is left alone.
-
-**Auto-fixable:** yes.
-
----
-
-## SlevomatCodingStandard.Functions.RequireMultiLineCall
-
-Requires multi-line format for long function calls.
 
 **Auto-fixable:** yes.
 

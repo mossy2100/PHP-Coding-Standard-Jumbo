@@ -1558,6 +1558,19 @@ can be split anywhere, even inside a group while the operators around the group 
    its new lines keep the same indent. In grouping parentheses, the parentheses stay with its contents, and its new
    lines are indented once past the line with the `(`.
 
+**Calls and arrays,** written on one line, are part of the expression they're in, and are split after its operators,
+outermost first, only if still too long:
+
+- **Chopped down,** one argument per line with a trailing comma, if that lets each argument fit on its own line.
+- **Hugged,** if one argument is an array too long even on a line of its own: the array is split, and the other
+  arguments stay on the call's lines, as in `merge($defaults, [`. Section 4.7 says "A single argument being split
+  across multiple lines (as might be the case with a closure or array) does not constitute splitting the argument list
+  itself." A call whose own argument is hugged can be hugged the same way, as in `foo(bar([`.
+- **Otherwise chopped down.** An array's values always go one per line.
+
+A call already split over lines isn't changed inside, but each argument on its own line is checked as an expression of
+its own.
+
 **A `key => value` pair**, in an array or in a `match` arm with one condition, is one expression. One that doesn't fit
 on one line is laid out by the first of these that applies:
 
@@ -1591,8 +1604,8 @@ These are left alone, and `RequireSingleLineStatement` still checks the first:
   an operand, such as a multi-line call or closure.
 - A `case` condition.
 - An expression written on one line that's too long, unless it's a whole statement, a value after an assignment or
-  `return`, a `key => value` pair that starts its line, or a condition on its own line. Anywhere else, such as in an
-  argument, a split would clash with the layout around it.
+  `return`, a `key => value` pair that starts its line, a condition on its own line, or an argument or value on its own
+  line in a call or array split over lines. Anywhere else, a split would clash with the layout around it.
 - A ternary's condition or value that's too long. One that's split but fits on one line is still joined.
 
 **String expressions:** with `reflowStringExpressions` on, as it is in Jumbo, a string expression is rewritten as the

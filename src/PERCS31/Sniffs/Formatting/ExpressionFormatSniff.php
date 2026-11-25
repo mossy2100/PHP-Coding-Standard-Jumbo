@@ -9,6 +9,7 @@ use PERCS31\Helpers\ExpressionNode;
 use PERCS31\Helpers\FixerHelper;
 use PERCS31\Helpers\LayoutHelper;
 use PERCS31\Helpers\StringHelper;
+use PERCS31\Helpers\TokenHelper;
 use PHP_CodeSniffer\Files\File;
 use PHP_CodeSniffer\Sniffs\Sniff;
 use PHP_CodeSniffer\Util\Tokens;
@@ -141,6 +142,14 @@ class ExpressionFormatSniff implements Sniff
     private array $delegated = [];
 
     /**
+     * How each call or array in the current expression that's split is laid out, by the position of its opening
+     * bracket: the indent of its arguments' lines, or null if one argument is hugged, and the hugged argument's index.
+     *
+     * @var array<int, array{?int, ?int}>
+     */
+    private array $callLayouts = [];
+
+    /**
      * Returns an array of tokens this test wants to listen for.
      *
      * @return array<int|string>
@@ -154,6 +163,8 @@ class ExpressionFormatSniff implements Sniff
             T_ECHO,
             T_PRINT,
             T_OPEN_TAG_WITH_ECHO,
+            T_OPEN_PARENTHESIS,
+            T_OPEN_SHORT_ARRAY,
         ];
     }
 
@@ -182,7 +193,13 @@ class ExpressionFormatSniff implements Sniff
             return;
         }
 
-        if (!ExpressionHelper::isBinary($phpcsFile, $stackPtr)) {
+        // A call or array is laid out with the expression it's in, which may have no operators.
+        $isOpener = $code === T_OPEN_PARENTHESIS || $code === T_OPEN_SHORT_ARRAY;
+        if (
+            $isOpener
+                ? !ExpressionHelper::isCallOpener($phpcsFile, $stackPtr)
+                : !ExpressionHelper::isBinary($phpcsFile, $stackPtr)
+        ) {
             return;
         }
 
@@ -191,13 +208,13 @@ class ExpressionFormatSniff implements Sniff
             $this->checked = [];
         }
 
-        $region = ExpressionHelper::findExpression($phpcsFile, $stackPtr);
+        $region = ExpressionHelper::findOutermostExpression($phpcsFile, $stackPtr);
         if ($region === null || isset($this->checked[$region[0]])) {
             return;
         }
 
         $this->checked[$region[0]] = true;
-        $expression = ExpressionHelper::read($phpcsFile, $stackPtr);
+        $expression = ExpressionHelper::read($phpcsFile, $stackPtr, $region);
         if ($expression === null) {
             return;
         }
@@ -223,6 +240,7 @@ class ExpressionFormatSniff implements Sniff
         $trailing = LayoutHelper::attachedLength($phpcsFile, $end);
         $inCondition = $conditionOpener !== null;
         $this->delegated = [];
+        $this->callLayouts = [];
         $this->layout($phpcsFile, $root, $column, $lineIndent, $continuationIndent, $trailing, $inCondition, $breaks);
         $current = [];
         $misplaced = false;
@@ -237,7 +255,8 @@ class ExpressionFormatSniff implements Sniff
         $isLeftAlone = !$isLaidOut
             && (($breaks !== [] && self::isInTernary($phpcsFile, $before, $after))
                 || ($current === [] && !$misplaced && !$isCondition && !self::isSplittableAfter($phpcsFile, $before)
-                    && !self::isPairOnItsOwnLine($phpcsFile, $root)));
+                    && !self::isPairOnItsOwnLine($phpcsFile, $root)
+                    && !self::isElementOnItsOwnLine($phpcsFile, $start, $before)));
         if ($isLeftAlone) {
             $this->delegated = [];
         }
@@ -255,8 +274,8 @@ class ExpressionFormatSniff implements Sniff
             return;
         }
 
-        $error = 'An expression too long for %s characters must be split only before its loosest operators, with as '
-            . 'many operands on each line as fit.';
+        $error = 'An expression too long for %s characters must be split outermost first: before its loosest '
+            . 'operators, with as many operands on each line as fit, then its calls and arrays.';
         $code = $isTooLong ? self::CODE_TOO_LONG : self::CODE_INCORRECT_SPLIT;
         if ($breaks === []) {
             $error = 'An expression split across lines fits within %s characters, so it must be written on one line.';
@@ -327,6 +346,27 @@ class ExpressionFormatSniff implements Sniff
     private static function isPairOnItsOwnLine(File $phpcsFile, ExpressionNode $root): bool
     {
         return self::isPair($phpcsFile, $root) && LayoutHelper::startsLine($phpcsFile, $root->start);
+    }
+
+    /**
+     * Check whether an expression is an argument or array value that starts its own line, in a call or array split
+     * over lines, where splitting it can't clash with the layout around it.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $start The position of the expression's first token.
+     * @param int $before The position of the token that ends the expression before it, or -1.
+     * @return bool True if it is.
+     */
+    private static function isElementOnItsOwnLine(File $phpcsFile, int $start, int $before): bool
+    {
+        if ($before < 0 || !LayoutHelper::startsLine($phpcsFile, $start)) {
+            return false;
+        }
+
+        $tokens = $phpcsFile->getTokens();
+        $container = $tokens[$before]['code'] === T_COMMA ? TokenHelper::findContainer($phpcsFile, $before) : $before;
+
+        return $container !== null && ExpressionHelper::isCallOpener($phpcsFile, $container);
     }
 
     /**
@@ -500,7 +540,8 @@ class ExpressionFormatSniff implements Sniff
      */
     private function processLiteral(File $phpcsFile, int $stackPtr): void
     {
-        $region = ExpressionHelper::findExpression($phpcsFile, $stackPtr);
+        // A literal in a call on one line is part of the expression around the call, and checked with it.
+        $region = ExpressionHelper::findOutermostExpression($phpcsFile, $stackPtr);
         if ($region === null) {
             return;
         }
@@ -720,6 +761,10 @@ class ExpressionFormatSniff implements Sniff
             return $flatEnd;
         }
 
+        if ($node->kind === ExpressionNode::CALL) {
+            return $this->layoutCall($phpcsFile, $node, $column, $lineIndent, $trailing, $breaks);
+        }
+
         // A group's contents go on its first line, and any new lines inside it are indented once past the line with
         // its `(`, as PERCS31.Operators.OperatorPlacement requires.
         if ($node->kind === ExpressionNode::GROUP) {
@@ -787,6 +832,133 @@ class ExpressionFormatSniff implements Sniff
         }
 
         return $end;
+    }
+
+    /**
+     * Work out how a call or array that doesn't fit on its line is split. It's chopped down, one argument per line, if
+     * that lets each argument fit on its own line. Otherwise, if exactly one argument would span lines however the call
+     * is laid out, an array too long even on a line of its own, or a call hugging one, it's hugged: the other arguments
+     * stay on the call's lines. Anything else is chopped down. An array's values are always chopped down.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $node The call or array.
+     * @param int $column The number of characters before the node on its first line.
+     * @param int $lineIndent The indent of the node's first line.
+     * @param int $trailing The number of characters straight after the node on its last line.
+     * @param array<int, int> $breaks The operators to break the line before, and the calls to split, with indents.
+     * @return int The number of characters before the node's end, on its last line.
+     */
+    private function layoutCall(
+        File $phpcsFile,
+        ExpressionNode $node,
+        int $column,
+        int $lineIndent,
+        int $trailing,
+        array &$breaks,
+    ): int {
+        $opener = (int) $node->opener;
+        $argumentIndent = $lineIndent + LayoutHelper::INDENT;
+        $hugged = $node->isArray ? null : $this->findHuggedArgument($node, $column, $lineIndent, $trailing);
+        if ($hugged !== null) {
+            // The arguments before the hugged one, and the hugged one's first line, are on the call's first line.
+            $breaks[$opener] = $lineIndent;
+            $this->callLayouts[$opener] = [null, $hugged];
+            $end = $column + self::calleeLength($node) + 1;
+            foreach ($node->children as $index => $child) {
+                if ($index === $hugged) {
+                    $end = $this->layout($phpcsFile, $child, $end, $lineIndent, $argumentIndent, 0, false, $breaks);
+                } else {
+                    $end += $child->flatLength;
+                }
+
+                $end += $index < count($node->children) - 1 ? 2 : 0;
+            }
+
+            return $end + 1;
+        }
+
+        $breaks[$opener] = $lineIndent;
+        $this->callLayouts[$opener] = [$argumentIndent, null];
+        // Each argument on its own line, followed by a comma, and its new lines indented once more.
+        $continuation = $argumentIndent + LayoutHelper::INDENT;
+        foreach ($node->children as $child) {
+            if ($this->delegateString($phpcsFile, $child, $argumentIndent, $continuation, 1, true) === null) {
+                $this->layout($phpcsFile, $child, $argumentIndent, $argumentIndent, $continuation, 1, false, $breaks);
+            }
+        }
+
+        return $lineIndent + 1;
+    }
+
+    /**
+     * Find the one argument of a call to hug, if the call isn't to be chopped down.
+     *
+     * @param ExpressionNode $node The call.
+     * @param int $column The number of characters before the call on its first line.
+     * @param int $lineIndent The indent of the call's first line.
+     * @param int $trailing The number of characters straight after the call on its last line.
+     * @return ?int The argument's index, or null if the call is chopped down.
+     */
+    private function findHuggedArgument(ExpressionNode $node, int $column, int $lineIndent, int $trailing): ?int
+    {
+        // Chopped down, each argument on its own line, with a comma after it.
+        $argumentIndent = $lineIndent + LayoutHelper::INDENT;
+        $spanning = [];
+        foreach ($node->children as $index => $child) {
+            if ($argumentIndent + $child->flatLength + 1 > $this->maxLineLength) {
+                $spanning[] = $index;
+            }
+        }
+
+        if (count($spanning) !== 1) {
+            return null;
+        }
+
+        $hugged = $spanning[0];
+        $child = $node->children[$hugged];
+        if ($child->kind !== ExpressionNode::CALL || !($child->isArray || $this->hugsAnArgument($child, $lineIndent))) {
+            return null;
+        }
+
+        // The arguments before it fit on the first line, up to the hugged one's opening bracket, and those after it fit
+        // on the last line, after its closing bracket.
+        $before = $column + self::calleeLength($node) + 1 + self::calleeLength($child) + 1;
+        $after = $lineIndent + 1;
+        foreach ($node->children as $index => $other) {
+            if ($index < $hugged) {
+                $before += $other->flatLength + 2;
+            } elseif ($index > $hugged) {
+                $after += 2 + $other->flatLength;
+            }
+        }
+
+        return $before <= $this->maxLineLength && ($after + 1 + $trailing) <= $this->maxLineLength ? $hugged : null;
+    }
+
+    /**
+     * Check whether a call, hugged into another, hugs one of its own arguments, so it spans lines however it's laid
+     * out.
+     *
+     * @param ExpressionNode $node The call.
+     * @param int $lineIndent The indent of the line it starts on.
+     * @return bool True if it does.
+     */
+    private function hugsAnArgument(ExpressionNode $node, int $lineIndent): bool
+    {
+        return !$node->isArray && $this->findHuggedArgument($node, 0, $lineIndent, 0) !== null;
+    }
+
+    /**
+     * Get the length of what comes before a call's opening bracket, such as `foo` or `$this->bar`.
+     *
+     * @param ExpressionNode $node The call.
+     * @return int The length.
+     */
+    private static function calleeLength(ExpressionNode $node): int
+    {
+        $arguments = array_sum(array_map(static fn(ExpressionNode $child): int => $child->flatLength, $node->children));
+
+        return $node->flatLength - $arguments - 2 * (count($node->children) - 1) - 2;
     }
 
     /**
@@ -954,6 +1126,24 @@ class ExpressionFormatSniff implements Sniff
         if ($node->kind === ExpressionNode::GROUP && is_int($node->opener) && is_int($node->closer)) {
             self::setGap($phpcsFile, $node->opener, $node->children[0]->start, '');
             self::setGap($phpcsFile, $node->children[0]->end, $node->closer, '');
+        }
+
+        $argumentIndent = $this->callLayouts[$node->opener ?? -1][0] ?? null;
+        if ($node->kind === ExpressionNode::CALL && is_int($argumentIndent) && is_int($node->closer)) {
+            // Chopped down: each argument on its own line, with a comma after the last, and the closer on its own line.
+            $newLine = $phpcsFile->eolChar . str_repeat(' ', $argumentIndent);
+            self::setGap($phpcsFile, (int) $node->opener, $node->children[0]->start, $newLine);
+            foreach ($node->separators as $index => $comma) {
+                self::setGap($phpcsFile, $comma, $node->children[$index + 1]->start, $newLine);
+            }
+
+            $last = $node->children[count($node->children) - 1]->end;
+            if ($node->trailingComma === null) {
+                $phpcsFile->fixer->addContent($last, ',');
+            }
+
+            $closerLine = $phpcsFile->eolChar . str_repeat(' ', $argumentIndent - LayoutHelper::INDENT);
+            self::setGap($phpcsFile, $node->trailingComma ?? $last, $node->closer, $closerLine);
         }
 
         foreach ($node->children as $child) {

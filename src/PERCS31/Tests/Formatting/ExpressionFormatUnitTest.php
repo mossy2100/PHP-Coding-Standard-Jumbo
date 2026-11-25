@@ -29,6 +29,12 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
      */
     protected function getWarningList(string $testFile = ''): array
     {
+        if ($testFile === 'ExpressionFormatUnitTest.5.inc') {
+            // Calls and arrays too long, at a line length of 40: chopped down, hugged, outermost first, and an argument
+            // on its own line.
+            return [12 => 1, 13 => 1, 16 => 1, 19 => 1, 20 => 1, 23 => 1, 24 => 1, 27 => 1, 29 => 1];
+        }
+
         if ($testFile === 'ExpressionFormatUnitTest.4.inc') {
             // Not strict: only the expression written on one line that's too long.
             return [10 => 1];

@@ -1825,8 +1825,13 @@ split, the closure's attribute follows the rule for a single-line list, inline. 
 characters." Neither says that a call on one line too long for that limit must be split.
 
 **Decision:** A call on one line that takes its line over 120 characters is a warning, as the limit is soft (see
-[Line Length](#line-length)). The fix splits its argument list as section 4.7 describes, one argument per line. An
-argument still too long for the limit is then split by its own rules, such as an expression's or a string's.
+[Line Length](#line-length)). The fix works outermost first: an expression around the call is split at its operators
+first, and the call only if it's still too long. Then its argument list is split as section 4.7 describes, one
+argument per line, if that lets each argument fit. Otherwise, when one argument is an array too long even on a line of
+its own, the array is split and the other arguments stay on the call's lines, as section 4.7 says "A single argument
+being split across multiple lines (as might be the case with a closure or array) does not constitute splitting the
+argument list itself." An argument still too long for the limit is then split by its own rules, such as an
+expression's or a string's.
 
 **Why:** Splitting the list is the way the spec gives to bring a call within the limit.
 

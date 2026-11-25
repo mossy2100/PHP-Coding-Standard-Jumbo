@@ -313,11 +313,8 @@
             <property name="maxLinesLength" value="100"/>
         </properties>
     </rule>
-    <rule ref="SlevomatCodingStandard.Functions.RequireMultiLineCall">
-        <properties>
-            <property name="minLineLength" value="&lineLengthPlusOne;"/>
-        </properties>
-    </rule>
+    <!-- A long call is split by PERCS31.Formatting.ExpressionFormat, outermost first, in place of
+         SlevomatCodingStandard.Functions.RequireMultiLineCall, which split the innermost call first -->
     <!-- The Jumbo version of SlevomatCodingStandard.Functions.RequireSingleLineCall, which skips a call with an
          anonymous class or match argument, as the parent's fix puts the body on one line -->
     <rule ref="Jumbo.Functions.RequireSingleLineCall">

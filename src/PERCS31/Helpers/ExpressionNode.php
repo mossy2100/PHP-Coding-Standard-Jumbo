@@ -10,6 +10,8 @@ namespace PERCS31\Helpers;
  * - A group: an operand in grouping parentheses, such as `($a && $b)` or `!($a || $b)`.
  * - A level: operands joined by the operators of one precedence, such as `$a || $b || $c`. An operand of a level can
  *   itself be a level of operators that bind more tightly, as `$b && $c` is in `$a || $b && $c`.
+ * - A call: a call's argument list, or an array's values, written on one line, such as `foo($a, $b)` or `[$a, $b]`,
+ *   whose children are the arguments.
  */
 readonly class ExpressionNode
 {
@@ -19,17 +21,22 @@ readonly class ExpressionNode
 
     public const string LEVEL = 'level';
 
+    public const string CALL = 'call';
+
     /**
      * Constructor.
      *
-     * @param string $kind OPERAND, GROUP or LEVEL.
+     * @param string $kind OPERAND, GROUP, LEVEL or CALL.
      * @param int $start The position of the first token.
      * @param int $end The position of the last token.
      * @param int $flatLength The length of the node written on one line.
-     * @param list<ExpressionNode> $children A level's operands, or a group's contents.
+     * @param list<ExpressionNode> $children A level's operands, a group's contents, or a call's arguments.
      * @param list<int> $operators The positions of a level's operators, one between each pair of operands.
-     * @param ?int $opener The position of a group's opening parenthesis.
-     * @param ?int $closer The position of a group's closing parenthesis.
+     * @param ?int $opener The position of a group's or call's opening parenthesis, or an array's opening bracket.
+     * @param ?int $closer The position of a group's or call's closing parenthesis, or an array's closing bracket.
+     * @param list<int> $separators The positions of a call's commas, one between each pair of arguments.
+     * @param ?int $trailingComma The position of a call's comma after its last argument, if it has one.
+     * @param bool $isArray Whether a call is an array's values, which are always split one per line, never hugged.
      */
     public function __construct(
         public string $kind,
@@ -40,5 +47,8 @@ readonly class ExpressionNode
         public array $operators = [],
         public ?int $opener = null,
         public ?int $closer = null,
+        public array $separators = [],
+        public ?int $trailingComma = null,
+        public bool $isArray = false,
     ) {}
 }

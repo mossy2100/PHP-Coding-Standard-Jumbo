@@ -525,6 +525,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   Style 3.1 allows a split before any operator. Jumbo sets `strict`, and reports as errors: a split expression that
   fits, as `ShouldBeSingleLine`, and any other wrong layout, as `IncorrectSplit`, so `($a` then `&& $b)` then `|| ($c`
   then `&& $d)` becomes `($a && $b)` then `|| ($c && $d)`. Auto-fixable.
+- **Calls and arrays over the line length (breaking).** `PERCS31.Formatting.ExpressionFormat` now splits a call or an
+  array written on one line that's too long, as part of the expression it's in, outermost first: the expression's
+  operators, then its calls and arrays. A call is chopped down, one argument per line with a trailing comma, if that
+  lets every argument fit; otherwise its one array too long even on a line of its own is hugged, as in
+  `merge($defaults, [`, with the other arguments on the call's lines. An array's values go one per line. Reported as
+  `TooLong`, a warning in PERCS31 and an error in Jumbo. Auto-fixable.
 - **String expressions, in Jumbo (breaking).** `PERCS31.Formatting.ExpressionFormat` has a new
   `reflowStringExpressions` property, on in Jumbo. It rewrites a chain of `.` operations as the fewest strings it can
   be, interpolating variables, property reads and method calls, so `'Hello, ' . $name . '!'` becomes `"Hello, $name!"`.
@@ -870,6 +876,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 
+- **`SlevomatCodingStandard.Functions.RequireMultiLineCall`, from Jumbo.** `PERCS31.Formatting.ExpressionFormat` now
+  splits a long call, outermost first. The Slevomat sniff split the innermost call it found, even when splitting what
+  was around it, such as a ternary, would have been enough.
 - **`SlevomatCodingStandard.TypeHints.NullTypeHintOnLastPosition`, from Jumbo.** `PERCS31.TypeHints.CompoundType` now
   reports `null` that isn't last in a doc type.
 - **`PERCS31.PHP.LowerCaseType` and `PERCS31.PHP.TypeCast`.** `PERCS31.PHP.CanonicalTypes` replaces both. A
