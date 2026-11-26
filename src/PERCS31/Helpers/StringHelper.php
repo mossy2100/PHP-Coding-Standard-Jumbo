@@ -180,12 +180,9 @@ class StringHelper
     {
         $sources = array_unique(array_map(static fn(StringAtom $atom): int => $atom->source, $atoms));
         $source = count($sources) === 1 ? reset($sources) : -1;
-        $isSingle = $source >= 0 && ($this->atomCounts[$source] ?? 0) === count(
-            $atoms,
-        ) ? $this->phpcsFile->getTokens()[$source]['content'][0] === "'" : array_all(
-            $atoms,
-            static fn(StringAtom $atom): bool => $atom->single !== null,
-        );
+        $isSingle = $source >= 0 && ($this->atomCounts[$source] ?? 0) === count($atoms)
+            ? $this->phpcsFile->getTokens()[$source]['content'][0] === "'"
+            : array_all($atoms, static fn(StringAtom $atom): bool => $atom->single !== null);
 
         return $isSingle ? self::renderSingle($atoms) : self::renderDouble($atoms);
     }

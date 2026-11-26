@@ -570,10 +570,13 @@ class PhpDocTagsSniff implements Sniff
             return null;
         }
 
-        return implode('', array_map(
-            static fn(array $token): string => $token[Lexer::VALUE_OFFSET],
-            array_slice($lexTokens, $start, ($end - $start + 1)),
-        ));
+        return implode(
+            '',
+            array_map(
+                static fn(array $token): string => $token[Lexer::VALUE_OFFSET],
+                array_slice($lexTokens, $start, ($end - $start + 1)),
+            ),
+        );
     }
 
     /**

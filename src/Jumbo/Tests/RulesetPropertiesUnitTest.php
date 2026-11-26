@@ -278,8 +278,8 @@ class RulesetPropertiesUnitTest extends TestCase
      */
     public function testClosureLengthLimitsAre10And20Lines(): void
     {
-        $closure = static fn(int $lines): string => "<?php\n\n\$run = static function (): void {\n"
-            . str_repeat("    run();\n", $lines) . "};\n";
+        $closure = static fn(int $lines): string
+            => "<?php\n\n\$run = static function (): void {\n" . str_repeat("    run();\n", $lines) . "};\n";
         $args = ['-s', '--standard=Jumbo', '--sniffs=Universal.FunctionDeclarations.NoLongClosures', '--report=emacs'];
         $results = [];
 

@@ -391,10 +391,13 @@ class TestClassSniff implements Sniff
             return 'nothing; it has no attribute';
         }
 
-        return implode(' and ', array_map(
-            static fn(string $attribute): string => str_replace(self::ATTRIBUTES, '', $attribute),
-            $attributes,
-        )) . ' instead';
+        return implode(
+            ' and ',
+            array_map(
+                static fn(string $attribute): string => str_replace(self::ATTRIBUTES, '', $attribute),
+                $attributes,
+            ),
+        ) . ' instead';
     }
 
     /**
