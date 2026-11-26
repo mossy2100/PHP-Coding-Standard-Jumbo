@@ -40,7 +40,7 @@ class Example
             0,
         );
 
-        // An arrow function's body too long for one line.
+        // An arrow function's body too long for one line, on a line of its own after a break before =>.
         $double = static fn(int $value): int => $value * $someLongMultiplierName + $anotherLongOffsetName * $yetAnotherFactor + 1;
 
         // A match arm's value split where it fits.

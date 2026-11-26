@@ -26,7 +26,6 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.ControlStructures.RequireShortTernaryOperator`      | `$a ?: $b`, skipping a nullable type in a `set` hook            | Yes     |
 | `Jumbo.ControlStructures.SimplifyForLoop`                  | `while ($a)`, not `for (; $a;)`, and `while (true)`             | Yes     |
 | `Jumbo.Formatting.RequireSingleLineStatement`              | A split statement or `case` label fits on a line                | Yes     |
-| `Jumbo.Functions.RequireSingleLineCall`                    | A call that fits is on one line, skipping a class or `match`    | Yes     |
 | `Jumbo.Functions.RequireSingleLineSignature`               | A split function or closure signature fits on a line            | Yes     |
 | `Jumbo.Namespaces.UnusedUses`                              | No unused `use` statements, safe with a miscased `use Function` | Yes     |
 | `Jumbo.NamingConventions.ValidNamespaceName`               | A namespace's name in ASCII                                     | No      |
@@ -730,28 +729,6 @@ function total(
 | `maxLineLength` | int  | 120     | Maximum line length for a collapsed line. |
 
 To use a different limit, set every line-length property, as described in [Line Length](LineLength.md).
-
----
-
-## Jumbo.Functions.RequireSingleLineCall
-
-Requires a function, method or constructor call that fits within the line length to be written on one line. This
-replaces `SlevomatCodingStandard.Functions.RequireSingleLineCall`, and skips a call with an anonymous class or `match`
-argument.
-
-**Why:** the parent's `ignoreWithComplexParameter` option skips a call with a closure, arrow function or array argument,
-but not one with an anonymous class. So it reports `consume(new class {` ... `});`, and its fix puts the whole class
-body on one line, which then crashes Slevomat's property spacing sniff. Its fix collapses a `match` too, which other
-sniffs expand again, until `phpcbf` gives up.
-
-**Auto-fixable:** yes, as the parent.
-
-**Configuration:**
-
-| Property                     | Type | Default | Description                                                                       |
-| ---------------------------- | ---- | ------- | --------------------------------------------------------------------------------- |
-| `maxLineLength`              | int  | 120     | The longest line a call may be joined onto.                                       |
-| `ignoreWithComplexParameter` | bool | true    | Skip a call with a closure, arrow function, array, anonymous class or inner call. |
 
 ---
 

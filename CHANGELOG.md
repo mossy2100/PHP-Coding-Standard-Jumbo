@@ -426,10 +426,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   and `.`, e.g. `$a  &&  $b` is now an error. Auto-fixable. The `|` in a multi-catch is a union type, so it must have no
   spaces, e.g. `catch (A|B $e)`, as PER Coding Style 3.1 requires; PSR-12's sniff required them. That's checked by
   `PhpCollective.WhiteSpace.CatchTypeSeparatorSpacing`. `$x=&$a`, which PSR-12's sniff skips, is also an error now.
-- **`Jumbo.Functions.RequireSingleLineCall`.** Replaces `SlevomatCodingStandard.Functions.RequireSingleLineCall`, which
-  reported a call with a multi-line anonymous class argument, e.g. `consume(new class {` ... `});`, and fixed it by
-  putting the class body on one line. Such a call is now skipped, as one with a closure argument already was. So is a
-  call with a `match` argument, where the same fix stopped `phpcbf` finishing.
 - **A multi-line array's opening bracket (breaking).** It must not be on a line of its own, as PER Coding Style 3.1
   requires, e.g. `return [`, not `return` then `[` on the next line. An array that's an element of a multi-line array is
   allowed, and so is one that's an argument in an argument list, or a condition of a `match` arm.
@@ -533,7 +529,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   hugged. An array's values go one per line. A last
   operand that's a call or array too long even on its own line stays after its operator. A ternary too long for its
   line takes three lines, `?` and `:` starting the second and third, or two for `?:`, and each part is then split in
-  its own line's room. After a group split over lines, the next operator starts a line. Reported as `TooLong`, a
+  its own line's room. After a group split over lines, the next operator starts a line. A `yield $key => $value`, and an
+  arrow function, its signature as the key, are laid out as pairs, and an arrow function is an ordinary argument, never
+  hugged. Empty brackets and destructuring lists split over lines are joined. Reported as `TooLong`, a
   warning in PERCS31 and an error in Jumbo. With `strict`, as in Jumbo, a call or array split over lines is checked
   too: joined if it fits, and laid out again if split any other way. Auto-fixable.
 - **String expressions, in Jumbo (breaking).** `PERCS31.Formatting.ExpressionFormat` has a new
@@ -886,6 +884,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - **`SlevomatCodingStandard.ControlStructures.RequireMultiLineTernaryOperator`, from Jumbo.**
   `PERCS31.Formatting.ExpressionFormat` now splits a long ternary into its three lines, with the expression around it.
+- **`SlevomatCodingStandard.Functions.RequireSingleLineCall`, from Jumbo.** `PERCS31.Formatting.ExpressionFormat` now
+  joins a call that fits, with the expression around it, and chops down one with an anonymous class or `match` argument
+  rather than putting its body on one line.
 - **`SlevomatCodingStandard.Functions.RequireMultiLineCall`, from Jumbo.** `PERCS31.Formatting.ExpressionFormat` now
   splits a long call, outermost first. The Slevomat sniff split the innermost call it found, even when splitting what
   was around it, such as a ternary, would have been enough.

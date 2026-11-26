@@ -1577,17 +1577,17 @@ the operator would save nothing.
 Without `strict`, a call already split over lines isn't changed, but each argument on its own line is checked as an
 expression of its own. With `strict`, a call or array split over lines is checked too: one that fits on one line is
 joined, and one split any other way than the layout above is laid out again. A closure's, `match`'s or anonymous
-class's body isn't changed, only where it starts; PERCS31.WhiteSpace.ScopeIndent re-indents a body that moves. An
-arrow function is still left alone.
+class's body isn't changed, only where it starts; PERCS31.WhiteSpace.ScopeIndent re-indents a body that moves. Empty
+brackets split over lines are joined, and so is a destructuring list, unless it skips an element, as in `[$a, , $c]`.
 
 **A ternary** too long for its line takes three lines: the condition, then `?` and its value, then `:` and its value,
 each new line indented once, as section 6.4 says "ternaries MUST occupy 3 lines, never 2". A short ternary takes two,
 with `?:` starting the second. Each part is then split in the room its own line leaves it, outermost first. After a
 group split over lines, such as one holding a split ternary, the next operator starts a line.
 
-**A `key => value` pair**, in an array or in a `match` arm with one condition, is one expression. The first preference
-is always the key and the value each on a single line. One that doesn't fit on one line is laid out by the first of
-these that applies:
+**A `key => value` pair**, in an array, a `yield` or a `match` arm with one condition, is one expression. The first
+preference is always the key and the value each on a single line. One that doesn't fit on one line is laid out by the
+first of these that applies:
 
 1. A key too long for its line is split, at its operators or as a string, and `=>` goes on a line of its own, indented
    once.
@@ -1602,6 +1602,9 @@ A `match` arm with several conditions is a pair too, with its conditions as the 
 line on their own go one per line, level with the first, with a trailing comma, and `=>` goes on a line of its own.
 Conditions split that fit on one line are joined, without the trailing comma. There's never a line break after a `=>`.
 
+An arrow function is a pair too, with its signature as the key, which must be on one line. As an argument, it's an
+ordinary one: never hugged, so a call holding one is chopped down when it doesn't fit.
+
 An expression fits on its line if its own text, and any punctuation straight after it, such as a `;`, `,` or `)`, fit
 within `maxLineLength`. What follows that, such as an array value after its key, or a comment, is never a reason to
 split it.
@@ -1615,18 +1618,18 @@ of a line, is that sniff's to report.
 
 It covers every binary operator, including `.`, `instanceof` and, on PHP 8.5, `|>`. An assignment operator, or `and`,
 `or` or `xor`, ends an expression, so `$total = $price` then `+ $tax` is checked as `$price + $tax`. So does a `,`,
-any other `=>`, ternary `?` or `:`, or the brackets of a call, array or control structure. Each argument of a call is
+any other `=>`, or the brackets of a call, array or control structure. Each argument of a call is
 its own expression.
 
 These are left alone, and `RequireSingleLineStatement` still checks the first:
 
-- An expression with a comment, a heredoc or nowdoc, a multi-line string or an arrow function, or a line break inside
-  an operand, such as a multi-line call or closure.
+- An expression with a comment, a heredoc or nowdoc, a multi-line string, or a line break inside an operand, such as a
+  chain split over lines, or an arrow function's signature split over lines.
 - A `case` condition.
 - An expression written on one line that's too long, unless it's a whole statement, a value after an assignment or
   `return`, a `key => value` pair that starts its line, a condition on its own line, or an argument or value on its own
   line in a call or array split over lines. Anywhere else, a split would clash with the layout around it.
-- A ternary's condition or value that's too long. One that's split but fits on one line is still joined.
+- A ternary with another inside it that isn't in brackets.
 
 **String expressions:** with `reflowStringExpressions` on, as it is in Jumbo, a string expression is rewritten as the
 fewest strings it can be, then laid out. A string expression is a chain of `.` operations, a string literal, or an

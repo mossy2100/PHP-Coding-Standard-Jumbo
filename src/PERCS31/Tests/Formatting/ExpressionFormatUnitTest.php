@@ -43,7 +43,9 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
                 // Arms with several conditions: a value on its own line, conditions too long, and conditions that fit.
                 + [88 => 1, 89 => 1, 90 => 1]
                 // Ternaries: too long, with a call, short, in a group, and one that fits.
-                + [95 => 1, 96 => 1, 97 => 1, 98 => 1, 99 => 1];
+                + [95 => 1, 96 => 1, 97 => 1, 98 => 1, 99 => 1]
+                // Arrow functions and a yield pair, empty brackets, and a destructuring list.
+                + [106 => 1, 108 => 1, 109 => 1, 110 => 1, 111 => 1, 113 => 1];
         }
 
         if ($testFile === 'ExpressionFormatUnitTest.4.inc') {
@@ -66,7 +68,8 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
         }
 
         return [
-            // Fits on one line.
+            // Fits on one line, an arrow function too.
+            44 => 1,
             46 => 1,
             48 => 1,
             50 => 1,

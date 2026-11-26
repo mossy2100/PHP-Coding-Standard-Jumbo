@@ -26,16 +26,15 @@ In the [PERCS31](PERCS31.md) standard, two sniffs use the limit: `Generic.Files.
 holds it, as its `lineLimit` holds the recommended 80, and `PERCS31.Formatting.ExpressionFormat`, whose
 `maxLineLength` holds it. Set both to change it. The rest of this section is about the Jumbo standard.
 
-Eleven sniffs check or wrap long lines, and each has its own line-length property. The Jumbo ruleset sets all eleven
+Ten sniffs check or wrap long lines, and each has its own line-length property. The Jumbo ruleset sets all ten
 from two XML entities, `lineLength` and `lineLengthPlusOne`, at the top of its `ruleset.xml`. An entity only applies
-within the file that defines it, so you can't override it from `phpcs.xml`. Set all eleven properties instead:
+within the file that defines it, so you can't override it from `phpcs.xml`. Set all ten properties instead:
 
 | Sniff                                                                      | Property            | Value      |
 | -------------------------------------------------------------------------- | ------------------- | ---------- |
 | `Generic.Files.LineLength`                                                 | `absoluteLineLimit` | length     |
 | `Jumbo.Classes.RequireSingleLineMethodSignature`                           | `maxLineLength`     | length     |
 | `SlevomatCodingStandard.Classes.RequireMultiLineMethodSignature`           | `minLineLength`     | length + 1 |
-| `Jumbo.Functions.RequireSingleLineCall`                                    | `maxLineLength`     | length     |
 | `Jumbo.Arrays.ArrayDeclaration`                                            | `maxLineLength`     | length     |
 | `Jumbo.ControlStructures.HeaderLayout`                                     | `maxLineLength`     | length     |
 | `Jumbo.ControlStructures.MatchArmWrapIndent`                               | `maxLineLength`     | length     |
@@ -76,11 +75,6 @@ set separately:
     <rule ref="SlevomatCodingStandard.Classes.RequireMultiLineMethodSignature">
         <properties>
             <property name="minLineLength" value="&lineLengthPlusOne;"/>
-        </properties>
-    </rule>
-    <rule ref="Jumbo.Functions.RequireSingleLineCall">
-        <properties>
-            <property name="maxLineLength" value="&lineLength;"/>
         </properties>
     </rule>
     <rule ref="Jumbo.Arrays.ArrayDeclaration">

@@ -99,5 +99,25 @@ $c = $here + $is + ($aLonger ? $result : $determined) * $from - $anExpression;
 $fits = $a
     ? $b
     : $c;
+// Arrow functions and `yield` pairs, laid out as pairs, the signature as the key; an arrow function as an ordinary
+// argument; empty brackets and a destructuring list joined; one with a skipped element left alone.
+function generate()
+{
+    yield $someLongKey => $someLongValue;
+}
+$f = fn(int $x): int => $x * $factor + $offset;
+$h = static fn(int $value): int => $value * $someLongMultiplier + $offset + $more;
+$r = array_map(fn($a) => $a + 1, $someList);
+$empty = [
+];
+[
+    $first,
+    $second,
+] = $pair;
+[
+    $a,
+    ,
+    $c,
+] = $list;
 // phpcs:set PERCS31.Formatting.ExpressionFormat strict false
 // phpcs:set PERCS31.Formatting.ExpressionFormat maxLineLength 120

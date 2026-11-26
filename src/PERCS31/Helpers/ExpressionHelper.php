@@ -201,7 +201,8 @@ class ExpressionHelper
             }
 
             $code = $tokens[$i]['code'];
-            if ($code === T_OPEN_SHORT_ARRAY) {
+            // An array's, or a yield's key and value, as in `yield $key => $value`.
+            if ($code === T_OPEN_SHORT_ARRAY || $code === T_YIELD) {
                 return true;
             }
 
@@ -325,8 +326,12 @@ class ExpressionHelper
         $count = count($tokens);
         for ($after = (max($stackPtr, $skipTo ?? $stackPtr) + 1); $after < $count; $after++) {
             $code = $tokens[$after]['code'];
-            if ($code === T_FN) {
-                return null;
+
+            // An arrow function runs to the token that ends its body.
+            $fnCloser = $tokens[$after]['scope_closer'] ?? null;
+            if ($code === T_FN && is_int($fnCloser)) {
+                $after = $fnCloser - 1;
+                continue;
             }
 
             // Skip a closure, `match` or anonymous class to the end of its body.
@@ -409,6 +414,7 @@ class ExpressionHelper
             );
             $region = $region === null ? null : self::widenToArm($phpcsFile, $region) ?? $region;
             $region = $region === null ? null : self::widenToTernary($phpcsFile, $region) ?? $region;
+            $region = $region === null ? null : self::widenToArrowFunction($phpcsFile, $region) ?? $region;
             if ($region !== null && self::isReadable($phpcsFile, $region)) {
                 return $region;
             }
@@ -488,7 +494,7 @@ class ExpressionHelper
 
             $code = $tokens[$i]['code'];
             if (
-                isset(Tokens::COMMENT_TOKENS[$code]) || in_array($code, [T_START_HEREDOC, T_START_NOWDOC, T_FN], true)
+                isset(Tokens::COMMENT_TOKENS[$code]) || in_array($code, [T_START_HEREDOC, T_START_NOWDOC], true)
                 || ($code !== T_WHITESPACE && str_contains($tokens[$i]['content'], "\n"))
             ) {
                 return true;
@@ -509,6 +515,11 @@ class ExpressionHelper
     public static function parse(File $phpcsFile, int $start, int $end): ?ExpressionNode
     {
         $tokens = $phpcsFile->getTokens();
+        $arrowFunction = self::parseArrowFunction($phpcsFile, $start, $end);
+        if ($arrowFunction !== false) {
+            return $arrowFunction;
+        }
+
         $arm = self::findArmArrow($phpcsFile, $start, $end);
         if ($arm !== null) {
             return self::parseArm($phpcsFile, $start, $end, $arm);
@@ -521,6 +532,11 @@ class ExpressionHelper
 
         $operators = [];
         for ($i = $start; $i <= $end; $i++) {
+            // An arrow function runs to the end, and its body's operators are its own.
+            if ($tokens[$i]['code'] === T_FN) {
+                break;
+            }
+
             if ($i !== $start && self::isBinary($phpcsFile, $i)) {
                 $operators[] = $i;
             }
@@ -537,6 +553,76 @@ class ExpressionHelper
     }
 
     /**
+     * Parse an arrow function, as a pair: its signature, which must be on one line, is the key, and its body the value.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $start The position of the expression's first token.
+     * @param int $end The position of its last token.
+     * @return ExpressionNode|false|null The arrow function, false if the expression isn't one, or null if it can't be
+     * read.
+     */
+    private static function parseArrowFunction(File $phpcsFile, int $start, int $end): ExpressionNode|false|null
+    {
+        $tokens = $phpcsFile->getTokens();
+        $fn = $tokens[$start]['code'] === T_STATIC
+            ? $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($start + 1), $end, true)
+            : $start;
+        $arrow = $fn === false ? null : ($tokens[$fn]['scope_opener'] ?? null);
+        $closer = $fn === false ? null : ($tokens[$fn]['scope_closer'] ?? null);
+        if ($fn === false || $tokens[$fn]['code'] !== T_FN || !is_int($arrow) || !is_int($closer)) {
+            return false;
+        }
+
+        $bodyEnd = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($closer - 1), $arrow, true);
+        $bodyStart = $phpcsFile->findNext(T_WHITESPACE, ($arrow + 1), ($end + 1), true);
+        $signatureEnd = (int) $phpcsFile->findPrevious(T_WHITESPACE, ($arrow - 1), $start, true);
+        $signature = $phpcsFile->getTokensAsString($start, ($signatureEnd - $start + 1));
+        if ($bodyEnd !== $end) {
+            return false;
+        }
+
+        $body = $bodyStart === false ? null : self::parse($phpcsFile, $bodyStart, $end);
+        if ($body === null || str_contains($signature, "\n")) {
+            return null;
+        }
+
+        $key = new ExpressionNode(ExpressionNode::OPERAND, $start, $signatureEnd, mb_strlen($signature));
+
+        return new ExpressionNode(
+            ExpressionNode::LEVEL,
+            $start,
+            $end,
+            $key->flatLength + 4 + $body->flatLength,
+            [$key, $body],
+            [$arrow],
+        );
+    }
+
+    /**
+     * Widen an expression that's an arrow function's body to the whole arrow function.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param array{int, int, int, int} $region The expression's region.
+     * @return array{int, int, int, int}|null The arrow function's region, or null if the expression isn't a body.
+     */
+    private static function widenToArrowFunction(File $phpcsFile, array $region): ?array
+    {
+        $tokens = $phpcsFile->getTokens();
+        $arrow = $region[2];
+        if ($arrow < 0 || $tokens[$arrow]['code'] !== T_FN_ARROW) {
+            return null;
+        }
+
+        $fn = $phpcsFile->findPrevious(T_FN, ($arrow - 1));
+        $closer = $fn === false ? null : ($tokens[$fn]['scope_closer'] ?? null);
+        if ($fn === false || ($tokens[$fn]['scope_opener'] ?? null) !== $arrow || !is_int($closer)) {
+            return null;
+        }
+
+        return self::findExpression($phpcsFile, $fn, $closer - 1);
+    }
+
+    /**
      * Find a ternary's `?` and `:` outside any brackets.
      *
      * @param File $phpcsFile The file being scanned.
@@ -550,6 +636,10 @@ class ExpressionHelper
         $tokens = $phpcsFile->getTokens();
         $found = [];
         for ($i = $start; $i <= $end; $i++) {
+            if ($tokens[$i]['code'] === T_FN) {
+                break;
+            }
+
             // A pair's `=>` binds more loosely than a ternary, so the ternary is in the pair's value.
             if (
                 in_array($tokens[$i]['code'], [T_DOUBLE_ARROW, T_MATCH_ARROW], true)
@@ -562,10 +652,7 @@ class ExpressionHelper
                 $found[] = $i;
             }
 
-            $closer = TokenHelper::findCloser($tokens[$i]) ?? $tokens[$i]['scope_closer'] ?? null;
-            if (is_int($closer) && $closer > $i) {
-                $i = $closer;
-            }
+            $i = self::findNestedEnd($tokens[$i], $i);
         }
 
         $isPair = count($found) === 2 && $tokens[$found[0]]['code'] === T_INLINE_THEN;
@@ -680,6 +767,26 @@ class ExpressionHelper
     }
 
     /**
+     * Find where a token's brackets or body end, to skip over them when looking for commas or operators outside them.
+     *
+     * An arrow function's scope runs to the token that ends it, which may be the comma being looked for, so only its
+     * parameters are skipped; its body has no comma or operator of the expression around it outside brackets.
+     *
+     * @param array<string, mixed> $token The token.
+     * @param int $ptr Its position.
+     * @return int The position of its closer, or its own position if it doesn't open anything.
+     */
+    private static function findNestedEnd(array $token, int $ptr): int
+    {
+        $closer = TokenHelper::findCloser($token);
+        if ($closer === null && !in_array($token['code'], [T_FN, T_FN_ARROW], true)) {
+            $closer = $token['scope_closer'] ?? null;
+        }
+
+        return is_int($closer) && $closer > $ptr ? $closer : $ptr;
+    }
+
+    /**
      * Find the other half of a ternary, the `:` after a `?` or the `?` before a `:`, outside any brackets between them.
      *
      * @param File $phpcsFile The file being scanned.
@@ -730,14 +837,15 @@ class ExpressionHelper
     {
         $tokens = $phpcsFile->getTokens();
         for ($i = $start; $i <= $end; $i++) {
+            if ($tokens[$i]['code'] === T_FN) {
+                return null;
+            }
+
             if ($tokens[$i]['code'] === T_MATCH_ARROW) {
                 return self::isArrowOperator($phpcsFile, $i) ? null : $i;
             }
 
-            $closer = TokenHelper::findCloser($tokens[$i]) ?? $tokens[$i]['scope_closer'] ?? null;
-            if (is_int($closer) && $closer > $i) {
-                $i = $closer;
-            }
+            $i = self::findNestedEnd($tokens[$i], $i);
         }
 
         return null;
@@ -768,10 +876,7 @@ class ExpressionHelper
                 $commas[] = $i;
             }
 
-            $closer = TokenHelper::findCloser($tokens[$i]) ?? $tokens[$i]['scope_closer'] ?? null;
-            if (is_int($closer) && $closer > $i) {
-                $i = $closer;
-            }
+            $i = self::findNestedEnd($tokens[$i], $i);
         }
 
         $trailingComma = $commas !== [] && end($commas) === $conditionsEnd ? array_pop($commas) : null;
@@ -1059,14 +1164,9 @@ class ExpressionHelper
             return null;
         }
 
-        // A short array that's assigned to is a destructuring list. What comes before the bracket, such as a chain,
-        // must be on one line.
-        $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($end + 1), null, true);
+        // What comes before the bracket, such as a chain, must be on one line.
         $callee = $phpcsFile->getTokensAsString($start, ($opener - $start));
-        if (
-            ($tokens[$opener]['code'] === T_OPEN_SHORT_ARRAY && $next !== false && $tokens[$next]['code'] === T_EQUAL)
-            || str_contains($callee, "\n")
-        ) {
+        if (str_contains($callee, "\n")) {
             return null;
         }
 
@@ -1077,10 +1177,7 @@ class ExpressionHelper
                 $commas[] = $i;
             }
 
-            $closer = TokenHelper::findCloser($tokens[$i]) ?? $tokens[$i]['scope_closer'] ?? null;
-            if (is_int($closer) && $closer > $i) {
-                $i = $closer;
-            }
+            $i = self::findNestedEnd($tokens[$i], $i);
         }
 
         $children = [];
@@ -1089,9 +1186,14 @@ class ExpressionHelper
         $argumentStart = $opener;
         foreach ([...$commas, $end] as $boundary) {
             $first = $phpcsFile->findNext(T_WHITESPACE, ($argumentStart + 1), $boundary, true);
+            // A destructuring list's skipped element, as in `[$a, , $c] = $list`, isn't read.
+            if ($first === false && $boundary !== $end) {
+                return null;
+            }
+
             if ($first === false) {
                 // Nothing after the last comma: a trailing comma.
-                if ($boundary === $end && $commas !== []) {
+                if ($commas !== []) {
                     $trailingComma = array_pop($separators);
                 }
 
@@ -1112,14 +1214,11 @@ class ExpressionHelper
             $argumentStart = $boundary;
         }
 
-        if ($children === []) {
-            return null;
-        }
-
-        // On one line: what comes before the bracket, the bracket, the arguments with ", " between, and the closer.
+        // On one line: what comes before the bracket, the bracket, the arguments with ", " between, and the closer. A
+        // call with no arguments may still be split over lines, with nothing but whitespace between its brackets.
         $flatLength = mb_strlen($callee) + 2
             + array_sum(array_map(static fn(ExpressionNode $child): int => $child->flatLength, $children))
-            + 2 * (count($children) - 1);
+            + 2 * max(0, count($children) - 1);
         // isCallOpener() only takes an owned parenthesis if it's array()'s.
         $isArray = $tokens[$opener]['code'] === T_OPEN_SHORT_ARRAY || isset($tokens[$opener]['parenthesis_owner']);
 

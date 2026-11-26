@@ -18,7 +18,7 @@ $isValid = $someLongConditionName
 $ok = $someLongConditionNameNumberOne
     || $someLongConditionNameNumberTwoIsLonger && $someLongConditionNameNumberThreeIsLonger
     && $someLongConditionNameNumberFourIsLonger;
-// Valid: a ternary in three lines. Skipped: a comment, a line break inside an operand, a heredoc or an arrow function.
+// Valid: a ternary in three lines. Skipped: a comment, a line break inside an operand, or a heredoc.
 $a = $someLongConditionNameNumberOne && $someLongConditionNameNumberTwo && $someLongConditionNameNumberThreeAbcd
     ? 1
     : 2;
@@ -32,8 +32,6 @@ $a = <<<'X'
     b
     X
     . 'c';
-$a = $b
-    && fn($x) => $x;
 switch ($a) {
     case $b
         || $c:
@@ -42,8 +40,9 @@ switch ($a) {
 // Skipped: an argument on one line, which can't be split without splitting the call.
 $a = foo($someLongArgumentNameNumberOne + $someLongArgumentNameNumberTwo + $someLongArgumentNameNumberThree, 1);
 
-// Invalid: fits on one line.
+// Invalid: fits on one line, an arrow function too.
 $a = $b + $c;
+$a = $b && fn($x) => $x;
 $text = 'Some text' . ' and more';
 $a = ($b || $c) && $d;
 if (
