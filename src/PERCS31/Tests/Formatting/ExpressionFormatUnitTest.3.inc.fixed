@@ -39,7 +39,8 @@ $label = match (true) {
 // Invalid: a key too long for its line is split, by the same rules as any string.
 $x = [
     'a key that is so long that it goes on and on past the line length limit of one hundred and twenty characters, and '
-        . 'more' => 1,
+        . 'more'
+        => 1,
 ];
 
 // Invalid: a pair that fits on one line, split before or after its `=>`.

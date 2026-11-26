@@ -1044,11 +1044,13 @@ class ExpressionFormatSniff implements Sniff
     }
 
     /**
-     * Work out where a `key => value` pair's lines break, when it doesn't fit on one line.
-     *
-     * A value with operators of its own, a string expression included, is split at those, with `key =>` kept on the
-     * first line. Any other value goes on a line of its own, starting with the `=>`, if it fits there. Otherwise, it
-     * stays after `key =>`, and a string is split. A key too long for its line is split as any string is.
+     * Work out where a `key => value` pair's lines break, when it doesn't fit on one line. The key and the value each
+     * on a line of their own come first:
+     * - A key too long for its line is split, at its operators or as a string, and `=>` goes on a line of its own.
+     * - A value that fits on a line of its own goes there, starting with the `=>`.
+     * - Otherwise there's no break before `=>`, as it would save nothing: the value is split after `key =>`, at its
+     *   operators, as a call or array, or as a string. Only when `key =>` leaves no room for even the start of the
+     *   value does `=>` start a line anyway, with the value's new lines indented once more.
      *
      * @param File $phpcsFile The file being scanned.
      * @param ExpressionNode $node The pair.
@@ -1072,8 +1074,7 @@ class ExpressionFormatSniff implements Sniff
         $arrow = $node->operators[0];
         $keyEnd = $this->delegateString($phpcsFile, $key, $column, $indent, 0, true)
             ?? $this->layout($phpcsFile, $key, $column, $lineIndent, $indent, 0, false, $breaks);
-        $valueColumn = $keyEnd + 4;
-        $valueLineIndent = $this->isDelegated($key) ? $indent : $lineIndent;
+        $isKeySplit = $keyEnd !== $column + $key->flatLength;
 
         // A string expression that becomes one string is one operand.
         $string = null;
@@ -1086,24 +1087,81 @@ class ExpressionFormatSniff implements Sniff
             }
         }
 
-        if (($valueColumn + $valueLength + $trailing) <= $this->maxLineLength) {
+        $valueColumn = $keyEnd + 4;
+        if (!$isKeySplit && ($valueColumn + $valueLength + $trailing) <= $this->maxLineLength) {
             return $valueColumn + $valueLength;
         }
 
-        if ($value->kind !== ExpressionNode::LEVEL || $string !== null) {
-            $ownLineEnd = $indent + 3 + $valueLength;
-            if (($ownLineEnd + $trailing) <= $this->maxLineLength) {
-                $breaks[$arrow] = $indent;
+        // On a line of its own, starting with the `=>`.
+        $ownLineColumn = $indent + 3;
+        if ($isKeySplit || ($ownLineColumn + $valueLength + $trailing) <= $this->maxLineLength) {
+            $breaks[$arrow] = $indent;
+            if (($ownLineColumn + $valueLength + $trailing) <= $this->maxLineLength) {
                 if ($string !== null) {
                     $this->delegated[$value->start] = [$value, $string->flat()];
                 }
 
-                return $ownLineEnd;
+                return $ownLineColumn + $valueLength;
             }
+
+            return $this->layoutValue($phpcsFile, $value, $ownLineColumn, $indent, $trailing, $breaks);
         }
+
+        // No room after `key =>` for even the start of the value: `=>` starts a line anyway.
+        if (($valueColumn + self::leadLength($value)) > $this->maxLineLength) {
+            $breaks[$arrow] = $indent;
+
+            return $this->layoutValue($phpcsFile, $value, $ownLineColumn, $indent, $trailing, $breaks);
+        }
+
+        $valueLineIndent = $this->isDelegated($key) ? $indent : $lineIndent;
 
         return $this->delegateString($phpcsFile, $value, $valueColumn, $indent, $trailing, true)
             ?? $this->layout($phpcsFile, $value, $valueColumn, $valueLineIndent, $indent, $trailing, false, $breaks);
+    }
+
+    /**
+     * Lay out a pair's value that starts a line of its own, after `=>`, and doesn't fit on it. Its new lines are
+     * indented once past that line.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $value The value.
+     * @param int $column The number of characters before the value on its line.
+     * @param int $lineIndent The indent of that line.
+     * @param int $trailing The number of characters straight after the value on its last line.
+     * @param array<int, int> $breaks The operators to break the line before, with each one's indent.
+     * @return int The number of characters before the value's end, on its last line.
+     */
+    private function layoutValue(
+        File $phpcsFile,
+        ExpressionNode $value,
+        int $column,
+        int $lineIndent,
+        int $trailing,
+        array &$breaks,
+    ): int {
+        $indent = $lineIndent + LayoutHelper::INDENT;
+
+        return $this->delegateString($phpcsFile, $value, $column, $indent, $trailing, true)
+            ?? $this->layout($phpcsFile, $value, $column, $lineIndent, $indent, $trailing, false, $breaks);
+    }
+
+    /**
+     * Get the length of a node's first piece, which can't be split from the start of its line: a level's first operand,
+     * a call's name and opening bracket, or a body's first line.
+     *
+     * @param ExpressionNode $node The node.
+     * @return int The length.
+     */
+    private static function leadLength(ExpressionNode $node): int
+    {
+        return match ($node->kind) {
+            ExpressionNode::LEVEL => self::leadLength($node->children[0]),
+            ExpressionNode::GROUP
+                => $node->flatLength - $node->children[0]->flatLength - 1 + self::leadLength($node->children[0]),
+            ExpressionNode::CALL, ExpressionNode::BODY => self::firstLineLength($node),
+            default => $node->flatLength,
+        };
     }
 
     /**

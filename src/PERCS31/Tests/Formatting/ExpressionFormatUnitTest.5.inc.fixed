@@ -99,5 +99,21 @@ $d = foo(
     default => 'many',
 },
 );
+// Pairs: a value that fits on its own line goes there, even with operators or as an array; a split key puts `=>` on a
+// line of its own; and with no room after `key =>`, `=>` starts a line anyway.
+$a = match ($b) {
+    'some longer key'
+        => $first + $second,
+    $first > 10 && $second > 20
+        && $third > 30
+        => 'big',
+    'abcdefghijklmnopqrstuvwxyz0123'
+        => $first + $second + $third
+            + $fourth,
+};
+$x = [
+    'customer'
+        => ['Shaun', 'Moss', 'XV', 55],
+];
 // phpcs:set PERCS31.Formatting.ExpressionFormat strict false
 // phpcs:set PERCS31.Formatting.ExpressionFormat maxLineLength 120

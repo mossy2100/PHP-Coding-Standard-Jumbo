@@ -706,10 +706,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   Change any reference to `PERCS31.NamingConventions.UpperCaseConstantName`, in a ruleset or a `phpcs:ignore`, to
   `PERCS31.NamingConventions.ValidConstantName`.
 - **`key => value` pairs, in Jumbo (breaking).** `PERCS31.Formatting.ExpressionFormat` now lays out an array element or
-  a `match` arm with one condition as one expression. One too long for its line is split at the value's own operators,
-  keeping `key =>` on the first line. Otherwise, a value that fits on a line of its own goes there, starting with `=>`,
-  and only a value too long for that has its string split. A pair that fits on one line is joined, and a line break
-  after `=>` is moved before it.
+  a `match` arm with one condition as one expression, with the key and the value each on one line first: a value that
+  fits on a line of its own goes there, starting with `=>`. Otherwise `key =>` stays on the first line and the value is
+  split there, at its operators, as a call or array, or as a string. A key too long for its line is split, with `=>`
+  on a line of its own. A pair that fits on one line is joined, and a line break after `=>` is moved before it.
 - **Redundant doc tags, in Jumbo (breaking).** Jumbo now reports a `@param`, `@return` or `@var` that only repeats the
   native type, with no description, and removes it: the `UselessAnnotation` codes of
   `Jumbo.TypeHints.ParameterTypeHint`, `SlevomatCodingStandard.TypeHints.PropertyTypeHint` and

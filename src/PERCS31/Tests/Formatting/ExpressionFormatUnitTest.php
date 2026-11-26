@@ -37,7 +37,9 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
                 // hug, and a split call in an expression that fits.
                 + [34 => 1, 38 => 1, 41 => 1, 48 => 1]
                 // A chopped closure that should be hugged, two closures hugged, and a hugged match.
-                + [60 => 1, 66 => 1, 71 => 1];
+                + [60 => 1, 66 => 1, 71 => 1]
+                // Pairs: a value with operators on its own line, a split key, no room after `key =>`, and an array.
+                + [78 => 1, 79 => 1, 80 => 1, 82 => 1];
         }
 
         if ($testFile === 'ExpressionFormatUnitTest.4.inc') {
@@ -56,7 +58,7 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
             // An array split over lines is one expression, reported at its start. A value that fits on a line of its
             // own: a string, one that becomes one string (and its string), and a match arm's. A key too long for its
             // line. An array of pairs that fits on one line, split before or after their `=>`.
-            return [28 => 1, 30 => 1, 34 => 1, 40 => 1, 44 => 1];
+            return [28 => 1, 30 => 1, 34 => 1, 39 => 1, 40 => 1, 44 => 1];
         }
 
         return [

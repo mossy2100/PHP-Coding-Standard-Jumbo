@@ -1580,16 +1580,21 @@ joined, and one split any other way than the layout above is laid out again. A c
 class's body isn't changed, only where it starts; PERCS31.WhiteSpace.ScopeIndent re-indents a body that moves. An
 arrow function is still left alone.
 
-**A `key => value` pair**, in an array or in a `match` arm with one condition, is one expression. One that doesn't fit
-on one line is laid out by the first of these that applies:
+**A `key => value` pair**, in an array or in a `match` arm with one condition, is one expression. The first preference
+is always the key and the value each on a single line. One that doesn't fit on one line is laid out by the first of
+these that applies:
 
-1. A value with operators of its own is split at them, with `key =>` kept on the first line. A string expression that
-   becomes one string, such as `'a ' . 'b'`, counts as one operand.
-2. A value that fits on a line of its own goes there, starting with the `=>`, indented once.
-3. Otherwise, the value stays after `key =>`, and a string is split, as below.
+1. A key too long for its line is split, at its operators or as a string, and `=>` goes on a line of its own, indented
+   once.
+2. A value that fits on a line of its own goes there, starting with the `=>`, indented once. A string expression that
+   becomes one string, such as `'a ' . 'b'`, counts as one value.
+3. Otherwise, the value stays after `key =>`, as breaking before `=>` would save nothing, and is split there: at its
+   operators, as a call or array, or as a string.
+4. Only when `key =>` leaves no room for even the start of the value does `=>` start a line anyway. The value's new
+   lines are then indented once past it.
 
-A key too long for its line is split as any string is. There's never a line break after a `=>`. A `match` arm with
-several conditions is left to [`MatchArmWrapIndent`](Jumbo_Custom_Sniffs.md#jumbocontrolstructuresmatcharmwrapindent).
+There's never a line break after a `=>`. A `match` arm with several conditions is left to
+[`MatchArmWrapIndent`](Jumbo_Custom_Sniffs.md#jumbocontrolstructuresmatcharmwrapindent).
 
 An expression fits on its line if its own text, and any punctuation straight after it, such as a `;`, `,` or `)`, fit
 within `maxLineLength`. What follows that, such as an array value after its key, or a comment, is never a reason to
