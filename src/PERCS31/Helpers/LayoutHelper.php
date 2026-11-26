@@ -216,4 +216,73 @@ class LayoutHelper
 
         return $blankLines;
     }
+
+    /**
+     * Find the fewest line breaks in a chain of pieces joined by ` => `, such as nested arrow functions, that let every
+     * line fit, breaking before the earliest arrows first on a tie. Each arrow that breaks starts a line indented once
+     * past the line before it, with `=> ` and the piece after it.
+     *
+     * @param list<int> $lengths The length of the piece after each arrow.
+     * @param int $start The number of characters before the first arrow, and the space before it, on its line.
+     * @param int $indent The indent for the first new line.
+     * @param int $trailing The number of characters straight after the last piece.
+     * @param int $maxLineLength The line length.
+     * @return array{list<int>, int}|null The indexes of the arrows to break before, and the number of characters before
+     * the end on the last line, or null if no layout fits.
+     */
+    public static function findChainBreaks(
+        array $lengths,
+        int $start,
+        int $indent,
+        int $trailing,
+        int $maxLineLength,
+    ): ?array {
+        $count = count($lengths);
+        for ($size = 1; $size <= $count; $size++) {
+            foreach (self::combinations(range(0, $count - 1), $size) as $broken) {
+                $end = $start;
+                $lineIndent = $indent - self::INDENT;
+                $fits = true;
+                foreach ($lengths as $index => $length) {
+                    if (!in_array($index, $broken, true)) {
+                        $end += 4 + $length;
+                        continue;
+                    }
+
+                    $fits = $fits && $end <= $maxLineLength;
+                    $lineIndent += self::INDENT;
+                    $end = $lineIndent + 3 + $length;
+                }
+
+                if ($fits && $end + $trailing <= $maxLineLength) {
+                    return [$broken, $end];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Get every combination of a given size of a list's items, in order, the earliest items first.
+     *
+     * @param list<int> $items The items.
+     * @param int $size The size.
+     * @return list<list<int>> The combinations.
+     */
+    private static function combinations(array $items, int $size): array
+    {
+        if ($size === 0) {
+            return [[]];
+        }
+
+        $result = [];
+        foreach ($items as $index => $item) {
+            foreach (self::combinations(array_slice($items, $index + 1), $size - 1) as $rest) {
+                $result[] = [$item, ...$rest];
+            }
+        }
+
+        return $result;
+    }
 }

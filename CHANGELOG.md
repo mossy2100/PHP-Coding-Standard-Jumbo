@@ -531,7 +531,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   line takes three lines, `?` and `:` starting the second and third, or two for `?:`, and each part is then split in
   its own line's room. After a group split over lines, the next operator starts a line. A `yield $key => $value`, and an
   arrow function, its signature as the key, are laid out as pairs, and an arrow function is an ordinary argument, never
-  hugged. Empty brackets and destructuring lists split over lines are joined. Reported as `TooLong`, a
+  hugged. Nested arrow functions break before the fewest `=>` that let each line fit, the outer ones first. Empty
+  brackets and destructuring lists split over lines are joined. Reported as `TooLong`, a
   warning in PERCS31 and an error in Jumbo. With `strict`, as in Jumbo, a call or array split over lines is checked
   too: joined if it fits, and laid out again if split any other way. Auto-fixable.
 - **String expressions, in Jumbo (breaking).** `PERCS31.Formatting.ExpressionFormat` has a new

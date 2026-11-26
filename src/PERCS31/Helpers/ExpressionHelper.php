@@ -414,7 +414,13 @@ class ExpressionHelper
             );
             $region = $region === null ? null : self::widenToArm($phpcsFile, $region) ?? $region;
             $region = $region === null ? null : self::widenToTernary($phpcsFile, $region) ?? $region;
-            $region = $region === null ? null : self::widenToArrowFunction($phpcsFile, $region) ?? $region;
+            // An arrow function can be another's body, so it's widened to the outermost.
+            $widened = $region === null ? null : self::widenToArrowFunction($phpcsFile, $region);
+            while ($widened !== null) {
+                $region = $widened;
+                $widened = self::widenToArrowFunction($phpcsFile, $region);
+            }
+
             if ($region !== null && self::isReadable($phpcsFile, $region)) {
                 return $region;
             }

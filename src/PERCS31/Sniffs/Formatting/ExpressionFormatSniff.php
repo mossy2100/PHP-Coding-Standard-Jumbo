@@ -909,6 +909,11 @@ class ExpressionFormatSniff implements Sniff
             ) + 1;
         }
 
+        $chain = self::findArrowChain($phpcsFile, $node);
+        if ($chain !== null) {
+            return $this->layoutArrowChain($phpcsFile, $chain, $column, $indent, $trailing, $breaks);
+        }
+
         if (self::isPair($phpcsFile, $node)) {
             return $this->layoutPair($phpcsFile, $node, $column, $lineIndent, $indent, $trailing, $breaks);
         }
@@ -1301,6 +1306,74 @@ class ExpressionFormatSniff implements Sniff
 
         return $this->delegateString($phpcsFile, $value, $valueColumn, $indent, $trailing, true)
             ?? $this->layout($phpcsFile, $value, $valueColumn, $valueLineIndent, $indent, $trailing, false, $breaks);
+    }
+
+    /**
+     * Find the arrow functions in an arrow function whose body is another one, as in `fn($a) => fn($b) => $a + $b`.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $node The node.
+     * @return ?list<ExpressionNode> The arrow functions, outermost first, or null if the node isn't two or more.
+     */
+    private static function findArrowChain(File $phpcsFile, ExpressionNode $node): ?array
+    {
+        $chain = [];
+        while (self::isPair($phpcsFile, $node) && $phpcsFile->getTokens()[$node->operators[0]]['code'] === T_FN_ARROW) {
+            $chain[] = $node;
+            $node = $node->children[1];
+        }
+
+        return count($chain) >= 2 ? $chain : null;
+    }
+
+    /**
+     * Work out where nested arrow functions that don't fit on one line break: the fewest breaks before their `=>` that
+     * let every line fit with the body on one line, the outer arrows first on a tie. Each `=>` that breaks starts a
+     * line indented once past the line before it. If no such layout fits, every `=>` breaks, and the body is split in
+     * its line's room.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param list<ExpressionNode> $chain The arrow functions, outermost first.
+     * @param int $column The number of characters before the outermost one on its first line.
+     * @param int $indent The indent for its first new line.
+     * @param int $trailing The number of characters straight after it on its last line.
+     * @param array<int, int> $breaks The operators to break the line before, with each one's indent.
+     * @return int The number of characters before its end, on its last line.
+     */
+    private function layoutArrowChain(
+        File $phpcsFile,
+        array $chain,
+        int $column,
+        int $indent,
+        int $trailing,
+        array &$breaks,
+    ): int {
+        // The pieces after each `=>`: the next signature, then the body.
+        $count = count($chain);
+        $body = $chain[$count - 1]->children[1];
+        $lengths = [];
+        foreach ($chain as $index => $arrowFunction) {
+            $lengths[] = $index < $count - 1 ? $chain[$index + 1]->children[0]->flatLength : $body->flatLength;
+        }
+
+        $start = $column + $chain[0]->children[0]->flatLength;
+        $found = LayoutHelper::findChainBreaks($lengths, $start, $indent, $trailing, $this->maxLineLength);
+        if ($found !== null) {
+            [$broken, $end] = $found;
+            foreach ($broken as $order => $index) {
+                $breaks[$chain[$index]->operators[0]] = $indent + $order * LayoutHelper::INDENT;
+            }
+
+            return $end;
+        }
+
+        $bodyIndent = $indent;
+        foreach ($chain as $order => $arrowFunction) {
+            $bodyIndent = $indent + $order * LayoutHelper::INDENT;
+            $breaks[$arrowFunction->operators[0]] = $bodyIndent;
+        }
+
+        return $this->layoutValue($phpcsFile, $body, $bodyIndent + 3, $bodyIndent, $trailing, $breaks);
     }
 
     /**

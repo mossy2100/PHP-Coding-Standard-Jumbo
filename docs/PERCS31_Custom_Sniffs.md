@@ -1605,6 +1605,10 @@ Conditions split that fit on one line are joined, without the trailing comma. Th
 An arrow function is a pair too, with its signature as the key, which must be on one line. As an argument, it's an
 ordinary one: never hugged, so a call holding one is chopped down when it doesn't fit.
 
+Nested arrow functions, as in `fn($a) => fn($b) => $a + $b`, break before the fewest `=>` that let every line fit with
+the body on one line, the outer arrows first on a tie. Each `=>` that breaks starts a line indented once past the line
+before it. If no such layout fits, every `=>` breaks, and the body is split in its own line's room.
+
 An expression fits on its line if its own text, and any punctuation straight after it, such as a `;`, `,` or `)`, fit
 within `maxLineLength`. What follows that, such as an array value after its key, or a comment, is never a reason to
 split it.

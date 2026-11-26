@@ -119,5 +119,10 @@ $empty = [
     ,
     $c,
 ] = $list;
+// Nested arrow functions: the fewest breaks, the outer arrow first; every arrow broken when the body must be split.
+$n = fn($first) => fn($b) => $first + $b + $cc;
+$n = fn($first) => fn($second) => $first + $second + $third;
+$n = fn($first) => fn($second) => $first + $second + $third + $fourth + $fifth;
+$n = fn($a) => fn($b) => fn($c) => $a + $b + $c + $dd;
 // phpcs:set PERCS31.Formatting.ExpressionFormat strict false
 // phpcs:set PERCS31.Formatting.ExpressionFormat maxLineLength 120
