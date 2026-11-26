@@ -19,7 +19,7 @@ $a = merge($defaults, ['colour' => 'red']);
 $a = merge($defaults, ['colour' => 'red', 'size' => 'large']);
 $a = foo(bar(['colour' => 'red', 'size' => 'large']));
 
-// Outermost first: the operator, then the call only if still too long.
+// Outermost first: the operator, unless the call after it is too long for its own line too, so it stays after it.
 $ok = $admin || in_array($r, ['a', 'b'], true);
 $ok = $admin || in_array($role, ['admin', 'editor', 'author'], true);
 
@@ -28,4 +28,26 @@ $list = ['alpha', 'beta', 'gamma', 'delta'];
 $a = foo(
     bar($firstValue, $secondValue, $third),
 );
+
+// In strict, a call split over lines that fits on one is joined, and one hugging the wrong argument is re-laid out.
+// phpcs:set PERCS31.Formatting.ExpressionFormat strict true
+$short = foo(
+    $a,
+    $b,
+);
+$a = merge($defaults, [
+    'colour' => 'red',
+]);
+$a = merge(
+    $defaults,
+    [
+        'colour' => 'red',
+        'size' => 'large',
+    ],
+);
+$a = $b
+    + foo(
+        $c,
+    );
+// phpcs:set PERCS31.Formatting.ExpressionFormat strict false
 // phpcs:set PERCS31.Formatting.ExpressionFormat maxLineLength 120

@@ -88,7 +88,7 @@ switch ($a) {
     case ($b):
         break;
 }
-$a = foo(1) + 2;
+$a = foo(1)->bar();
 
 // Invalid: the lines around a body, or a call or array too long to collapse, are joined.
 $a = $b ?? function () {
@@ -112,7 +112,7 @@ $a = $b ?? foo(function () {
 });
 $a = $b
     ?? ['abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz', 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz'];
-$a = $b ?? [
+$a = [
     'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz',
     'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz',
     'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz',

@@ -32,7 +32,10 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
         if ($testFile === 'ExpressionFormatUnitTest.5.inc') {
             // Calls and arrays too long, at a line length of 40: chopped down, hugged, outermost first, and an argument
             // on its own line.
-            return [12 => 1, 13 => 1, 16 => 1, 19 => 1, 20 => 1, 23 => 1, 24 => 1, 27 => 1, 29 => 1];
+            return [12 => 1, 13 => 1, 16 => 1, 19 => 1, 20 => 1, 23 => 1, 24 => 1, 27 => 1, 29 => 1]
+                // In strict: a split call that fits, hugging when chopping lets the array fit, chopped when it should
+                // hug, and a split call in an expression that fits.
+                + [34 => 1, 38 => 1, 41 => 1, 48 => 1];
         }
 
         if ($testFile === 'ExpressionFormatUnitTest.4.inc') {
@@ -48,17 +51,10 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
         }
 
         if ($testFile === 'ExpressionFormatUnitTest.3.inc') {
-            return [
-                // A value that fits on a line of its own: a string, one that becomes one string, and a match arm's.
-                29 => 1,
-                30 => 2,
-                34 => 1,
-                // A key too long for its line.
-                40 => 1,
-                // A pair that fits, split before or after its `=>`.
-                45 => 1,
-                47 => 1,
-            ];
+            // An array split over lines is one expression, reported at its start. A value that fits on a line of its
+            // own: a string, one that becomes one string (and its string), and a match arm's. A key too long for its
+            // line. An array of pairs that fits on one line, split before or after their `=>`.
+            return [28 => 1, 30 => 1, 34 => 1, 40 => 1, 44 => 1];
         }
 
         return [

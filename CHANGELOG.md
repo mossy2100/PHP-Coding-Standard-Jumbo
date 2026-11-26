@@ -529,8 +529,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   array written on one line that's too long, as part of the expression it's in, outermost first: the expression's
   operators, then its calls and arrays. A call is chopped down, one argument per line with a trailing comma, if that
   lets every argument fit; otherwise its one array too long even on a line of its own is hugged, as in
-  `merge($defaults, [`, with the other arguments on the call's lines. An array's values go one per line. Reported as
-  `TooLong`, a warning in PERCS31 and an error in Jumbo. Auto-fixable.
+  `merge($defaults, [`, with the other arguments on the call's lines. An array's values go one per line. A last
+  operand that's a call or array too long even on its own line stays after its operator. Reported as `TooLong`, a
+  warning in PERCS31 and an error in Jumbo. With `strict`, as in Jumbo, a call or array split over lines is checked
+  too: joined if it fits, and laid out again if split any other way. Auto-fixable.
 - **String expressions, in Jumbo (breaking).** `PERCS31.Formatting.ExpressionFormat` has a new
   `reflowStringExpressions` property, on in Jumbo. It rewrites a chain of `.` operations as the fewest strings it can
   be, interpolating variables, property reads and method calls, so `'Hello, ' . $name . '!'` becomes `"Hello, $name!"`.

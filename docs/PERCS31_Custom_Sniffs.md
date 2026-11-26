@@ -1568,8 +1568,14 @@ outermost first, only if still too long:
   itself." A call whose own argument is hugged can be hugged the same way, as in `foo(bar([`.
 - **Otherwise chopped down.** An array's values always go one per line.
 
-A call already split over lines isn't changed inside, but each argument on its own line is checked as an expression of
-its own.
+An expression's last operand that's a call or array too long even on a line of its own stays after its operator, as in
+`$ok = $value !== null && isStatement(`, and is split there, as a pair's value stays after `key =>`: breaking before
+the operator would save nothing.
+
+Without `strict`, a call already split over lines isn't changed, but each argument on its own line is checked as an
+expression of its own. With `strict`, a call or array split over lines is checked too: one that fits on one line is
+joined, and one split any other way than the layout above is laid out again. One with a closure, `match` or anonymous
+class in it is left alone.
 
 **A `key => value` pair**, in an array or in a `match` arm with one condition, is one expression. One that doesn't fit
 on one line is laid out by the first of these that applies:

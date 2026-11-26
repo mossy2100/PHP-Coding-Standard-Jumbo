@@ -65,6 +65,21 @@ class ExpressionFormatSniff implements Sniff
 
     public const string CODE_TOO_LONG = 'TooLong';
 
+    /**
+     * A call or array on one line, from findCallLayout().
+     */
+    private const string FLAT = 'flat';
+
+    /**
+     * A call or array chopped down, one argument per line, from findCallLayout().
+     */
+    private const string CHOPPED = 'chopped';
+
+    /**
+     * A call or array split in some other way, from findCallLayout().
+     */
+    private const string OTHER = 'other';
+
     public const string CODE_INCORRECT_STRING_FORMAT = 'IncorrectStringFormat';
 
     public const string CODE_UNNECESSARY_STRING_CONVERSION = 'UnnecessaryStringConversion';
@@ -208,7 +223,7 @@ class ExpressionFormatSniff implements Sniff
             $this->checked = [];
         }
 
-        $region = ExpressionHelper::findOutermostExpression($phpcsFile, $stackPtr);
+        $region = ExpressionHelper::findOutermostExpression($phpcsFile, $stackPtr, $this->strict);
         if ($region === null || isset($this->checked[$region[0]])) {
             return;
         }
@@ -256,7 +271,8 @@ class ExpressionFormatSniff implements Sniff
             && (($breaks !== [] && self::isInTernary($phpcsFile, $before, $after))
                 || ($current === [] && !$misplaced && !$isCondition && !self::isSplittableAfter($phpcsFile, $before)
                     && !self::isPairOnItsOwnLine($phpcsFile, $root)
-                    && !self::isElementOnItsOwnLine($phpcsFile, $start, $before)));
+                    && !self::isElementOnItsOwnLine($phpcsFile, $start, $before))
+                || ($breaks === [] && !$this->fitsWithRestOfLine($phpcsFile, $root, $column)));
         if ($isLeftAlone) {
             $this->delegated = [];
         }
@@ -287,6 +303,26 @@ class ExpressionFormatSniff implements Sniff
             $this->applyLayout($phpcsFile, $root, $breaks);
             $phpcsFile->fixer->endChangeset();
         }
+    }
+
+    /**
+     * Check whether an expression joined onto one line would fit with what follows it on its last line now, such as
+     * the rest of a ternary it's the condition of.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $root The expression.
+     * @param int $column The number of characters before it on its first line.
+     * @return bool True if it would.
+     */
+    private function fitsWithRestOfLine(File $phpcsFile, ExpressionNode $root, int $column): bool
+    {
+        $tokens = $phpcsFile->getTokens();
+        $rest = 0;
+        for ($i = ($root->end + 1); isset($tokens[$i]) && $tokens[$i]['line'] === $tokens[$root->end]['line']; $i++) {
+            $rest += mb_strlen(rtrim($tokens[$i]['content'], "\r\n"));
+        }
+
+        return ($column + $root->flatLength + $rest) <= $this->maxLineLength;
     }
 
     /**
@@ -541,7 +577,7 @@ class ExpressionFormatSniff implements Sniff
     private function processLiteral(File $phpcsFile, int $stackPtr): void
     {
         // A literal in a call on one line is part of the expression around the call, and checked with it.
-        $region = ExpressionHelper::findOutermostExpression($phpcsFile, $stackPtr);
+        $region = ExpressionHelper::findOutermostExpression($phpcsFile, $stackPtr, $this->strict);
         if ($region === null) {
             return;
         }
@@ -798,6 +834,7 @@ class ExpressionFormatSniff implements Sniff
 
         // Each operand joins the line it follows if it fits, and starts a new line, with its operator, if it doesn't.
         $lastIndex = count($node->operators);
+        $currentIndent = $lineIndent;
         $end = $this->layout($phpcsFile, $node->children[0], $column, $lineIndent, $indent, 0, $inCondition, $breaks);
         foreach ($node->operators as $index => $operator) {
             $child = $node->children[($index + 1)];
@@ -809,7 +846,30 @@ class ExpressionFormatSniff implements Sniff
                 continue;
             }
 
+            // Breaking before the last operand saves nothing when it's a call or array too long for a line of its own
+            // too: it stays after its operator, and is split there.
+            $childColumn = $end + $operatorLength + 2;
+            $ownLineEnd = $indent + $operatorLength + 1 + $child->flatLength + $childTrailing;
+            if (
+                ($index + 1) === $lastIndex && $child->kind === ExpressionNode::CALL
+                && $ownLineEnd > $this->maxLineLength
+                && ($childColumn + self::calleeLength($child) + 1) <= $this->maxLineLength
+            ) {
+                $end = $this->layout(
+                    $phpcsFile,
+                    $child,
+                    $childColumn,
+                    $currentIndent,
+                    $indent,
+                    $childTrailing,
+                    false,
+                    $breaks,
+                );
+                continue;
+            }
+
             $breaks[$operator] = $indent;
+            $currentIndent = $indent;
             $childColumn = $indent + $operatorLength + 1;
 
             // A string expression that doesn't fit on its own line is laid out as a string, at the same indent.
@@ -1099,9 +1159,61 @@ class ExpressionFormatSniff implements Sniff
                 || $tokens[$node->closer]['line'] !== $tokens[$inner->end]['line'];
         }
 
+        // A call split over lines: as it should be, if it's chopped down or hugging the same argument as worked out.
+        if ($node->kind === ExpressionNode::CALL && is_int($node->opener)) {
+            $layout = self::findCallLayout($phpcsFile, $node);
+            if ($layout !== self::FLAT) {
+                $current[$node->opener] = true;
+                $expected = $this->callLayouts[$node->opener] ?? null;
+                $isExpected = $expected !== null
+                    && (($layout === self::CHOPPED && $expected[0] !== null) || $layout === $expected[1]);
+                $misplaced = $misplaced || ($expected !== null && !$isExpected) || $layout === self::OTHER;
+            }
+        }
+
         foreach ($node->children as $child) {
             $this->findCurrentBreaks($phpcsFile, $child, $current, $misplaced);
         }
+    }
+
+    /**
+     * Find how a call or array is laid out now.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $node The call.
+     * @return int|string FLAT if it's on one line, CHOPPED if each argument starts a line and the closer has one of its
+     * own, the index of the one argument that spans lines with the rest on the call's lines, or OTHER.
+     */
+    private static function findCallLayout(File $phpcsFile, ExpressionNode $node): int|string
+    {
+        $tokens = $phpcsFile->getTokens();
+        $last = $node->children[count($node->children) - 1];
+        $gaps = [[(int) $node->opener, $node->children[0]->start]];
+        foreach ($node->separators as $index => $comma) {
+            $gaps[] = [$comma, $node->children[$index + 1]->start];
+        }
+
+        $gaps[] = [$node->trailingComma ?? $last->end, (int) $node->closer];
+        $isBroken = static fn(array $gap): bool => $tokens[$gap[0]]['line'] !== $tokens[$gap[1]]['line'];
+        $broken = array_map($isBroken, $gaps);
+        if (!in_array(false, $broken, true)) {
+            return self::CHOPPED;
+        }
+
+        if (in_array(true, $broken, true)) {
+            return self::OTHER;
+        }
+
+        $spanning = array_keys(array_filter(
+            $node->children,
+            static fn(ExpressionNode $child): bool => $tokens[$child->start]['line'] !== $tokens[$child->end]['line'],
+        ));
+
+        return match (count($spanning)) {
+            0 => self::FLAT,
+            1 => $spanning[0],
+            default => self::OTHER,
+        };
     }
 
     /**
@@ -1144,6 +1256,14 @@ class ExpressionFormatSniff implements Sniff
 
             $closerLine = $phpcsFile->eolChar . str_repeat(' ', $argumentIndent - LayoutHelper::INDENT);
             self::setGap($phpcsFile, $node->trailingComma ?? $last, $node->closer, $closerLine);
+        } elseif ($node->kind === ExpressionNode::CALL && self::findCallLayout($phpcsFile, $node) !== self::FLAT) {
+            // Hugging an argument, or on one line: the list itself isn't split, so it has no trailing comma.
+            self::setGap($phpcsFile, (int) $node->opener, $node->children[0]->start, '');
+            foreach ($node->separators as $index => $comma) {
+                self::setGap($phpcsFile, $comma, $node->children[$index + 1]->start, ' ');
+            }
+
+            self::setGap($phpcsFile, $node->children[count($node->children) - 1]->end, (int) $node->closer, '');
         }
 
         foreach ($node->children as $child) {

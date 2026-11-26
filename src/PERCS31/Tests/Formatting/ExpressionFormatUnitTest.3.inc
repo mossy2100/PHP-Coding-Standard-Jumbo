@@ -13,7 +13,7 @@ $x = [
         . 'world-famous best-selling comedy thriller science fiction author.',
 ];
 $list = [
-    'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth', 'tenth', 'eleventh', 'end',
+    'a value long enough that the array holding it, with its brackets, does not fit on one line of its own at all',
 ];
 $message = 'A string that fits on its line, though with the comment after it the line is too long.'; // A comment.
 $total = $firstNumber + $secondNumber + $thirdNumber + $fourthNumber; // A comment that takes the line past the limit.
