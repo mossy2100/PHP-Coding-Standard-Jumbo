@@ -541,8 +541,13 @@ class AttributeLayoutSniff implements Sniff
         }
 
         if (!LayoutHelper::isSplitList($phpcsFile, $listOpener, $listCloser)) {
-            self::checkInlineSpacing($phpcsFile, $closerPtr, $targetPtr, 'In a single-line argument list, a closure\'s '
-                . 'attribute must be inline, after a single space', self::CODE_CLOSURE_SPACING);
+            self::checkInlineSpacing(
+                $phpcsFile,
+                $closerPtr,
+                $targetPtr,
+                'In a single-line argument list, a closure\'s attribute must be inline, after a single space',
+                self::CODE_CLOSURE_SPACING,
+            );
             return;
         }
 

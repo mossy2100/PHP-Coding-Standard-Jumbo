@@ -883,14 +883,8 @@ class CompoundTypeSniff implements Sniff
             if (isset($seen[$key])) {
                 $error = 'The type "%s" is repeated in "%s"';
                 $data = [$texts[$index], $whole];
-                $fix = self::reportFixable(
-                    $phpcsFile,
-                    $error,
-                    $ptr,
-                    self::CODE_DUPLICATE_TYPE,
-                    $fixable,
-                    $data,
-                ) || $fix;
+                $fix = self::reportFixable($phpcsFile, $error, $ptr, self::CODE_DUPLICATE_TYPE, $fixable, $data)
+                    || $fix;
                 continue;
             }
 

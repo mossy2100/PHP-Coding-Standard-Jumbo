@@ -190,10 +190,7 @@ class RequireDedicatedAssertionsSniff extends AssertPrimitivesSniff
             return $tokens[$object]['code'] === T_VARIABLE && $tokens[$object]['content'] === '$this';
         }
 
-        return $tokens[$operator]['code'] === T_DOUBLE_COLON && in_array(
-            $tokens[$object]['code'],
-            [T_SELF, T_STATIC],
-            true,
-        );
+        return $tokens[$operator]['code'] === T_DOUBLE_COLON
+            && in_array($tokens[$object]['code'], [T_SELF, T_STATIC], true);
     }
 }

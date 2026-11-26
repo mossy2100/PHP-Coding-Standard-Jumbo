@@ -112,10 +112,7 @@ class TypeSetHelper
         foreach ($others as $other) {
             if (
                 $other !== $type && $other instanceof IdentifierTypeNode
-                && self::covers(
-                    strtolower($other->name),
-                    $kind,
-                )
+                && self::covers(strtolower($other->name), $kind)
             ) {
                 return $other;
             }

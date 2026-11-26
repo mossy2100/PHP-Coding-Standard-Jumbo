@@ -342,13 +342,7 @@ class CanonicalTypesSniff implements Sniff
             $expected = self::canonical($node->name, self::DOC_TYPES);
             if ($expected !== null) {
                 $place = "a {$annotation->getName()} tag";
-                $fix = self::report(
-                    $phpcsFile,
-                    $annotation->getStartPointer(),
-                    $node->name,
-                    $expected,
-                    $place,
-                ) || $fix;
+                $fix = self::report($phpcsFile, $annotation->getStartPointer(), $node->name, $expected, $place) || $fix;
             }
         }
 

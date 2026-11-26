@@ -360,15 +360,11 @@ class RulesetReportedOnceUnitTest extends TestCase
         preg_match_all('/:(\d+):\d+: error - .*\(([\w.]+)\)$/m', $result['output'], $matches, PREG_SET_ORDER);
         $reports = array_map(static fn(array $match): string => "{$match[1]} {$match[2]}", $matches);
 
-        $this->assertSame(
-            [
-                '7 PERCS31.ControlStructures.SwitchDeclaration.StatementOnLabelLine',
-                '9 PERCS31.Formatting.DisallowMultipleStatements.SameLine',
-                '13 PERCS31.Formatting.AfterClosingBrace.StatementAfter',
-            ],
-            $reports,
-            $result['output'],
-        );
+        $this->assertSame([
+            '7 PERCS31.ControlStructures.SwitchDeclaration.StatementOnLabelLine',
+            '9 PERCS31.Formatting.DisallowMultipleStatements.SameLine',
+            '13 PERCS31.Formatting.AfterClosingBrace.StatementAfter',
+        ], $reports, $result['output']);
         $this->assertSame($expected, $fixed);
     }
 

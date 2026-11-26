@@ -55,11 +55,6 @@ class ValidEnumCaseNameSniff implements Sniff
             return;
         }
 
-        $phpcsFile->addError(
-            'Enum case "%s" must be in PascalCase',
-            $namePtr,
-            self::CODE_NOT_PASCAL_CASE,
-            [$name],
-        );
+        $phpcsFile->addError('Enum case "%s" must be in PascalCase', $namePtr, self::CODE_NOT_PASCAL_CASE, [$name]);
     }
 }

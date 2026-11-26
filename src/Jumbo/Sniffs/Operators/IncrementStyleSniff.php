@@ -57,11 +57,7 @@ class IncrementStyleSniff implements Sniff
         $start = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($stackPtr + 1), null, true);
         if (
             $start === false
-            || !in_array(
-                $tokens[$start]['code'],
-                [T_VARIABLE, T_STRING, T_SELF, T_STATIC, T_PARENT],
-                true,
-            )
+            || !in_array($tokens[$start]['code'], [T_VARIABLE, T_STRING, T_SELF, T_STATIC, T_PARENT], true)
         ) {
             return;
         }

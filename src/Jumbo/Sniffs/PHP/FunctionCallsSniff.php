@@ -923,10 +923,8 @@ class FunctionCallsSniff implements Sniff
 
         $inner = FunctionCallHelper::arguments($phpcsFile, $start);
         if (
-            $inner === null || count($inner) !== 1 || FunctionCallHelper::closer(
-                $phpcsFile,
-                $start,
-            ) !== $argument['end']
+            $inner === null || count($inner) !== 1
+            || FunctionCallHelper::closer($phpcsFile, $start) !== $argument['end']
         ) {
             return null;
         }

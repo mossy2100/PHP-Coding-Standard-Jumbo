@@ -37,11 +37,8 @@ class InheritedRulesUnitTest extends TestCase
             'Universal.Constants.LowercaseClassResolutionKeyword.Uppercase',
             'error',
         ],
-        'two spaces each side of as in an import' => [
-            "<?php\n\nuse Foo\\Bar  as  Baz;\n",
-            'Universal.UseStatements.KeywordSpacing.SpaceBeforeAs',
-            'error',
-        ],
+        'two spaces each side of as in an import'
+            => ["<?php\n\nuse Foo\\Bar  as  Baz;\n", 'Universal.UseStatements.KeywordSpacing.SpaceBeforeAs', 'error'],
         'use FUNCTION in upper case' => [
             "<?php\n\nuse FUNCTION Foo\\bar;\n",
             'Universal.UseStatements.LowercaseFunctionConst.NotLowercase',
@@ -82,36 +79,21 @@ class InheritedRulesUnitTest extends TestCase
             'Universal.Attributes.TrailingComma.ForbiddenSingleLine',
             'error',
         ],
-        'a space before a comma' => [
-            "<?php\n\necho \$a , \$b;\n",
-            'Universal.WhiteSpace.CommaSpacing.SpaceBefore',
-            'error',
-        ],
-        'no space after a comma' => [
-            "<?php\n\necho \$a,\$b;\n",
-            'Universal.WhiteSpace.CommaSpacing.NoSpaceAfter',
-            'error',
-        ],
-        'two spaces after a comma' => [
-            "<?php\n\necho \$a,  \$b;\n",
-            'Universal.WhiteSpace.CommaSpacing.TooMuchSpaceAfter',
-            'error',
-        ],
+        'a space before a comma'
+            => ["<?php\n\necho \$a , \$b;\n", 'Universal.WhiteSpace.CommaSpacing.SpaceBefore', 'error'],
+        'no space after a comma'
+            => ["<?php\n\necho \$a,\$b;\n", 'Universal.WhiteSpace.CommaSpacing.NoSpaceAfter', 'error'],
+        'two spaces after a comma'
+            => ["<?php\n\necho \$a,  \$b;\n", 'Universal.WhiteSpace.CommaSpacing.TooMuchSpaceAfter', 'error'],
         'a comma on the line after a comment' => [
             "<?php\n\n\$a = [\n    1 // One.\n    ,\n    2,\n];\n",
             'Universal.WhiteSpace.CommaSpacing.CommaAfterComment',
             'error',
         ],
-        'a space before a comma in a call' => [
-            "<?php\n\nfoo(\$a , \$b);\n",
-            'Universal.WhiteSpace.CommaSpacing.SpaceBeforeInFunctionCall',
-            'error',
-        ],
-        'no space after a comma in a call' => [
-            "<?php\n\nfoo(\$a,\$b);\n",
-            'Universal.WhiteSpace.CommaSpacing.NoSpaceAfterInFunctionCall',
-            'error',
-        ],
+        'a space before a comma in a call'
+            => ["<?php\n\nfoo(\$a , \$b);\n", 'Universal.WhiteSpace.CommaSpacing.SpaceBeforeInFunctionCall', 'error'],
+        'no space after a comma in a call'
+            => ["<?php\n\nfoo(\$a,\$b);\n", 'Universal.WhiteSpace.CommaSpacing.NoSpaceAfterInFunctionCall', 'error'],
         'two spaces after a comma in a call' => [
             "<?php\n\nfoo(\$a,  \$b);\n",
             'Universal.WhiteSpace.CommaSpacing.TooMuchSpaceAfterInFunctionCall',
@@ -163,11 +145,8 @@ class InheritedRulesUnitTest extends TestCase
             'SlevomatCodingStandard.Functions.NamedArgumentSpacing.WhitespaceBeforeColon',
             'error',
         ],
-        'exit with no parentheses' => [
-            "<?php\n\nexit;\n",
-            'Universal.PHP.RequireExitDieParentheses.Missing',
-            'warning',
-        ],
+        'exit with no parentheses'
+            => ["<?php\n\nexit;\n", 'Universal.PHP.RequireExitDieParentheses.Missing', 'warning'],
         'an if with the alternative syntax' => [
             "<?php\n\nif (\$a):\n    run();\nendif;\n",
             'Universal.ControlStructures.DisallowAlternativeSyntax.FoundIf',
@@ -179,36 +158,21 @@ class InheritedRulesUnitTest extends TestCase
             'SlevomatCodingStandard.Functions.ArrowFunctionDeclaration.IncorrectSpacesAfterKeyword',
             'error',
         ],
-        'empty parentheses on an anonymous class' => [
-            "<?php\n\n\$a = new class () {};\n",
-            'Universal.Classes.DisallowAnonClassParentheses.Found',
-            'error',
-        ],
+        'empty parentheses on an anonymous class'
+            => ["<?php\n\n\$a = new class () {};\n", 'Universal.Classes.DisallowAnonClassParentheses.Found', 'error'],
         'a space before a backed enum\'s colon' => [
             "<?php\n\nenum A : string\n{\n    case B = 'b';\n}\n",
             'SlevomatCodingStandard.Classes.BackedEnumTypeSpacing.IncorrectSpacesBeforeColon',
             'error',
         ],
-        'a heredoc with nothing to interpolate' => [
-            "<?php\n\n\$a = <<<EOT\n    b\n    EOT;\n",
-            'Generic.Strings.UnnecessaryHeredoc.Found',
-            'warning',
-        ],
-        'the long array syntax' => [
-            "<?php\n\n\$a = array(1);\n",
-            'Generic.Arrays.DisallowLongArraySyntax.Found',
-            'error',
-        ],
-        'an array element indented by two spaces' => [
-            "<?php\n\n\$a = [\n  1,\n];\n",
-            'Generic.Arrays.ArrayIndent.KeyIncorrect',
-            'error',
-        ],
-        'a trailing comma in an array on one line' => [
-            "<?php\n\n\$a = [1, 2,];\n",
-            'Squiz.Arrays.ArrayDeclaration.CommaAfterLast',
-            'error',
-        ],
+        'a heredoc with nothing to interpolate'
+            => ["<?php\n\n\$a = <<<EOT\n    b\n    EOT;\n", 'Generic.Strings.UnnecessaryHeredoc.Found', 'warning'],
+        'the long array syntax'
+            => ["<?php\n\n\$a = array(1);\n", 'Generic.Arrays.DisallowLongArraySyntax.Found', 'error'],
+        'an array element indented by two spaces'
+            => ["<?php\n\n\$a = [\n  1,\n];\n", 'Generic.Arrays.ArrayIndent.KeyIncorrect', 'error'],
+        'a trailing comma in an array on one line'
+            => ["<?php\n\n\$a = [1, 2,];\n", 'Squiz.Arrays.ArrayDeclaration.CommaAfterLast', 'error'],
         'a space inside an array\'s brackets' => [
             "<?php\n\n\$a = [ 1, 2 ];\n",
             'SlevomatCodingStandard.Arrays.SingleLineArrayWhitespace.SpaceAfterArrayOpen',
@@ -229,29 +193,17 @@ class InheritedRulesUnitTest extends TestCase
             'SlevomatCodingStandard.Attributes.RequireAttributeAfterDocComment.AttributeBeforeDocComment',
             'error',
         ],
-        'a constant with no visibility' => [
-            "<?php\n\nclass A\n{\n    const B = 1;\n}\n",
-            'PSR12.Properties.ConstantVisibility.NotFound',
-            'error',
-        ],
+        'a constant with no visibility'
+            => ["<?php\n\nclass A\n{\n    const B = 1;\n}\n", 'PSR12.Properties.ConstantVisibility.NotFound', 'error'],
         // The sniffs below come in through PSR-12, and aren't named in the ruleset.
-        'a control structure with no braces' => [
-            "<?php\n\nif (\$a) run();\n",
-            'Generic.ControlStructures.InlineControlStructure.NotAllowed',
-            'error',
-        ],
+        'a control structure with no braces'
+            => ["<?php\n\nif (\$a) run();\n", 'Generic.ControlStructures.InlineControlStructure.NotAllowed', 'error'],
         'a byte order mark' => ["\u{FEFF}<?php\n\n\$a = 1;\n", 'Generic.Files.ByteOrderMark.Found', 'error'],
         'TRUE in upper case' => ["<?php\n\n\$a = TRUE;\n", 'Generic.PHP.LowerCaseConstant.Found', 'error'],
-        'a tab indent' => [
-            "<?php\n\nif (\$a) {\n\trun();\n}\n",
-            'Generic.WhiteSpace.DisallowTabIndent.TabsUsed',
-            'error',
-        ],
-        'a space before ++' => [
-            "<?php\n\n\$i ++;\n",
-            'Generic.WhiteSpace.IncrementDecrementSpacing.SpaceAfterIncrement',
-            'error',
-        ],
+        'a tab indent'
+            => ["<?php\n\nif (\$a) {\n\trun();\n}\n", 'Generic.WhiteSpace.DisallowTabIndent.TabsUsed', 'error'],
+        'a space before ++'
+            => ["<?php\n\n\$i ++;\n", 'Generic.WhiteSpace.IncrementDecrementSpacing.SpaceAfterIncrement', 'error'],
         'a space after a spread in a call' => [
             "<?php\n\n\$a = foo(... \$b);\n",
             'Generic.WhiteSpace.SpreadOperatorSpacingAfter.TooMuchSpace',
@@ -267,11 +219,8 @@ class InheritedRulesUnitTest extends TestCase
             'Generic.WhiteSpace.SpreadOperatorSpacingAfter.TooMuchSpace',
             'error',
         ],
-        'a parameter with a default value before one without' => [
-            "<?php\n\nfunction a(\$b = 1, \$c): void {}\n",
-            'PEAR.Functions.ValidDefaultValue.NotAtEnd',
-            'error',
-        ],
+        'a parameter with a default value before one without'
+            => ["<?php\n\nfunction a(\$b = 1, \$c): void {}\n", 'PEAR.Functions.ValidDefaultValue.NotAtEnd', 'error'],
         'a method name in snake case' => [
             "<?php\n\nclass A\n{\n    public function do_it(): void {}\n}\n",
             'PSR1.Methods.CamelCapsMethodName.NotCamelCaps',
@@ -304,22 +253,13 @@ class InheritedRulesUnitTest extends TestCase
             'PSR12.Classes.AnonClassDeclaration.SpaceAfterKeyword',
             'error',
         ],
-        'new with no parentheses' => [
-            "<?php\n\n\$a = new Foo;\n",
-            'PSR12.Classes.ClassInstantiation.MissingParentheses',
-            'error',
-        ],
-        'an import with a leading backslash' => [
-            "<?php\n\nuse \\Foo\\Bar;\n",
-            'PSR12.Files.ImportStatement.LeadingSlash',
-            'error',
-        ],
+        'new with no parentheses'
+            => ["<?php\n\n\$a = new Foo;\n", 'PSR12.Classes.ClassInstantiation.MissingParentheses', 'error'],
+        'an import with a leading backslash'
+            => ["<?php\n\nuse \\Foo\\Bar;\n", 'PSR12.Files.ImportStatement.LeadingSlash', 'error'],
         'a statement on the opening tag\'s line' => ["<?php echo 1;\n", 'PSR12.Files.OpenTag.NotAlone', 'error'],
-        'a space before a return type\'s colon' => [
-            "<?php\n\nfunction a() : void {}\n",
-            'PSR12.Functions.ReturnTypeDeclaration.SpaceBeforeColon',
-            'error',
-        ],
+        'a space before a return type\'s colon'
+            => ["<?php\n\nfunction a() : void {}\n", 'PSR12.Functions.ReturnTypeDeclaration.SpaceBeforeColon', 'error'],
         'no space after if' => [
             "<?php\n\nif(\$a) {\n    run();\n}\n",
             'Squiz.ControlStructures.ControlSignature.SpaceAfterKeyword',
@@ -335,16 +275,10 @@ class InheritedRulesUnitTest extends TestCase
             'Squiz.Functions.FunctionDeclarationArgumentSpacing.SpaceBeforeComma',
             'error',
         ],
-        'a method with no visibility' => [
-            "<?php\n\nclass A\n{\n    function b(): void {}\n}\n",
-            'Squiz.Scope.MethodScope.Missing',
-            'error',
-        ],
-        'spaces inside a cast' => [
-            "<?php\n\n\$a = ( int ) \$b;\n",
-            'Squiz.WhiteSpace.CastSpacing.ContainsWhiteSpace',
-            'error',
-        ],
+        'a method with no visibility'
+            => ["<?php\n\nclass A\n{\n    function b(): void {}\n}\n", 'Squiz.Scope.MethodScope.Missing', 'error'],
+        'spaces inside a cast'
+            => ["<?php\n\n\$a = ( int ) \$b;\n", 'Squiz.WhiteSpace.CastSpacing.ContainsWhiteSpace', 'error'],
         'a blank line after a control structure\'s opening brace' => [
             "<?php\n\nif (\$a) {\n\n    run();\n}\n",
             'Squiz.WhiteSpace.ControlStructureSpacing.SpacingAfterOpen',
@@ -355,11 +289,8 @@ class InheritedRulesUnitTest extends TestCase
             'Squiz.WhiteSpace.ScopeKeywordSpacing.Incorrect',
             'error',
         ],
-        'a space at the end of a line' => [
-            "<?php\n\n\$a = 1; \n",
-            'Squiz.WhiteSpace.SuperfluousWhitespace.EndLine',
-            'error',
-        ],
+        'a space at the end of a line'
+            => ["<?php\n\n\$a = 1; \n", 'Squiz.WhiteSpace.SuperfluousWhitespace.EndLine', 'error'],
     ];
 
     /**
