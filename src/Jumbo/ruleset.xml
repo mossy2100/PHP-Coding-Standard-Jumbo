@@ -458,9 +458,11 @@
         </properties>
     </rule>
 
-    <!-- A match arm on one line up to its value if it fits, otherwise indented one level past its first line, and no
-         comma before its => -->
+    <!-- A wrapped match arm's lines indented one level past its first line, and split conditions level with each other.
+         Where an arm's lines break is PERCS31.Formatting.ExpressionFormat's, so the two layout codes are excluded. -->
     <rule ref="Jumbo.ControlStructures.MatchArmWrapIndent">
+        <exclude name="Jumbo.ControlStructures.MatchArmWrapIndent.ShouldBeSingleLine"/>
+        <exclude name="Jumbo.ControlStructures.MatchArmWrapIndent.ArrowNotOnOwnLine"/>
         <properties>
             <property name="maxLineLength" value="&lineLength;"/>
         </properties>

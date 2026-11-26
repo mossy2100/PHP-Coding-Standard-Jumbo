@@ -407,6 +407,7 @@ class ExpressionHelper
                 $candidate,
                 $isOpener ? TokenHelper::findCloser($tokens[$candidate]) : null,
             );
+            $region = $region === null ? null : self::widenToArm($phpcsFile, $region) ?? $region;
             if ($region !== null && self::isReadable($phpcsFile, $region)) {
                 return $region;
             }
@@ -507,6 +508,11 @@ class ExpressionHelper
     public static function parse(File $phpcsFile, int $start, int $end): ?ExpressionNode
     {
         $tokens = $phpcsFile->getTokens();
+        $arm = self::findArmArrow($phpcsFile, $start, $end);
+        if ($arm !== null) {
+            return self::parseArm($phpcsFile, $start, $end, $arm);
+        }
+
         $operators = [];
         for ($i = $start; $i <= $end; $i++) {
             if ($i !== $start && self::isBinary($phpcsFile, $i)) {
@@ -522,6 +528,146 @@ class ExpressionHelper
         return $operators === []
             ? self::parseOperand($phpcsFile, $start, $end)
             : self::parseLevel($phpcsFile, $start, $end, $operators);
+    }
+
+    /**
+     * Find the `=>` of a `match` arm with several conditions, when the expression is that whole arm.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $start The position of the expression's first token.
+     * @param int $end The position of its last token.
+     * @return ?int The position of the `=>`, or null if there isn't one outside any brackets, or the arm has one
+     * condition, whose `=>` is read as an operator.
+     */
+    private static function findArmArrow(File $phpcsFile, int $start, int $end): ?int
+    {
+        $tokens = $phpcsFile->getTokens();
+        for ($i = $start; $i <= $end; $i++) {
+            if ($tokens[$i]['code'] === T_MATCH_ARROW) {
+                return self::isArrowOperator($phpcsFile, $i) ? null : $i;
+            }
+
+            $closer = TokenHelper::findCloser($tokens[$i]) ?? $tokens[$i]['scope_closer'] ?? null;
+            if (is_int($closer) && $closer > $i) {
+                $i = $closer;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Parse a `match` arm with several conditions into a pair, whose key is the list of conditions.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $start The position of the arm's first token.
+     * @param int $end The position of its last token.
+     * @param int $arrow The position of its `=>`.
+     * @return ?ExpressionNode The pair, or null if a part can't be read.
+     */
+    private static function parseArm(File $phpcsFile, int $start, int $end, int $arrow): ?ExpressionNode
+    {
+        $tokens = $phpcsFile->getTokens();
+        $conditionsEnd = $phpcsFile->findPrevious(T_WHITESPACE, ($arrow - 1), $start, true);
+        $valueStart = $phpcsFile->findNext(T_WHITESPACE, ($arrow + 1), ($end + 1), true);
+        if ($conditionsEnd === false || $valueStart === false) {
+            return null;
+        }
+
+        // The commas between the conditions, outside any brackets.
+        $commas = [];
+        for ($i = $start; $i <= $conditionsEnd; $i++) {
+            if ($tokens[$i]['code'] === T_COMMA) {
+                $commas[] = $i;
+            }
+
+            $closer = TokenHelper::findCloser($tokens[$i]) ?? $tokens[$i]['scope_closer'] ?? null;
+            if (is_int($closer) && $closer > $i) {
+                $i = $closer;
+            }
+        }
+
+        $trailingComma = $commas !== [] && end($commas) === $conditionsEnd ? array_pop($commas) : null;
+        $children = [];
+        $conditionStart = $start;
+        foreach ([...$commas, ($trailingComma ?? $conditionsEnd + 1)] as $boundary) {
+            $last = $phpcsFile->findPrevious(T_WHITESPACE, ($boundary - 1), $conditionStart, true);
+            $child = $last === false ? null : self::parse($phpcsFile, $conditionStart, $last);
+            if ($child === null) {
+                return null;
+            }
+
+            $children[] = $child;
+            $conditionStart = (int) $phpcsFile->findNext(T_WHITESPACE, ($boundary + 1), null, true);
+        }
+
+        $value = self::parse($phpcsFile, $valueStart, $end);
+        if ($value === null || count($children) < 2) {
+            return null;
+        }
+
+        $listLength = array_sum(array_map(static fn(ExpressionNode $child): int => $child->flatLength, $children))
+            + 2 * (count($children) - 1);
+        $list = new ExpressionNode(
+            kind: ExpressionNode::LIST,
+            start: $start,
+            end: $trailingComma ?? $children[count($children) - 1]->end,
+            flatLength: $listLength,
+            children: $children,
+            separators: $commas,
+            trailingComma: $trailingComma,
+        );
+
+        return new ExpressionNode(
+            ExpressionNode::LEVEL,
+            $start,
+            $end,
+            $listLength + 4 + $value->flatLength,
+            [$list, $value],
+            [$arrow],
+        );
+    }
+
+    /**
+     * Widen an expression in a `match` arm with several conditions, a condition or the value, to the whole arm.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param array{int, int, int, int} $region The expression's region.
+     * @return array{int, int, int, int}|null The arm's region, or null if the expression isn't in such an arm.
+     */
+    private static function widenToArm(File $phpcsFile, array $region): ?array
+    {
+        $tokens = $phpcsFile->getTokens();
+        $before = $region[2];
+        $matches = array_keys($tokens[$region[0]]['conditions'], T_MATCH, true);
+        $match = end($matches);
+        $opener = is_int($match) ? ($tokens[$match]['scope_opener'] ?? null) : null;
+        $closer = is_int($match) ? ($tokens[$match]['scope_closer'] ?? null) : null;
+        $isInArm = $before >= 0
+            && ($before === $opener || in_array($tokens[$before]['code'], [T_COMMA, T_MATCH_ARROW], true));
+        if (
+            !is_int($opener) || !is_int($closer) || !$isInArm
+            || array_key_last($tokens[$region[0]]['conditions']) !== $match
+        ) {
+            return null;
+        }
+
+        foreach (MatchHelper::findArms($phpcsFile, $opener, $closer) as $arm) {
+            $after = $arm['end'] ?? $closer;
+            if ($region[0] < $arm['start'] || $region[0] > $after) {
+                continue;
+            }
+
+            $last = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($after - 1), $arm['start'], true);
+            $armBefore = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($arm['start'] - 1), null, true);
+            $isSeveral = count(MatchHelper::findConditions($phpcsFile, $arm)) > 1;
+
+            return $isSeveral && $last !== false && $armBefore !== false
+                ? [$arm['start'], $last, $armBefore, $after]
+                : null;
+        }
+
+        return null;
     }
 
     /**

@@ -18,7 +18,7 @@ $list = [
 $message = 'A string that fits on its line, though with the comment after it the line is too long.'; // A comment.
 $total = $firstNumber + $secondNumber + $thirdNumber + $fourthNumber; // A comment that takes the line past the limit.
 $label = match ($code) {
-    'first', 'second' => 'An arm with several conditions is left to Jumbo.ControlStructures.MatchArmWrapIndent here.',
+    'first', 'second' => 'An arm with several conditions that fits on its line is left as it is, conditions and all.',
     default => 'none',
 };
 foreach ($someLongArrayVariableName as $someLongKeyVariableName => $someLongValueVariableName) { // A comment here.

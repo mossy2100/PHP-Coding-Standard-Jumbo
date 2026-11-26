@@ -709,7 +709,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   a `match` arm with one condition as one expression, with the key and the value each on one line first: a value that
   fits on a line of its own goes there, starting with `=>`. Otherwise `key =>` stays on the first line and the value is
   split there, at its operators, as a call or array, or as a string. A key too long for its line is split, with `=>`
-  on a line of its own. A pair that fits on one line is joined, and a line break after `=>` is moved before it.
+  on a line of its own. A pair that fits on one line is joined, and a line break after `=>` is moved before it. A
+  `match` arm with several conditions is laid out the same way, its conditions one per line with a trailing comma when
+  too long for their line, so Jumbo excludes `Jumbo.ControlStructures.MatchArmWrapIndent`'s `ShouldBeSingleLine` and
+  `ArrowNotOnOwnLine`.
 - **Redundant doc tags, in Jumbo (breaking).** Jumbo now reports a `@param`, `@return` or `@var` that only repeats the
   native type, with no description, and removes it: the `UselessAnnotation` codes of
   `Jumbo.TypeHints.ParameterTypeHint`, `SlevomatCodingStandard.TypeHints.PropertyTypeHint` and

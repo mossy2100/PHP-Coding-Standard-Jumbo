@@ -30,9 +30,7 @@ class DeclareStrictTypesUnitTest extends AbstractSniffTestCase
             'DeclareStrictTypesUnitTest.7.inc' => [2 => 1],
             // Markup before the opening tag, with a block declare, with no declare, and with another declare: the fix
             // adds the declaration between its own PHP tags on the first line.
-            'DeclareStrictTypesUnitTest.8.inc',
-            'DeclareStrictTypesUnitTest.9.inc',
-            'DeclareStrictTypesUnitTest.10.inc',
+            'DeclareStrictTypesUnitTest.8.inc', 'DeclareStrictTypesUnitTest.9.inc', 'DeclareStrictTypesUnitTest.10.inc'
                 => [2 => 1],
             // Markup after the PHP: the fix adds the declaration on the first line too.
             'DeclareStrictTypesUnitTest.14.inc' => [1 => 1],

@@ -1593,8 +1593,9 @@ these that applies:
 4. Only when `key =>` leaves no room for even the start of the value does `=>` start a line anyway. The value's new
    lines are then indented once past it.
 
-There's never a line break after a `=>`. A `match` arm with several conditions is left to
-[`MatchArmWrapIndent`](Jumbo_Custom_Sniffs.md#jumbocontrolstructuresmatcharmwrapindent).
+A `match` arm with several conditions is a pair too, with its conditions as the key. Conditions too long for their
+line on their own go one per line, level with the first, with a trailing comma, and `=>` goes on a line of its own.
+Conditions split that fit on one line are joined, without the trailing comma. There's never a line break after a `=>`.
 
 An expression fits on its line if its own text, and any punctuation straight after it, such as a `;`, `,` or `)`, fit
 within `maxLineLength`. What follows that, such as an array value after its key, or a comment, is never a reason to

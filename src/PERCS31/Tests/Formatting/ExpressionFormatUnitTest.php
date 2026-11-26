@@ -39,7 +39,9 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
                 // A chopped closure that should be hugged, two closures hugged, and a hugged match.
                 + [60 => 1, 66 => 1, 71 => 1]
                 // Pairs: a value with operators on its own line, a split key, no room after `key =>`, and an array.
-                + [78 => 1, 79 => 1, 80 => 1, 82 => 1];
+                + [78 => 1, 79 => 1, 80 => 1, 82 => 1]
+                // Arms with several conditions: a value on its own line, conditions too long, and conditions that fit.
+                + [88 => 1, 89 => 1, 90 => 1];
         }
 
         if ($testFile === 'ExpressionFormatUnitTest.4.inc') {

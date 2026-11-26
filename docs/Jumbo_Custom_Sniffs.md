@@ -557,6 +557,10 @@ Requires a `match` arm's conditions, its `=>` and the first line of its value to
 it sets where the `=>` goes and how the arm's lines are indented. Set `indent` to change the number of spaces, which is
 4 by default.
 
+Jumbo uses only its indent codes, `Indent` and `ConditionIndent`. Where an arm's lines break is
+[`PERCS31.Formatting.ExpressionFormat`](PERCS31_Custom_Sniffs.md#percs31formattingexpressionformat)'s, so Jumbo
+excludes `ShouldBeSingleLine` and `ArrowNotOnOwnLine`.
+
 An arm that doesn't fit is wrapped in one of two ways:
 
 - **The conditions stay on one line.** A line starting with the `=>`, or with the value after it, is indented one level
