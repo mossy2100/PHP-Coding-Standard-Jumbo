@@ -531,7 +531,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   lets every argument fit; otherwise its one closure, or array too long even on a line of its own, is hugged, as in
   `merge($defaults, [`, with the other arguments on the call's lines. A `match` or anonymous class argument is never
   hugged. An array's values go one per line. A last
-  operand that's a call or array too long even on its own line stays after its operator. Reported as `TooLong`, a
+  operand that's a call or array too long even on its own line stays after its operator. A ternary too long for its
+  line takes three lines, `?` and `:` starting the second and third, or two for `?:`, and each part is then split in
+  its own line's room. After a group split over lines, the next operator starts a line. Reported as `TooLong`, a
   warning in PERCS31 and an error in Jumbo. With `strict`, as in Jumbo, a call or array split over lines is checked
   too: joined if it fits, and laid out again if split any other way. Auto-fixable.
 - **String expressions, in Jumbo (breaking).** `PERCS31.Formatting.ExpressionFormat` has a new
@@ -882,6 +884,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 
+- **`SlevomatCodingStandard.ControlStructures.RequireMultiLineTernaryOperator`, from Jumbo.**
+  `PERCS31.Formatting.ExpressionFormat` now splits a long ternary into its three lines, with the expression around it.
 - **`SlevomatCodingStandard.Functions.RequireMultiLineCall`, from Jumbo.** `PERCS31.Formatting.ExpressionFormat` now
   splits a long call, outermost first. The Slevomat sniff split the innermost call it found, even when splitting what
   was around it, such as a ternary, would have been enough.

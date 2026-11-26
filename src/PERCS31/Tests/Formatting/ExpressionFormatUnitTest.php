@@ -41,7 +41,9 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
                 // Pairs: a value with operators on its own line, a split key, no room after `key =>`, and an array.
                 + [78 => 1, 79 => 1, 80 => 1, 82 => 1]
                 // Arms with several conditions: a value on its own line, conditions too long, and conditions that fit.
-                + [88 => 1, 89 => 1, 90 => 1];
+                + [88 => 1, 89 => 1, 90 => 1]
+                // Ternaries: too long, with a call, short, in a group, and one that fits.
+                + [95 => 1, 96 => 1, 97 => 1, 98 => 1, 99 => 1];
         }
 
         if ($testFile === 'ExpressionFormatUnitTest.4.inc') {

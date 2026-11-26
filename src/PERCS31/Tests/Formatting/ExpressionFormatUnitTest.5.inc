@@ -90,5 +90,14 @@ $a = match ($b) {
     1,
     2, => 'fits',
 };
+// Ternaries: three lines, or two for `?:`, even with a call in the condition; one in a group, after which the next
+// operator starts a line; and one that fits, joined.
+$label = $count === 1 ? 'one item' : "{$count} items";
+$needle = strlen($a) === strlen($b) ? $other : null;
+$v = $someLongVariableName ?: $anotherLongName;
+$c = $here + $is + ($aLonger ? $result : $determined) * $from - $anExpression;
+$fits = $a
+    ? $b
+    : $c;
 // phpcs:set PERCS31.Formatting.ExpressionFormat strict false
 // phpcs:set PERCS31.Formatting.ExpressionFormat maxLineLength 120

@@ -408,6 +408,7 @@ class ExpressionHelper
                 $isOpener ? TokenHelper::findCloser($tokens[$candidate]) : null,
             );
             $region = $region === null ? null : self::widenToArm($phpcsFile, $region) ?? $region;
+            $region = $region === null ? null : self::widenToTernary($phpcsFile, $region) ?? $region;
             if ($region !== null && self::isReadable($phpcsFile, $region)) {
                 return $region;
             }
@@ -513,6 +514,11 @@ class ExpressionHelper
             return self::parseArm($phpcsFile, $start, $end, $arm);
         }
 
+        $questions = self::findTernaryTokens($phpcsFile, $start, $end);
+        if ($questions !== []) {
+            return count($questions) === 2 ? self::parseTernary($phpcsFile, $start, $end, ...$questions) : null;
+        }
+
         $operators = [];
         for ($i = $start; $i <= $end; $i++) {
             if ($i !== $start && self::isBinary($phpcsFile, $i)) {
@@ -528,6 +534,187 @@ class ExpressionHelper
         return $operators === []
             ? self::parseOperand($phpcsFile, $start, $end)
             : self::parseLevel($phpcsFile, $start, $end, $operators);
+    }
+
+    /**
+     * Find a ternary's `?` and `:` outside any brackets.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $start The position of the expression's first token.
+     * @param int $end The position of its last token.
+     * @return list<int> The positions of the `?` and the `:`, nothing if there's no ternary, or anything else, such
+     * as a chain of two, which isn't read.
+     */
+    private static function findTernaryTokens(File $phpcsFile, int $start, int $end): array
+    {
+        $tokens = $phpcsFile->getTokens();
+        $found = [];
+        for ($i = $start; $i <= $end; $i++) {
+            // A pair's `=>` binds more loosely than a ternary, so the ternary is in the pair's value.
+            if (
+                in_array($tokens[$i]['code'], [T_DOUBLE_ARROW, T_MATCH_ARROW], true)
+                && self::isArrowOperator($phpcsFile, $i)
+            ) {
+                return [];
+            }
+
+            if (in_array($tokens[$i]['code'], [T_INLINE_THEN, T_INLINE_ELSE], true)) {
+                $found[] = $i;
+            }
+
+            $closer = TokenHelper::findCloser($tokens[$i]) ?? $tokens[$i]['scope_closer'] ?? null;
+            if (is_int($closer) && $closer > $i) {
+                $i = $closer;
+            }
+        }
+
+        $isPair = count($found) === 2 && $tokens[$found[0]]['code'] === T_INLINE_THEN;
+
+        return $found === [] || $isPair ? $found : [-1];
+    }
+
+    /**
+     * Parse a ternary into its condition and values.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $start The position of the ternary's first token.
+     * @param int $end The position of its last token.
+     * @param int $question The position of its `?`.
+     * @param int $colon The position of its `:`.
+     * @return ?ExpressionNode The ternary, or null if a part can't be read.
+     */
+    private static function parseTernary(
+        File $phpcsFile,
+        int $start,
+        int $end,
+        int $question,
+        int $colon,
+    ): ?ExpressionNode {
+        $tokens = $phpcsFile->getTokens();
+        $conditionEnd = $phpcsFile->findPrevious(T_WHITESPACE, ($question - 1), $start, true);
+        $elseStart = $phpcsFile->findNext(T_WHITESPACE, ($colon + 1), ($end + 1), true);
+        $isShort = $phpcsFile->findNext(T_WHITESPACE, ($question + 1), $colon, true) === false;
+        $thenStart = $isShort ? false : $phpcsFile->findNext(T_WHITESPACE, ($question + 1), $colon, true);
+        $thenEnd = $isShort ? false : $phpcsFile->findPrevious(T_WHITESPACE, ($colon - 1), $question, true);
+        if (
+            $conditionEnd === false || $elseStart === false
+            || (!$isShort && ($thenStart === false || $thenEnd === false))
+        ) {
+            return null;
+        }
+
+        $parts = [[$start, $conditionEnd], ...($isShort ? [] : [[$thenStart, $thenEnd]]), [$elseStart, $end]];
+        $children = [];
+        foreach ($parts as [$partStart, $partEnd]) {
+            $child = self::parse($phpcsFile, (int) $partStart, (int) $partEnd);
+            if ($child === null) {
+                return null;
+            }
+
+            $children[] = $child;
+        }
+
+        // On one line: the parts, with ` ? ` and ` : ` between them, or ` ?: ` for a short ternary.
+        $flatLength = array_sum(array_map(static fn(ExpressionNode $child): int => $child->flatLength, $children))
+            + ($isShort ? 4 : 6);
+
+        return new ExpressionNode(ExpressionNode::TERNARY, $start, $end, $flatLength, $children, [$question, $colon]);
+    }
+
+    /**
+     * Widen an expression that's a ternary's condition or value to the whole ternary.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param array{int, int, int, int} $region The expression's region.
+     * @return array{int, int, int, int}|null The ternary's region, or null if the expression isn't part of one, or it's
+     * part of a chain of two.
+     */
+    private static function widenToTernary(File $phpcsFile, array $region): ?array
+    {
+        $tokens = $phpcsFile->getTokens();
+        [, , $before, $after] = $region;
+        $question = match (true) {
+            $tokens[$after]['code'] === T_INLINE_THEN => $after,
+            $before >= 0 && $tokens[$before]['code'] === T_INLINE_THEN => $before,
+            $before >= 0 && $tokens[$before]['code'] === T_INLINE_ELSE => self::findAtLevel($phpcsFile, $before, -1),
+            default => null,
+        };
+        $colon = $question === null ? null : self::findAtLevel($phpcsFile, $question, 1);
+        if ($question === null || $colon === null) {
+            return null;
+        }
+
+        $conditionEnd = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($question - 1), null, true);
+        $elseStart = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($colon + 1), null, true);
+        $condition = $conditionEnd === false ? null : self::findExpressionAround($phpcsFile, $conditionEnd);
+        $else = $elseStart === false ? null : self::findExpressionAround($phpcsFile, $elseStart);
+        if ($condition === null || $else === null) {
+            return null;
+        }
+
+        $ternaryTokens = [T_INLINE_THEN, T_INLINE_ELSE];
+        $isChained = ($condition[2] >= 0 && in_array($tokens[$condition[2]]['code'], $ternaryTokens, true))
+            || in_array($tokens[$else[3]]['code'], $ternaryTokens, true);
+
+        return $isChained ? null : [$condition[0], $else[1], $condition[2], $else[3]];
+    }
+
+    /**
+     * Find the expression a token is part of, from outside its brackets when it's a bracket itself.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $ptr The position of the token.
+     * @return array{int, int, int, int}|null As findExpression() returns it.
+     */
+    private static function findExpressionAround(File $phpcsFile, int $ptr): ?array
+    {
+        $tokens = $phpcsFile->getTokens();
+        $opener = TokenHelper::findOpener($tokens[$ptr]);
+        if ($opener !== null) {
+            return self::findExpression($phpcsFile, $opener, $ptr);
+        }
+
+        $closer = TokenHelper::findCloser($tokens[$ptr]);
+
+        return self::findExpression($phpcsFile, $ptr, $closer !== null && $closer > $ptr ? $closer : null);
+    }
+
+    /**
+     * Find the other half of a ternary, the `:` after a `?` or the `?` before a `:`, outside any brackets between them.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $ptr The position of the `?` or `:`.
+     * @param int $direction 1 to look forward, for the `:`, or -1 to look back, for the `?`.
+     * @return ?int The position, or null if the statement ends first.
+     */
+    private static function findAtLevel(File $phpcsFile, int $ptr, int $direction): ?int
+    {
+        $tokens = $phpcsFile->getTokens();
+        $wanted = $direction === 1 ? T_INLINE_ELSE : T_INLINE_THEN;
+        for ($i = $ptr + $direction; isset($tokens[$i]); $i += $direction) {
+            $code = $tokens[$i]['code'];
+            if ($code === $wanted) {
+                return $i;
+            }
+
+            if (in_array($code, [T_SEMICOLON, T_OPEN_TAG, T_CLOSE_TAG], true)) {
+                return null;
+            }
+
+            $partner = $direction === 1 ? TokenHelper::findCloser($tokens[$i]) : TokenHelper::findOpener($tokens[$i]);
+            if ($partner !== null && ($partner - $i) * $direction > 0) {
+                $i = $partner;
+            } elseif (
+                $direction === 1
+                    ? TokenHelper::findOpener($tokens[$i]) !== null
+                    : TokenHelper::findCloser($tokens[$i]) !== null
+            ) {
+                // A bracket closed before the other half is found: the ternary is inside it, and so is the other half.
+                return null;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -708,8 +895,9 @@ class ExpressionHelper
                 return null;
             }
 
+            // An operand can be a ternary, as a pair's value can, which only parse() reads.
             $child = $segmentOperators === []
-                ? self::parseOperand($phpcsFile, $segmentStart, $segmentEnd)
+                ? self::parse($phpcsFile, $segmentStart, $segmentEnd)
                 : self::parseLevel($phpcsFile, $segmentStart, $segmentEnd, $segmentOperators);
             if ($child === null) {
                 return null;

@@ -189,6 +189,7 @@ class ExpressionFormatSniff implements Sniff
             T_OPEN_PARENTHESIS,
             T_OPEN_SHORT_ARRAY,
             T_MATCH_ARROW,
+            T_INLINE_THEN,
         ];
     }
 
@@ -217,17 +218,12 @@ class ExpressionFormatSniff implements Sniff
             return;
         }
 
-        // A call or array is laid out with the expression it's in, which may have no operators, and so is a `match`
-        // arm with several conditions, whose `=>` isn't an operator.
-        $isOpener = $code === T_OPEN_PARENTHESIS || $code === T_OPEN_SHORT_ARRAY;
-        $isUnchecked = match (true) {
-            $isOpener => !ExpressionHelper::isCallOpener($phpcsFile, $stackPtr),
-            $code === T_MATCH_ARROW => false,
-            default => !ExpressionHelper::isBinary($phpcsFile, $stackPtr),
-        };
-        if ($isUnchecked) {
+        $start = self::findStartToken($phpcsFile, $stackPtr);
+        if ($start === null) {
             return;
         }
+
+        $stackPtr = $start;
 
         if ($phpcsFile->getFilename() !== $this->checkedFile) {
             $this->checkedFile = $phpcsFile->getFilename();
@@ -335,6 +331,44 @@ class ExpressionFormatSniff implements Sniff
         }
 
         return ($column + $root->flatLength + $rest) <= $this->maxLineLength;
+    }
+
+    /**
+     * Find the token to find a registered token's expression from: the token itself, for a binary operator, a call's or
+     * array's opening bracket, or a `match` arm's `=>`, or the first value of a ternary, from its `?`.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $stackPtr The position of the registered token.
+     * @return ?int The position, or null if the token isn't one whose expression is checked.
+     */
+    private static function findStartToken(File $phpcsFile, int $stackPtr): ?int
+    {
+        // A call or array is laid out with the expression it's in, which may have no operators, and so is a `match`
+        // arm with several conditions, whose `=>` isn't an operator, and a ternary.
+        $code = $phpcsFile->getTokens()[$stackPtr]['code'];
+        $isChecked = match ($code) {
+            T_OPEN_PARENTHESIS, T_OPEN_SHORT_ARRAY => ExpressionHelper::isCallOpener($phpcsFile, $stackPtr),
+            T_MATCH_ARROW, T_INLINE_THEN => true,
+            default => ExpressionHelper::isBinary($phpcsFile, $stackPtr),
+        };
+        if (!$isChecked) {
+            return null;
+        }
+
+        // A ternary is found from its first value, which is widened to the whole ternary, as the `?` itself ends the
+        // condition's expression.
+        if ($code !== T_INLINE_THEN) {
+            return $stackPtr;
+        }
+
+        $first = $phpcsFile->findNext(
+            [...array_keys(Tokens::EMPTY_TOKENS), T_INLINE_ELSE],
+            ($stackPtr + 1),
+            null,
+            true,
+        );
+
+        return $first === false ? null : $first;
     }
 
     /**
@@ -822,6 +856,10 @@ class ExpressionFormatSniff implements Sniff
             return $this->layoutList($phpcsFile, $node, $column, $breaks);
         }
 
+        if ($node->kind === ExpressionNode::TERNARY) {
+            return $this->layoutTernary($phpcsFile, $node, $column, $lineIndent, $indent, $trailing, $breaks);
+        }
+
         // A group's contents go on its first line, and any new lines inside it are indented once past the line with
         // its `(`, as PERCS31.Operators.OperatorPlacement requires.
         if ($node->kind === ExpressionNode::GROUP) {
@@ -856,16 +894,22 @@ class ExpressionFormatSniff implements Sniff
         // Each operand joins the line it follows if it fits, and starts a new line, with its operator, if it doesn't.
         $lastIndex = count($node->operators);
         $currentIndent = $lineIndent;
-        $end = $this->layout($phpcsFile, $node->children[0], $column, $lineIndent, $indent, 0, $inCondition, $breaks);
+        $first = $node->children[0];
+        $end = $this->layout($phpcsFile, $first, $column, $lineIndent, $indent, 0, $inCondition, $breaks);
+        $isAfterSplitGroup = $first->kind === ExpressionNode::GROUP && $end !== $column + $first->flatLength;
         foreach ($node->operators as $index => $operator) {
             $child = $node->children[($index + 1)];
             $childTrailing = ($index + 1) === $lastIndex ? $trailing : 0;
             $operatorLength = mb_strlen($tokens[$operator]['content']);
             $joinedEnd = $end + $operatorLength + 2 + $child->flatLength;
-            if (($joinedEnd + $childTrailing) <= $this->maxLineLength) {
+
+            // After a group split over lines, the next operator starts a line.
+            if (!$isAfterSplitGroup && ($joinedEnd + $childTrailing) <= $this->maxLineLength) {
                 $end = $joinedEnd;
                 continue;
             }
+
+            $isAfterSplitGroup = false;
 
             // Breaking before the last operand saves nothing when it's a call or array too long for a line of its own
             // too: it stays after its operator, and is split there.
@@ -911,6 +955,59 @@ class ExpressionFormatSniff implements Sniff
                 $inCondition,
                 $breaks,
             );
+            $isAfterSplitGroup = $child->kind === ExpressionNode::GROUP && $end !== $childColumn + $child->flatLength;
+        }
+
+        return $end;
+    }
+
+    /**
+     * Work out the layout of a ternary that doesn't fit on its line: three lines, the condition, then `?` and its
+     * value, then `:` and its value, each new line indented once, as PER Coding Style 3.1, section 6.4, says
+     * "ternaries MUST occupy 3 lines, never 2". A short ternary takes two: the condition, then `?:` and its value. Each
+     * part is then laid out in the room its line leaves it.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $node The ternary.
+     * @param int $column The number of characters before the ternary on its first line.
+     * @param int $lineIndent The indent of the ternary's first line.
+     * @param int $indent The indent for the ternary's new lines.
+     * @param int $trailing The number of characters straight after the ternary on its last line.
+     * @param array<int, int> $breaks The operators to break the line before, with each one's indent.
+     * @return int The number of characters before the ternary's end, on its last line.
+     */
+    private function layoutTernary(
+        File $phpcsFile,
+        ExpressionNode $node,
+        int $column,
+        int $lineIndent,
+        int $indent,
+        int $trailing,
+        array &$breaks,
+    ): int {
+        [$question, $colon] = $node->operators;
+        $condition = $node->children[0];
+        $this->layout($phpcsFile, $condition, $column, $lineIndent, $indent, 0, false, $breaks);
+        $values = count($node->children) === 3
+            ? [$question => $node->children[1], $colon => $node->children[2]]
+            : [$question => $node->children[1]];
+        $end = $indent;
+        foreach ($values as $operator => $value) {
+            $breaks[$operator] = $indent;
+            $valueColumn = $indent + (count($values) === 1 ? 3 : 2);
+            $valueTrailing = $operator === $question && count($values) === 2 ? 0 : $trailing;
+            $continuation = $indent + LayoutHelper::INDENT;
+            $end = $this->delegateString($phpcsFile, $value, $valueColumn, $continuation, $valueTrailing, true)
+                ?? $this->layout(
+                    $phpcsFile,
+                    $value,
+                    $valueColumn,
+                    $indent,
+                    $continuation,
+                    $valueTrailing,
+                    false,
+                    $breaks,
+                );
         }
 
         return $end;
@@ -1195,7 +1292,7 @@ class ExpressionFormatSniff implements Sniff
 
     /**
      * Get the length of a node's first piece, which can't be split from the start of its line: a level's first operand,
-     * a call's name and opening bracket, or a body's first line.
+     * a ternary's condition's, a call's name and opening bracket, or a body's first line.
      *
      * @param ExpressionNode $node The node.
      * @return int The length.
@@ -1203,7 +1300,7 @@ class ExpressionFormatSniff implements Sniff
     private static function leadLength(ExpressionNode $node): int
     {
         return match ($node->kind) {
-            ExpressionNode::LEVEL => self::leadLength($node->children[0]),
+            ExpressionNode::LEVEL, ExpressionNode::TERNARY => self::leadLength($node->children[0]),
             ExpressionNode::GROUP
                 => $node->flatLength - $node->children[0]->flatLength - 1 + self::leadLength($node->children[0]),
             ExpressionNode::CALL, ExpressionNode::BODY => self::firstLineLength($node),
@@ -1376,10 +1473,19 @@ class ExpressionFormatSniff implements Sniff
             }
         }
 
-        foreach ($node->operators as $index => $operator) {
-            $before = isset($breaks[$operator]) ? $phpcsFile->eolChar . str_repeat(' ', $breaks[$operator]) : ' ';
-            self::setGap($phpcsFile, $node->children[$index]->end, $operator, $before);
-            self::setGap($phpcsFile, $operator, $node->children[($index + 1)]->start, ' ');
+        // A short ternary's `?` and `:` are written together, as `?:`, after the condition.
+        if ($node->kind === ExpressionNode::TERNARY && count($node->children) === 2) {
+            [$question, $colon] = $node->operators;
+            $before = isset($breaks[$question]) ? $phpcsFile->eolChar . str_repeat(' ', $breaks[$question]) : ' ';
+            self::setGap($phpcsFile, $node->children[0]->end, $question, $before);
+            self::setGap($phpcsFile, $question, $colon, '');
+            self::setGap($phpcsFile, $colon, $node->children[1]->start, ' ');
+        } else {
+            foreach ($node->operators as $index => $operator) {
+                $before = isset($breaks[$operator]) ? $phpcsFile->eolChar . str_repeat(' ', $breaks[$operator]) : ' ';
+                self::setGap($phpcsFile, $node->children[$index]->end, $operator, $before);
+                self::setGap($phpcsFile, $operator, $node->children[($index + 1)]->start, ' ');
+            }
         }
 
         if ($node->kind === ExpressionNode::GROUP && is_int($node->opener) && is_int($node->closer)) {

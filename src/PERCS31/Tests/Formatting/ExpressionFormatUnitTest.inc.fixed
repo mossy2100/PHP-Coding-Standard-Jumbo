@@ -18,8 +18,8 @@ $isValid = $someLongConditionName
 $ok = $someLongConditionNameNumberOne
     || $someLongConditionNameNumberTwoIsLonger && $someLongConditionNameNumberThreeIsLonger
     && $someLongConditionNameNumberFourIsLonger;
-// Skipped: next to a ternary, a comment, a line break inside an operand, a heredoc, or an arrow function.
-$a = $someLongConditionNameNumberOne && $someLongConditionNameNumberTwo && $someLongConditionNameNumberThree
+// Valid: a ternary in three lines. Skipped: a comment, a line break inside an operand, a heredoc or an arrow function.
+$a = $someLongConditionNameNumberOne && $someLongConditionNameNumberTwo && $someLongConditionNameNumberThreeAbcd
     ? 1
     : 2;
 $a = $b // Why.

@@ -63,7 +63,6 @@ sections link to it.
 | `SlevomatCodingStandard.Commenting.UselessInheritDocComment`                             | No useless `@inheritDoc` comments                              | Yes     |
 | `SlevomatCodingStandard.ControlStructures.DisallowContinueWithoutIntegerOperandInSwitch` | No `continue` without an operand in a `switch`                 | Yes     |
 | `SlevomatCodingStandard.ControlStructures.LanguageConstructWithParentheses`              | No `echo(...)`, through a Jumbo sniff                          | Yes     |
-| `SlevomatCodingStandard.ControlStructures.RequireMultiLineTernaryOperator`               | A long ternary split over lines                                | Yes     |
 | `SlevomatCodingStandard.ControlStructures.RequireNullCoalesceEqualOperator`              | `??=` where possible                                           | Yes     |
 | `SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator`                   | `??` where possible                                            | Yes     |
 | `SlevomatCodingStandard.ControlStructures.RequireNullSafeObjectOperator`                 | `?->` where possible                                           | Yes     |
@@ -606,14 +605,6 @@ Disallows `continue` without an operand in `switch`.
 
 Disallows parentheses around a language construct's argument. Used through
 [`Jumbo.ControlStructures.LanguageConstructWithParentheses`](Jumbo_Custom_Sniffs.md#jumbocontrolstructureslanguageconstructwithparentheses), which skips `exit` and `die`.
-
-**Auto-fixable:** yes.
-
----
-
-## SlevomatCodingStandard.ControlStructures.RequireMultiLineTernaryOperator
-
-Requires multi-line format for long ternary operators.
 
 **Auto-fixable:** yes.
 

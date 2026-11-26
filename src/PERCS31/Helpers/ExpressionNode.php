@@ -14,6 +14,8 @@ namespace PERCS31\Helpers;
  *   whose children are the arguments.
  * - A list: a `match` arm's conditions, when it has several, such as `1, 2` in `1, 2 => 'small'`, whose children are
  *   the conditions. It's the key of the arm's pair.
+ * - A ternary: a condition, `?`, a value, `:` and another value, whose children are the condition and the values, and
+ *   whose operators are the `?` and the `:`. A short ternary, `$a ?: $b`, has the condition and one value.
  * - A body: a closure, `match` or anonymous class, which always spans lines. Its body isn't laid out here; only where
  *   it starts, after its first line up to the `{`, which must be on one line.
  */
@@ -31,6 +33,8 @@ readonly class ExpressionNode
 
     public const string LIST = 'list';
 
+    public const string TERNARY = 'ternary';
+
     /**
      * The length given to a body, which never fits on one line.
      */
@@ -39,12 +43,13 @@ readonly class ExpressionNode
     /**
      * Constructor.
      *
-     * @param string $kind OPERAND, GROUP, LEVEL, CALL, BODY or LIST.
+     * @param string $kind OPERAND, GROUP, LEVEL, CALL, BODY, LIST or TERNARY.
      * @param int $start The position of the first token.
      * @param int $end The position of the last token.
      * @param int $flatLength The length of the node written on one line.
      * @param list<ExpressionNode> $children A level's operands, a group's contents, or a call's arguments.
-     * @param list<int> $operators The positions of a level's operators, one between each pair of operands.
+     * @param list<int> $operators The positions of a level's operators, one between each pair of operands, or a
+     * ternary's `?` and `:`.
      * @param ?int $opener The position of a group's or call's opening parenthesis, or an array's opening bracket.
      * @param ?int $closer The position of a group's or call's closing parenthesis, or an array's closing bracket.
      * @param list<int> $separators The positions of a call's or list's commas, one between each pair of children.

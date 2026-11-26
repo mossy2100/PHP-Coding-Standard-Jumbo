@@ -1580,6 +1580,11 @@ joined, and one split any other way than the layout above is laid out again. A c
 class's body isn't changed, only where it starts; PERCS31.WhiteSpace.ScopeIndent re-indents a body that moves. An
 arrow function is still left alone.
 
+**A ternary** too long for its line takes three lines: the condition, then `?` and its value, then `:` and its value,
+each new line indented once, as section 6.4 says "ternaries MUST occupy 3 lines, never 2". A short ternary takes two,
+with `?:` starting the second. Each part is then split in the room its own line leaves it, outermost first. After a
+group split over lines, such as one holding a split ternary, the next operator starts a line.
+
 **A `key => value` pair**, in an array or in a `match` arm with one condition, is one expression. The first preference
 is always the key and the value each on a single line. One that doesn't fit on one line is laid out by the first of
 these that applies:

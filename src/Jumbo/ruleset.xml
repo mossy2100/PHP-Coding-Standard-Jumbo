@@ -521,11 +521,8 @@
     <rule ref="SlevomatCodingStandard.ControlStructures.RequireNullCoalesceEqualOperator"/>
     <rule ref="SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator"/>
     <rule ref="SlevomatCodingStandard.ControlStructures.RequireNullSafeObjectOperator"/>
-    <rule ref="SlevomatCodingStandard.ControlStructures.RequireMultiLineTernaryOperator">
-        <properties>
-            <property name="lineLengthLimit" value="&lineLength;"/>
-        </properties>
-    </rule>
+    <!-- A long ternary is split by PERCS31.Formatting.ExpressionFormat, in place of
+         SlevomatCodingStandard.ControlStructures.RequireMultiLineTernaryOperator -->
     <!-- The Jumbo version of RequireShortTernaryOperator, which skips the ? in set(?int $value), as the parent crashes on
          it -->
     <rule ref="Jumbo.ControlStructures.RequireShortTernaryOperator"/>
