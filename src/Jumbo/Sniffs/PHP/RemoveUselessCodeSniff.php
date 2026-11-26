@@ -99,12 +99,9 @@ class RemoveUselessCodeSniff implements Sniff
     {
         $tokens = $phpcsFile->getTokens();
         $variable = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
-        $before = $variable === false ? false : $phpcsFile->findPrevious(
-            Tokens::EMPTY_TOKENS,
-            ($variable - 1),
-            null,
-            true,
-        );
+        $before = $variable === false
+            ? false
+            : $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($variable - 1), null, true);
         if (
             $variable === false || $tokens[$variable]['content'] !== '$this'
             || ($before !== false && in_array(

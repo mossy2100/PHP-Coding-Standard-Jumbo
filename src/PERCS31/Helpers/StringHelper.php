@@ -536,11 +536,9 @@ class StringHelper
         for (; $index < $count; $index++) {
             $piece = is_array($parts[$index]) ? $parts[$index][1] : $parts[$index];
             $variable .= $piece;
-            $isOpener = is_array($parts[$index]) ? $parts[$index][0] === T_CURLY_OPEN : in_array(
-                $piece,
-                ['{', '['],
-                true,
-            );
+            $isOpener = is_array($parts[$index])
+                ? $parts[$index][0] === T_CURLY_OPEN
+                : in_array($piece, ['{', '['], true);
             $depth += $isOpener ? 1 : 0;
             $depth -= !is_array($parts[$index]) && in_array($piece, ['}', ']'], true) ? 1 : 0;
             if ($depth === 0) {

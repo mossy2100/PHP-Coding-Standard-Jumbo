@@ -127,20 +127,14 @@ class LanguageConstructsSniff implements Sniff
         }
 
         // A call after `&&` that joins with the one before it is reported with that one.
-        $before = $previous === false ? false : $phpcsFile->findPrevious(
-            Tokens::EMPTY_TOKENS,
-            ($previous - 1),
-            null,
-            true,
-        );
+        $before = $previous === false
+            ? false
+            : $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($previous - 1), null, true);
         if ($before !== false && $tokens[$previous]['code'] === T_BOOLEAN_AND) {
             $earlier = self::findCallBefore($phpcsFile, $before, T_ISSET);
-            $beforeEarlier = $earlier === null ? false : $phpcsFile->findPrevious(
-                Tokens::EMPTY_TOKENS,
-                ($earlier - 1),
-                null,
-                true,
-            );
+            $beforeEarlier = $earlier === null
+                ? false
+                : $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($earlier - 1), null, true);
             $isEarlierJoined = $beforeEarlier === false || self::isLooseNeighbour($phpcsFile, $beforeEarlier);
             if ($earlier !== null && $isEarlierJoined) {
                 return;

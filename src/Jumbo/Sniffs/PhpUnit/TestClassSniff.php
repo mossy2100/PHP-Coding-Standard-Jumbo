@@ -454,9 +454,8 @@ class TestClassSniff implements Sniff
 
         return match (true) {
             isset(self::WITHOUT_ARGUMENTS[$name]) => [self::attribute(self::WITHOUT_ARGUMENTS[$name])],
-            isset(self::WITH_TEXT[$name]) => $value === ''
-                ? null
-                : [self::attribute(self::WITH_TEXT[$name], self::quote($value))],
+            isset(self::WITH_TEXT[$name])
+                => $value === '' ? null : [self::attribute(self::WITH_TEXT[$name], self::quote($value))],
             isset(self::ENABLED_OR_DISABLED[$name]) => in_array($value, ['enabled', 'disabled'], true)
                 ? [self::attribute(self::ENABLED_OR_DISABLED[$name], $value === 'enabled' ? 'true' : 'false')]
                 : null,

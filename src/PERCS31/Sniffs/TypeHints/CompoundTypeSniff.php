@@ -841,7 +841,8 @@ class CompoundTypeSniff implements Sniff
             $data = [$whole, $printer->print($other)];
             $fix = ($fixable
                 ? $phpcsFile->addFixableWarning($warning, $ptr, self::CODE_SHORT_NULLABLE, $data)
-                : $phpcsFile->addWarning($warning, $ptr, self::CODE_SHORT_NULLABLE, $data)) || $fix;
+                : $phpcsFile->addWarning($warning, $ptr, self::CODE_SHORT_NULLABLE, $data))
+                || $fix;
         }
 
         $others = array_values(array_filter($texts, static fn(string $text): bool => strtolower($text) !== 'null'));
@@ -1021,8 +1022,6 @@ class CompoundTypeSniff implements Sniff
 
         return count($result) === 1
             ? $result[0]
-            : ($node instanceof UnionTypeNode
-                ? new UnionTypeNode($result)
-                : new IntersectionTypeNode($result));
+            : ($node instanceof UnionTypeNode ? new UnionTypeNode($result) : new IntersectionTypeNode($result));
     }
 }
