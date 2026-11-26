@@ -473,6 +473,17 @@ class ExpressionHelper
         }
 
         for ($i = $start; $i <= $end; $i++) {
+            // A closure's, `match`'s or anonymous class's body isn't laid out here, so what's in it doesn't matter.
+            $condition = $tokens[$i]['scope_condition'] ?? null;
+            $closer = $tokens[$i]['scope_closer'] ?? null;
+            if (
+                $tokens[$i]['code'] === T_OPEN_CURLY_BRACKET && is_int($condition) && is_int($closer)
+                && in_array($tokens[$condition]['code'], [T_CLOSURE, T_MATCH, T_ANON_CLASS], true)
+            ) {
+                $i = $closer;
+                continue;
+            }
+
             $code = $tokens[$i]['code'];
             if (
                 isset(Tokens::COMMENT_TOKENS[$code]) || in_array($code, [T_START_HEREDOC, T_START_NOWDOC, T_FN], true)
@@ -600,8 +611,8 @@ class ExpressionHelper
         $prefix = $phpcsFile->getTokensAsString($start, ($opener - $start));
         $isGroup = self::isGrouping($phpcsFile, $opener) && ($tokens[$opener]['parenthesis_closer'] ?? null) === $end;
         if (!$isGroup) {
-            // A call or array can span lines; any other operand that does is left alone.
-            $call = self::parseCall($phpcsFile, $start, $end);
+            // A call, an array or a body can span lines; any other operand that does is left alone.
+            $call = self::parseCall($phpcsFile, $start, $end) ?? self::parseBody($phpcsFile, $start, $end);
             $text = $phpcsFile->getTokensAsString($start, ($end - $start + 1));
             if ($call !== null || str_contains($text, "\n")) {
                 return $call;
@@ -654,6 +665,48 @@ class ExpressionHelper
 
         return TokenHelper::isArgumentListOpener($phpcsFile, $opener)
             && ($before === false || $tokens[$before]['code'] !== T_LIST);
+    }
+
+    /**
+     * Parse an operand that's a closure, `match` or anonymous class, whose body isn't laid out here.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $start The position of the operand's first token.
+     * @param int $end The position of its last token.
+     * @return ?ExpressionNode The body, or null if the operand isn't one, or its first line spans lines.
+     */
+    private static function parseBody(File $phpcsFile, int $start, int $end): ?ExpressionNode
+    {
+        $tokens = $phpcsFile->getTokens();
+        $keyword = $tokens[$start]['code'] === T_STATIC
+            ? $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($start + 1), $end, true)
+            : $start;
+        if ($keyword !== false && $tokens[$keyword]['code'] === T_NEW) {
+            $keyword = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($keyword + 1), $end, true);
+            $keyword = $keyword !== false && $tokens[$keyword]['code'] === T_ANON_CLASS ? $keyword : false;
+        }
+
+        $opener = $keyword === false ? null : ($tokens[$keyword]['scope_opener'] ?? null);
+        if (
+            $keyword === false || !in_array($tokens[$keyword]['code'], [T_CLOSURE, T_MATCH, T_ANON_CLASS], true)
+            || ($tokens[$keyword]['scope_closer'] ?? null) !== $end || !is_int($opener)
+        ) {
+            return null;
+        }
+
+        $head = $phpcsFile->getTokensAsString($start, ($opener - $start + 1));
+        if (str_contains($head, "\n")) {
+            return null;
+        }
+
+        return new ExpressionNode(
+            kind: ExpressionNode::BODY,
+            start: $start,
+            end: $end,
+            flatLength: ExpressionNode::BODY_LENGTH,
+            headLength: mb_strlen($head),
+            isClosure: $tokens[$keyword]['code'] === T_CLOSURE,
+        );
     }
 
     /**

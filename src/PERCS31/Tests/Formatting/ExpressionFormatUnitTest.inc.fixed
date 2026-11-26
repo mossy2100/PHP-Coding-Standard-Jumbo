@@ -25,9 +25,9 @@ $a = $someLongConditionNameNumberOne && $someLongConditionNameNumberTwo && $some
 $a = $b // Why.
     + $c;
 $a = $b
-    + foo(function () {
-        return 1;
-    });
+    + $c
+        ->d()
+        ->e();
 $a = <<<'X'
     b
     X

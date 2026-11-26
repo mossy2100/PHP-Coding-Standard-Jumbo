@@ -1562,11 +1562,13 @@ can be split anywhere, even inside a group while the operators around the group 
 outermost first, only if still too long:
 
 - **Chopped down,** one argument per line with a trailing comma, if that lets each argument fit on its own line.
-- **Hugged,** if one argument is an array too long even on a line of its own: the array is split, and the other
-  arguments stay on the call's lines, as in `merge($defaults, [`. Section 4.7 says "A single argument being split
-  across multiple lines (as might be the case with a closure or array) does not constitute splitting the argument list
-  itself." A call whose own argument is hugged can be hugged the same way, as in `foo(bar([`.
-- **Otherwise chopped down.** An array's values always go one per line.
+- **Hugged,** if one argument is a closure, or an array too long even on a line of its own: it's split, and the
+  other arguments stay on the call's lines, as in `merge($defaults, [` or `usort($items, function ($a, $b) {`, at any
+  position. Section 4.7 says "A single argument being split across multiple lines (as might be the case with a closure
+  or array) does not constitute splitting the argument list itself." A call whose own argument is hugged can be hugged
+  the same way, as in `foo(bar([`.
+- **Otherwise chopped down,** including a call with two closures, or a `match` or anonymous class argument, which is
+  never hugged, as a hugged `match` is barely readable. An array's values always go one per line.
 
 An expression's last operand that's a call or array too long even on a line of its own stays after its operator, as in
 `$ok = $value !== null && isStatement(`, and is split there, as a pair's value stays after `key =>`: breaking before
@@ -1574,8 +1576,9 @@ the operator would save nothing.
 
 Without `strict`, a call already split over lines isn't changed, but each argument on its own line is checked as an
 expression of its own. With `strict`, a call or array split over lines is checked too: one that fits on one line is
-joined, and one split any other way than the layout above is laid out again. One with a closure, `match` or anonymous
-class in it is left alone.
+joined, and one split any other way than the layout above is laid out again. A closure's, `match`'s or anonymous
+class's body isn't changed, only where it starts; PERCS31.WhiteSpace.ScopeIndent re-indents a body that moves. An
+arrow function is still left alone.
 
 **A `key => value` pair**, in an array or in a `match` arm with one condition, is one expression. One that doesn't fit
 on one line is laid out by the first of these that applies:

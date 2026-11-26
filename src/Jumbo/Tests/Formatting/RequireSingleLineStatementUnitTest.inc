@@ -131,8 +131,8 @@ $a = function () {
     return 1;
 }
     ?? null;
-$a = $b
-    ?? foo(function () {
+$a =
+    foo(function () {
         return 1;
     });
 $a = $b

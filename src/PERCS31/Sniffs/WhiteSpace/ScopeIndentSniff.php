@@ -974,10 +974,11 @@ class ScopeIndentSniff implements Sniff
 
             // PERCS31: a line starting a match arm is indented exactly once past the line the match's opening brace is
             // on, as section 5.2 shows. Nothing else reports one indented too far. PER says nothing about a later
-            // condition in an arm, split over lines, so that's not checked here.
+            // condition in an arm, split over lines, so that's not checked here. A match inside parentheses, such as a
+            // call's argument, is checked too: only a line directly inside them is exempt, as for a scope opener above.
             if ($checkToken !== null
                 && $exact === false
-                && $checkToken >= $disableExactEnd
+                && $this->isDirectlyInParentheses($tokens, $checkToken, $disableExactStack) === false
                 && $this->startsMatchArm($phpcsFile, $checkToken) === true
             ) {
                 $conditions  = $tokens[$checkToken]['conditions'];
@@ -1674,6 +1675,27 @@ class ScopeIndentSniff implements Sniff
         return in_array($tokens[$previous]['code'], [T_OPEN_CURLY_BRACKET, T_COLON], true);
     }
 
+
+    /**
+     * PERCS31: checks whether a token is directly inside parentheses that are still open, not in a deeper scope inside
+     * them, where exact indents aren't checked.
+     *
+     * @param array<int, array<string, mixed>> $tokens            The file's tokens.
+     * @param int                              $stackPtr          The position of the token.
+     * @param array<int, int>                  $disableExactStack The closers of the parentheses opened so far.
+     *
+     * @return bool
+     */
+    private function isDirectlyInParentheses(array $tokens, int $stackPtr, array $disableExactStack)
+    {
+        foreach ($disableExactStack as $closer) {
+            if ($closer > $stackPtr && $tokens[$stackPtr]['conditions'] === $tokens[$closer]['conditions']) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /**
      * PERCS31: checks whether a token starts a match arm: it follows the match's opening brace, or the comma that ends

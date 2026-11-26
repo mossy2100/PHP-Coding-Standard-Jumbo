@@ -35,7 +35,9 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
             return [12 => 1, 13 => 1, 16 => 1, 19 => 1, 20 => 1, 23 => 1, 24 => 1, 27 => 1, 29 => 1]
                 // In strict: a split call that fits, hugging when chopping lets the array fit, chopped when it should
                 // hug, and a split call in an expression that fits.
-                + [34 => 1, 38 => 1, 41 => 1, 48 => 1];
+                + [34 => 1, 38 => 1, 41 => 1, 48 => 1]
+                // A chopped closure that should be hugged, two closures hugged, and a hugged match.
+                + [60 => 1, 66 => 1, 71 => 1];
         }
 
         if ($testFile === 'ExpressionFormatUnitTest.4.inc') {

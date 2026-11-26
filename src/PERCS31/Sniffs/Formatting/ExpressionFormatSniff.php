@@ -792,6 +792,11 @@ class ExpressionFormatSniff implements Sniff
         bool $inCondition,
         array &$breaks,
     ): int {
+        // A body isn't laid out here. Its last line is its `}`, level with the line it starts on.
+        if ($node->kind === ExpressionNode::BODY) {
+            return $lineIndent + 1;
+        }
+
         $flatEnd = $column + $node->flatLength;
         if ($node->kind === ExpressionNode::OPERAND || ($flatEnd + $trailing) <= $this->maxLineLength) {
             return $flatEnd;
@@ -851,9 +856,10 @@ class ExpressionFormatSniff implements Sniff
             $childColumn = $end + $operatorLength + 2;
             $ownLineEnd = $indent + $operatorLength + 1 + $child->flatLength + $childTrailing;
             if (
-                ($index + 1) === $lastIndex && $child->kind === ExpressionNode::CALL
+                ($index + 1) === $lastIndex
+                && in_array($child->kind, [ExpressionNode::CALL, ExpressionNode::BODY], true)
                 && $ownLineEnd > $this->maxLineLength
-                && ($childColumn + self::calleeLength($child) + 1) <= $this->maxLineLength
+                && ($childColumn + self::firstLineLength($child)) <= $this->maxLineLength
             ) {
                 $end = $this->layout(
                     $phpcsFile,
@@ -974,15 +980,19 @@ class ExpressionFormatSniff implements Sniff
             return null;
         }
 
+        // A closure, an array, or a call hugging an argument of its own. A `match` or anonymous class is never hugged.
         $hugged = $spanning[0];
         $child = $node->children[$hugged];
-        if ($child->kind !== ExpressionNode::CALL || !($child->isArray || $this->hugsAnArgument($child, $lineIndent))) {
+        $isHuggable = $child->kind === ExpressionNode::BODY
+            ? $child->isClosure
+            : $child->kind === ExpressionNode::CALL && ($child->isArray || $this->hugsAnArgument($child, $lineIndent));
+        if (!$isHuggable) {
             return null;
         }
 
-        // The arguments before it fit on the first line, up to the hugged one's opening bracket, and those after it fit
-        // on the last line, after its closing bracket.
-        $before = $column + self::calleeLength($node) + 1 + self::calleeLength($child) + 1;
+        // The arguments before it fit on the first line, up to the hugged one's opening bracket or brace, and those
+        // after it fit on the last line, after its closing one.
+        $before = $column + self::calleeLength($node) + 1 + self::firstLineLength($child);
         $after = $lineIndent + 1;
         foreach ($node->children as $index => $other) {
             if ($index < $hugged) {
@@ -1006,6 +1016,18 @@ class ExpressionFormatSniff implements Sniff
     private function hugsAnArgument(ExpressionNode $node, int $lineIndent): bool
     {
         return !$node->isArray && $this->findHuggedArgument($node, 0, $lineIndent, 0) !== null;
+    }
+
+    /**
+     * Get the length of a call's or body's first line when it's split: up to and including its opening bracket, or its
+     * body's `{`.
+     *
+     * @param ExpressionNode $node The call or body.
+     * @return int The length.
+     */
+    private static function firstLineLength(ExpressionNode $node): int
+    {
+        return $node->kind === ExpressionNode::BODY ? $node->headLength : self::calleeLength($node) + 1;
     }
 
     /**

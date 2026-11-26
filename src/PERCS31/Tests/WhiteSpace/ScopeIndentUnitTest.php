@@ -73,6 +73,8 @@ class ScopeIndentUnitTest extends AbstractSniffTestCase
             409 => 1,
             410 => 1,
             412 => 1,
+            // A match arm in a call indented too little, after the first.
+            461 => 1,
         ];
     }
 

@@ -453,3 +453,11 @@ $a = match (true) {
         )
         : null,
 };
+
+// A match arm in a call indented too little, after the first.
+$a = foo(
+    match (true) {
+        $x === 1 => 1,
+    default => 2,
+    },
+);

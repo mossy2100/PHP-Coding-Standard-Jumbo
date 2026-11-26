@@ -614,14 +614,15 @@ class RulesetUnitTest extends TestCase
     }
 
     /**
-     * Test that a `match` as a call's argument doesn't stop phpcbf finishing, as RequireSingleLineCall would collapse
-     * it and other sniffs would expand it, and that a multi-line one is left as it is.
+     * Test that a `match` as a call's argument is chopped down, never hugged, as a hugged `match` is barely readable,
+     * whether it's written hugged or on one line, and that phpcbf finishes.
      */
-    public function testMatchArgumentDoesNotLoopInPhpcbf(): void
+    public function testMatchArgumentIsChoppedDown(): void
     {
         $header = "<?php\n\ndeclare(strict_types=1);\n\nnamespace A;\n\n";
-        $multiLine = "\$d = foo(match (\$x) {\n    1 => 2,\n    default => 3,\n});\n";
-        foreach ([$multiLine, "\$d = foo(match (\$x) { 1 => 2, default => 3 });\n"] as $code) {
+        $chopped = "\$d = foo(\n    match (\$x) {\n        1 => 2,\n        default => 3,\n    },\n);\n";
+        $hugged = "\$d = foo(match (\$x) {\n    1 => 2,\n    default => 3,\n});\n";
+        foreach ([$hugged, "\$d = foo(match (\$x) { 1 => 2, default => 3 });\n"] as $code) {
             $file = $this->copyToTempFile(null, "{$header}{$code}");
 
             try {
@@ -632,9 +633,7 @@ class RulesetUnitTest extends TestCase
             }
 
             $this->assertStringNotContainsString('FAILED TO FIX', $fixer['output']);
-            if ($code === $multiLine) {
-                $this->assertSame("{$header}{$multiLine}", $fixed);
-            }
+            $this->assertSame("{$header}{$chopped}", $fixed);
         }
     }
 

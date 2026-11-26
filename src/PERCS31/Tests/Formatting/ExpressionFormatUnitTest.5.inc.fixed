@@ -74,5 +74,30 @@ $a = merge($defaults, [
     'size' => 'large',
 ]);
 $a = $b + foo($c);
+// Closures are hugged, last or not, unless there are two; a match is chopped down, never hugged. (Moved bodies are
+// re-indented by PERCS31.WhiteSpace.ScopeIndent.)
+usort($items, function ($a, $b) {
+    return $a <=> $b;
+});
+$b = array_map(function ($x) {
+    return $x * 2;
+}, $items);
+$c = foo($x, function () {
+        return 1;
+    });
+$c = foo(
+    function () {
+    return 1;
+},
+    function () {
+    return 2;
+},
+);
+$d = foo(
+    match ($b) {
+    1 => 'one',
+    default => 'many',
+},
+);
 // phpcs:set PERCS31.Formatting.ExpressionFormat strict false
 // phpcs:set PERCS31.Formatting.ExpressionFormat maxLineLength 120

@@ -12,6 +12,8 @@ namespace PERCS31\Helpers;
  *   itself be a level of operators that bind more tightly, as `$b && $c` is in `$a || $b && $c`.
  * - A call: a call's argument list, or an array's values, written on one line, such as `foo($a, $b)` or `[$a, $b]`,
  *   whose children are the arguments.
+ * - A body: a closure, `match` or anonymous class, which always spans lines. Its body isn't laid out here; only where
+ *   it starts, after its first line up to the `{`, which must be on one line.
  */
 readonly class ExpressionNode
 {
@@ -23,10 +25,17 @@ readonly class ExpressionNode
 
     public const string CALL = 'call';
 
+    public const string BODY = 'body';
+
+    /**
+     * The length given to a body, which never fits on one line.
+     */
+    public const int BODY_LENGTH = 1000000;
+
     /**
      * Constructor.
      *
-     * @param string $kind OPERAND, GROUP, LEVEL or CALL.
+     * @param string $kind OPERAND, GROUP, LEVEL, CALL or BODY.
      * @param int $start The position of the first token.
      * @param int $end The position of the last token.
      * @param int $flatLength The length of the node written on one line.
@@ -37,6 +46,8 @@ readonly class ExpressionNode
      * @param list<int> $separators The positions of a call's commas, one between each pair of arguments.
      * @param ?int $trailingComma The position of a call's comma after its last argument, if it has one.
      * @param bool $isArray Whether a call is an array's values, which are always split one per line, never hugged.
+     * @param int $headLength The length of a body's first line, up to and including its `{`.
+     * @param bool $isClosure Whether a body is a closure's, which can be hugged, unlike a `match` or anonymous class.
      */
     public function __construct(
         public string $kind,
@@ -50,5 +61,7 @@ readonly class ExpressionNode
         public array $separators = [],
         public ?int $trailingComma = null,
         public bool $isArray = false,
+        public int $headLength = 0,
+        public bool $isClosure = false,
     ) {}
 }
