@@ -115,6 +115,8 @@ class CompoundTypeSniff implements Sniff
 
     public const string CODE_REDUNDANT_TYPE = 'RedundantType';
 
+    public const string CODE_SHOULD_BE_SINGLE_LINE = 'ShouldBeSingleLine';
+
     /**
      * Whether to report a union of one simple type with `null`, which should be written `?T`.
      */
@@ -134,6 +136,17 @@ class CompoundTypeSniff implements Sniff
      * Whether to report a repeated type, and a type another member of a union covers, in a doc comment.
      */
     public bool $checkRedundantTypes = false;
+
+    /**
+     * Whether to join a type split across lines when the line it then makes fits within maxLineLength. PER allows the
+     * split, so this is an extra rule, on in Jumbo.
+     */
+    public bool $joinSplitTypes = false;
+
+    /**
+     * The longest line a split type is joined onto, with joinSplitTypes.
+     */
+    public int $maxLineLength = 120;
 
     /**
      * The doc types not fixed, as they're split over lines, by the object ID of the type as parsed.
@@ -209,7 +222,10 @@ class CompoundTypeSniff implements Sniff
         }
 
         [$typeStart, $typeEnd] = CompoundTypeHelper::findTypeBounds($phpcsFile, $stackPtr, $isHook);
-        self::checkLines($phpcsFile, $typeStart, $typeEnd);
+        if (!$this->joinSplitType($phpcsFile, $typeStart, $typeEnd)) {
+            self::checkLines($phpcsFile, $typeStart, $typeEnd);
+        }
+
         $this->checkNull($phpcsFile, $typeStart, $typeEnd);
         $this->checkSorting($phpcsFile, $typeStart, $typeEnd);
     }
@@ -258,6 +274,53 @@ class CompoundTypeSniff implements Sniff
                 self::reportIndent($phpcsFile, $symbol, $indent);
             }
         }
+    }
+
+    /**
+     * With joinSplitTypes, join a type split across lines if the line it then makes fits within maxLineLength.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $typeStart The position of the type's first token.
+     * @param int $typeEnd The position of the type's last token.
+     * @return bool True if the type is reported for joining, so its lines aren't checked.
+     */
+    private function joinSplitType(File $phpcsFile, int $typeStart, int $typeEnd): bool
+    {
+        $tokens = $phpcsFile->getTokens();
+        if (
+            !$this->joinSplitTypes || $tokens[$typeStart]['line'] === $tokens[$typeEnd]['line']
+            || $phpcsFile->findNext(Tokens::COMMENT_TOKENS, $typeStart, ($typeEnd + 1)) !== false
+        ) {
+            return false;
+        }
+
+        // The joined line: what comes before the type on its first line, the type, and the rest of its last line.
+        $joined = '';
+        for ($i = $typeStart; $i <= $typeEnd; $i++) {
+            $joined .= $tokens[$i]['code'] === T_WHITESPACE ? '' : $tokens[$i]['content'];
+        }
+
+        $rest = '';
+        for ($i = ($typeEnd + 1); isset($tokens[$i]) && $tokens[$i]['line'] === $tokens[$typeEnd]['line']; $i++) {
+            $rest .= $tokens[$i]['content'];
+        }
+
+        $length = $tokens[$typeStart]['column'] - 1 + mb_strlen($joined) + mb_strlen(rtrim($rest, "\r\n"));
+        if ($length > $this->maxLineLength) {
+            return false;
+        }
+
+        $fix = $phpcsFile->addFixableError(
+            'A compound type split across lines fits within %s characters, so it must be written on one line',
+            $typeStart,
+            self::CODE_SHOULD_BE_SINGLE_LINE,
+            [$this->maxLineLength],
+        );
+        if ($fix) {
+            self::replaceType($phpcsFile, $typeStart, $typeEnd, $joined);
+        }
+
+        return true;
     }
 
     /**

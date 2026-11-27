@@ -19,7 +19,12 @@ $a = <<<'X'
     b
     X
     . 'c';
-// Left to their own sniffs.
+// Left to their own sniffs, a split compound type too.
+class G
+{
+    public A
+        |B $j;
+}
 $a = foo(
     1,
 );
@@ -106,11 +111,6 @@ $a = $b
     : 2;
 $a = $b
     ->c;
-class G
-{
-    public A
-        |B $j;
-}
 switch ($a) {
     case (
         $b

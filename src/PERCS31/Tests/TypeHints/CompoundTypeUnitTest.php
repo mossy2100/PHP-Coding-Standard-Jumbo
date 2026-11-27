@@ -46,6 +46,11 @@ class CompoundTypeUnitTest extends AbstractSniffTestCase
             return [15 => 1, 16 => 1, 17 => 1, 18 => 1, 22 => 1];
         }
 
+        if ($testFile === 'CompoundTypeUnitTest.6.inc') {
+            // Joined, with joinSplitTypes: a property's type and a parameter's.
+            return [17 => 1, 21 => 1];
+        }
+
         if ($testFile === 'CompoundTypeUnitTest.5.inc') {
             return [
                 // Not sorted: a union, a DNF group and a multi-catch.

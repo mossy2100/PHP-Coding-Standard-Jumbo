@@ -2947,6 +2947,10 @@ written. In Jumbo, this replaces `SlevomatCodingStandard.TypeHints.NullTypeHintO
 and a multi-catch included, in alphabetical order, ignoring case and a leading `\`, as php-cs-fixer's `ordered_types`
 does. `null` isn't sorted, as `nullPosition` places it. Reported as `NotSorted`.
 
+**Joining** (`joinSplitTypes`, off by default, on in Jumbo): a type split across lines is joined when the line it then
+makes fits within `maxLineLength`, as in `public Customer` then `|Guest $buyer;`. PER allows the split, so this is an
+extra rule. Reported as `ShouldBeSingleLine`, and its lines aren't checked.
+
 **Repeated and redundant types** (`checkRedundantTypes`, off by default, on in Jumbo), in doc types only, as PHP
 rejects both in a native type:
 
@@ -3040,6 +3044,8 @@ class Limits
 | `nullPosition`        | string | `last`  | Where `null` goes in a union: `first` or `last`, or empty for anywhere.    |
 | `sortTypes`           | bool   | false   | Sort the types in each union and intersection. True in Jumbo.              |
 | `checkRedundantTypes` | bool   | false   | Report repeated and redundant types in doc comments. True in Jumbo.        |
+| `joinSplitTypes`      | bool   | false   | Join a type split across lines that fits on one line. True in Jumbo.       |
+| `maxLineLength`       | int    | 120     | The longest line a split type is joined onto, with `joinSplitTypes`.       |
 
 Any other `nullPosition` stops the run with an error.
 

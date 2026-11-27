@@ -350,8 +350,16 @@ class RequireSingleLineStatementSniff implements Sniff
             }
 
             if ($tokens[$i]['line'] !== $line) {
+                // A break in a compound type is PERCS31.TypeHints.CompoundType's.
                 $previous = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($i - 1), null, true);
-                if ($previous === false || !ExpressionHelper::isExpressionBreak($phpcsFile, $previous, $i)) {
+                $typeSymbols = [T_TYPE_UNION, T_TYPE_INTERSECTION];
+                $isTypeBreak = $previous !== false
+                    && (in_array($tokens[$previous]['code'], $typeSymbols, true)
+                        || in_array($tokens[$i]['code'], $typeSymbols, true));
+                if (
+                    !$isTypeBreak
+                    && ($previous === false || !ExpressionHelper::isExpressionBreak($phpcsFile, $previous, $i))
+                ) {
                     return true;
                 }
 

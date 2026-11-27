@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+- **Joining a split compound type, in Jumbo (breaking).** `PERCS31.TypeHints.CompoundType` has a new `joinSplitTypes`
+  property, on in Jumbo, with `maxLineLength`: a type split across lines that fits on one, as in `public Customer` then
+  `|Guest $buyer;`, is joined, reported as `ShouldBeSingleLine`. `Jumbo.Formatting.RequireSingleLineStatement`, which
+  joined it before, now leaves it to that sniff. Auto-fixable.
 - **A blank line inside the file docblock (breaking).** `PERCS31.Files.FileHeader` now reports a line inside the file
   docblock that's empty, or only spaces, as `SpacingInsideDocblockBlock`, as PER Coding Style 3.1 says a header block
   MUST NOT contain a blank line. A line with only a `*` is fine. Auto-fixable, to a `*` line.

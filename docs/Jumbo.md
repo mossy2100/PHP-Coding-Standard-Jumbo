@@ -86,8 +86,8 @@ The complete [PERCS31](PERCS31.md) standard is included, which is built on PSR-1
   past the `(` line if it starts with `&&` or `||`, and exactly once past its operand's line if it starts with any other
   operator. PERCS31 allows at least once (`requireExactConditionIndent` set to `true`).
 - `PERCS31.TypeHints.CompoundType` reports `T|null`, which should be `?T`, as an error, not a warning. It also sorts
-  the types in each union and intersection (`sortTypes`), and reports repeated and redundant doc types
-  (`checkRedundantTypes`).
+  the types in each union and intersection (`sortTypes`), reports repeated and redundant doc types
+  (`checkRedundantTypes`), and joins a type split across lines that fits on one (`joinSplitTypes`).
 - [`Squiz.Arrays.ArrayDeclaration`](Jumbo_Inherited_Sniffs.md#squizarraysarraydeclaration) also runs the checks PERCS31 leaves out.
 - `PERCS31.Operators.OperatorSpacing` also reports more than one space around an operator, with `ignoreNewlines` on and
   `ignoreSpacingBeforeAssignments` off. See [`Squiz.WhiteSpace.OperatorSpacing`](Jumbo_Inherited_Sniffs.md#squizwhitespaceoperatorspacing).

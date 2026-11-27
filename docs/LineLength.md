@@ -26,9 +26,9 @@ In the [PERCS31](PERCS31.md) standard, two sniffs use the limit: `Generic.Files.
 holds it, as its `lineLimit` holds the recommended 80, and `PERCS31.Formatting.ExpressionFormat`, whose
 `maxLineLength` holds it. Set both to change it. The rest of this section is about the Jumbo standard.
 
-Nine sniffs check or wrap long lines, and each has its own line-length property. The Jumbo ruleset sets all nine
+Ten sniffs check or wrap long lines, and each has its own line-length property. The Jumbo ruleset sets all ten
 from two XML entities, `lineLength` and `lineLengthPlusOne`, at the top of its `ruleset.xml`. An entity only applies
-within the file that defines it, so you can't override it from `phpcs.xml`. Set all nine properties instead:
+within the file that defines it, so you can't override it from `phpcs.xml`. Set all ten properties instead:
 
 | Sniff                                                                      | Property            | Value      |
 | -------------------------------------------------------------------------- | ------------------- | ---------- |
@@ -41,6 +41,7 @@ within the file that defines it, so you can't override it from `phpcs.xml`. Set 
 | `Jumbo.Formatting.RequireSingleLineStatement`                              | `maxLineLength`     | length     |
 | `Jumbo.Functions.RequireSingleLineSignature`                               | `maxLineLength`     | length     |
 | `Jumbo.Classes.RequireSingleLineClassHeader`                               | `maxLineLength`     | length     |
+| `PERCS31.TypeHints.CompoundType`                                           | `maxLineLength`     | length     |
 
 If you set only some of them, the fixers can create lines over your limit, or leave lines short that could be joined.
 
@@ -87,6 +88,11 @@ set separately:
         </properties>
     </rule>
     <rule ref="PERCS31.Formatting.ExpressionFormat">
+        <properties>
+            <property name="maxLineLength" value="&lineLength;"/>
+        </properties>
+    </rule>
+    <rule ref="PERCS31.TypeHints.CompoundType">
         <properties>
             <property name="maxLineLength" value="&lineLength;"/>
         </properties>

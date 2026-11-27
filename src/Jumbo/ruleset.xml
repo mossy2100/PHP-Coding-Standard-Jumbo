@@ -155,12 +155,14 @@
         <type>error</type>
     </rule>
 
-    <!-- The types in each union and intersection sorted, and no repeated or redundant type in a doc comment, such as
-         true beside bool. PER has no rule for either. -->
+    <!-- The types in each union and intersection sorted, no repeated or redundant type in a doc comment, such as
+         true beside bool, and a type split across lines joined if it fits. PER has no rule for any of these. -->
     <rule ref="PERCS31.TypeHints.CompoundType">
         <properties>
             <property name="sortTypes" value="true"/>
             <property name="checkRedundantTypes" value="true"/>
+            <property name="joinSplitTypes" value="true"/>
+            <property name="maxLineLength" value="&lineLength;"/>
         </properties>
     </rule>
     <rule ref="SlevomatCodingStandard.TypeHints.NullableTypeForNullDefaultValue"/>
