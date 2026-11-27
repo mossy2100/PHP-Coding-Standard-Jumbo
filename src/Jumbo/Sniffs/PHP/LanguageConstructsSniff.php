@@ -39,12 +39,8 @@ class LanguageConstructsSniff implements Sniff
      *
      * @var list<int|string>
      */
-    private const array CLOSERS = [
-        T_CLOSE_PARENTHESIS,
-        T_CLOSE_SQUARE_BRACKET,
-        T_CLOSE_SHORT_ARRAY,
-        T_CLOSE_CURLY_BRACKET,
-    ];
+    private const array CLOSERS
+        = [T_CLOSE_PARENTHESIS, T_CLOSE_SQUARE_BRACKET, T_CLOSE_SHORT_ARRAY, T_CLOSE_CURLY_BRACKET];
 
     /**
      * Returns an array of tokens this test wants to listen for.
@@ -127,9 +123,8 @@ class LanguageConstructsSniff implements Sniff
         }
 
         // A call after `&&` that joins with the one before it is reported with that one.
-        $before = $previous === false
-            ? false
-            : $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($previous - 1), null, true);
+        $before
+            = $previous === false ? false : $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($previous - 1), null, true);
         if ($before !== false && $tokens[$previous]['code'] === T_BOOLEAN_AND) {
             $earlier = self::findCallBefore($phpcsFile, $before, T_ISSET);
             $beforeEarlier = $earlier === null

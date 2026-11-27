@@ -44,12 +44,8 @@ class CanonicalTypesSniff implements Sniff
      *
      * @var array<string, string>
      */
-    private const array LONG_NAMES = [
-        'boolean' => 'bool',
-        'integer' => 'int',
-        'double' => 'float',
-        'binary' => 'string',
-    ];
+    private const array LONG_NAMES
+        = ['boolean' => 'bool', 'integer' => 'int', 'double' => 'float', 'binary' => 'string'];
 
     /**
      * PHP's types, in native declarations and casts.

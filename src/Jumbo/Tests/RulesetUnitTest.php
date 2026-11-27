@@ -533,8 +533,8 @@ class RulesetUnitTest extends TestCase
      */
     public function testGlobalConstantsPerStatementInJumboOnly(): void
     {
-        $source = "<?php\n\ndeclare(strict_types=1);\n\nnamespace Vendor\\Package;\n\nconst A = 1, B = 2;\nconst  C = "
-            . "3;\n";
+        $source
+            = "<?php\n\ndeclare(strict_types=1);\n\nnamespace Vendor\\Package;\n\nconst A = 1, B = 2;\nconst  C = 3;\n";
         $file = $this->copyToTempFile(null, $source);
         $args = ['-s', '--sniffs=PERCS31.Classes.ConstantDeclaration', '--report=emacs'];
 

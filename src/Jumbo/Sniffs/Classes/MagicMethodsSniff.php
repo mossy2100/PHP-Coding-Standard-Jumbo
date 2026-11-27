@@ -75,10 +75,8 @@ class MagicMethodsSniff implements Sniff
      */
     private static function checkStringable(File $phpcsFile, int $classPtr, array $methods): void
     {
-        $hasToString = array_any(
-            array_keys($methods),
-            static fn(string $name): bool => strtolower($name) === '__tostring',
-        );
+        $hasToString
+            = array_any(array_keys($methods), static fn(string $name): bool => strtolower($name) === '__tostring');
         $namePtr = $phpcsFile->findNext(T_STRING, ($classPtr + 1), $phpcsFile->getTokens()[$classPtr]['scope_opener']);
         if (
             !$hasToString || $namePtr === false

@@ -40,13 +40,8 @@ class SingleLineHelper
      *
      * @var list<int|string>
      */
-    private const array OBJECT_OPERATORS = [
-        T_OBJECT_OPERATOR,
-        T_NULLSAFE_OBJECT_OPERATOR,
-        T_DOUBLE_COLON,
-        T_TYPE_UNION,
-        T_TYPE_INTERSECTION,
-    ];
+    private const array OBJECT_OPERATORS
+        = [T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON, T_TYPE_UNION, T_TYPE_INTERSECTION];
 
     /**
      * Tokens that stop a construct from being collapsed.

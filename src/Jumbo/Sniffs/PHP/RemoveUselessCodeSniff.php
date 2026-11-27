@@ -39,13 +39,8 @@ class RemoveUselessCodeSniff implements Sniff
      *
      * @var list<int|string>
      */
-    private const array STATEMENT_STARTS = [
-        T_SEMICOLON,
-        T_OPEN_CURLY_BRACKET,
-        T_CLOSE_CURLY_BRACKET,
-        T_OPEN_TAG,
-        T_COLON,
-    ];
+    private const array STATEMENT_STARTS
+        = [T_SEMICOLON, T_OPEN_CURLY_BRACKET, T_CLOSE_CURLY_BRACKET, T_OPEN_TAG, T_COLON];
 
     /**
      * The declarations that a block's braces make conditional, so they aren't removed.
@@ -99,9 +94,8 @@ class RemoveUselessCodeSniff implements Sniff
     {
         $tokens = $phpcsFile->getTokens();
         $variable = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($stackPtr - 1), null, true);
-        $before = $variable === false
-            ? false
-            : $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($variable - 1), null, true);
+        $before
+            = $variable === false ? false : $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($variable - 1), null, true);
         if (
             $variable === false || $tokens[$variable]['content'] !== '$this'
             || ($before !== false && in_array(
@@ -198,9 +192,8 @@ class RemoveUselessCodeSniff implements Sniff
     {
         $tokens = $phpcsFile->getTokens();
         $semicolon = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($stackPtr + 1), null, true);
-        $closer = $semicolon === false
-            ? false
-            : $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($semicolon + 1), null, true);
+        $closer
+            = $semicolon === false ? false : $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($semicolon + 1), null, true);
         $function = $closer === false ? null : ($tokens[$closer]['scope_condition'] ?? null);
         $conditions = array_keys($tokens[$stackPtr]['conditions']);
         if (

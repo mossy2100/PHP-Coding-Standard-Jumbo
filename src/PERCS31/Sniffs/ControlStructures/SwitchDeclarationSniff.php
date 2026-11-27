@@ -321,8 +321,8 @@ class SwitchDeclarationSniff implements Sniff
 
         for ($next = ($colon + 1); $next < $end; $next++) {
             $code = $tokens[$next]['code'];
-            $isCommentOnLaterLine = isset(Tokens::COMMENT_TOKENS[$code])
-                && $tokens[$next]['line'] !== $tokens[$colon]['line'];
+            $isCommentOnLaterLine
+                = isset(Tokens::COMMENT_TOKENS[$code]) && $tokens[$next]['line'] !== $tokens[$colon]['line'];
             if (!isset(Tokens::EMPTY_TOKENS[$code]) || $isCommentOnLaterLine) {
                 break;
             }

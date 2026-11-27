@@ -32,20 +32,8 @@ class EmptyBodyHelper
      *
      * @var list<int|string>
      */
-    public const array CONTROL_STRUCTURE_TOKENS = [
-        T_TRY,
-        T_CATCH,
-        T_FINALLY,
-        T_DO,
-        T_WHILE,
-        T_FOR,
-        T_IF,
-        T_FOREACH,
-        T_ELSE,
-        T_ELSEIF,
-        T_SWITCH,
-        T_MATCH,
-    ];
+    public const array CONTROL_STRUCTURE_TOKENS
+        = [T_TRY, T_CATCH, T_FINALLY, T_DO, T_WHILE, T_FOR, T_IF, T_FOREACH, T_ELSE, T_ELSEIF, T_SWITCH, T_MATCH];
 
     /**
      * Check whether a body contains nothing but whitespace.

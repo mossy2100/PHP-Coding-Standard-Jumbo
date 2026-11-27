@@ -129,15 +129,8 @@ class TestClassSniff implements Sniff
      *
      * @var list<string>
      */
-    private const array CLASS_ONLY = [
-        'covers',
-        'coversdefaultclass',
-        'uses',
-        'large',
-        'medium',
-        'small',
-        'runtestsinseparateprocesses',
-    ];
+    private const array CLASS_ONLY
+        = ['covers', 'coversdefaultclass', 'uses', 'large', 'medium', 'small', 'runtestsinseparateprocesses'];
 
     /**
      * The `@requires` kinds, with their attributes.

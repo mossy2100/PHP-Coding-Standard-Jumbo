@@ -37,17 +37,8 @@ class RequireSingleLineStatementSniff implements Sniff
      *
      * @var list<int|string>
      */
-    private const array CALLABLE_ENDS = [
-        T_VARIABLE,
-        T_CLOSE_PARENTHESIS,
-        T_CLOSE_SQUARE_BRACKET,
-        T_LIST,
-        T_CLONE,
-        T_ISSET,
-        T_EMPTY,
-        T_UNSET,
-        T_EXIT,
-    ];
+    private const array CALLABLE_ENDS
+        = [T_VARIABLE, T_CLOSE_PARENTHESIS, T_CLOSE_SQUARE_BRACKET, T_LIST, T_CLONE, T_ISSET, T_EMPTY, T_UNSET, T_EXIT];
 
     /**
      * Tokens that end whatever comes before a statement.

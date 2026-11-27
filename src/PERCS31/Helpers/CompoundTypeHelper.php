@@ -50,13 +50,8 @@ class CompoundTypeHelper
      *
      * @var list<int|string>
      */
-    private const array HOOK_TYPE_TOKENS = [
-        T_BITWISE_OR,
-        T_BITWISE_AND,
-        T_OPEN_PARENTHESIS,
-        T_CLOSE_PARENTHESIS,
-        T_ARRAY,
-    ];
+    private const array HOOK_TYPE_TOKENS
+        = [T_BITWISE_OR, T_BITWISE_AND, T_OPEN_PARENTHESIS, T_CLOSE_PARENTHESIS, T_ARRAY];
 
     /**
      * Check whether a token can be part of a type.

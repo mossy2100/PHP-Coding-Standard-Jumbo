@@ -212,9 +212,8 @@ class MemberModifiersSniff implements Sniff
             }
 
             $operator = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($i + 1), null, true);
-            $method = $operator === false
-                ? false
-                : $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($operator + 1), null, true);
+            $method
+                = $operator === false ? false : $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($operator + 1), null, true);
             $opener = $method === false ? false : $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($method + 1), null, true);
             if (
                 $opener !== false && self::findClass($tokens[$i]) === $classPtr

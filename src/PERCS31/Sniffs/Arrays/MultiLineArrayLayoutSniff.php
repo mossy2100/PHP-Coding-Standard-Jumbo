@@ -56,13 +56,8 @@ class MultiLineArrayLayoutSniff implements Sniff
      *
      * @var list<int|string>
      */
-    private const array STATEMENT_ENDS = [
-        T_SEMICOLON,
-        T_OPEN_CURLY_BRACKET,
-        T_CLOSE_CURLY_BRACKET,
-        T_OPEN_TAG,
-        T_COLON,
-    ];
+    private const array STATEMENT_ENDS
+        = [T_SEMICOLON, T_OPEN_CURLY_BRACKET, T_CLOSE_CURLY_BRACKET, T_OPEN_TAG, T_COLON];
 
     /**
      * The control structures whose first condition goes on the line after the opening parenthesis, when the

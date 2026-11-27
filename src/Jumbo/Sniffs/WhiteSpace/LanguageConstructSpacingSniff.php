@@ -40,11 +40,8 @@ class LanguageConstructSpacingSniff extends GenericSniff
     {
         $tokens = $phpcsFile->getTokens();
         $next = $tokens[($stackPtr + 1)]['code'] ?? null;
-        $endsExpression = in_array(
-            $next,
-            [T_CLOSE_PARENTHESIS, T_CLOSE_SQUARE_BRACKET, T_CLOSE_SHORT_ARRAY, T_COMMA],
-            true,
-        );
+        $endsExpression
+            = in_array($next, [T_CLOSE_PARENTHESIS, T_CLOSE_SQUARE_BRACKET, T_CLOSE_SHORT_ARRAY, T_COMMA], true);
         if ($tokens[$stackPtr]['code'] === T_YIELD && $endsExpression) {
             return null;
         }

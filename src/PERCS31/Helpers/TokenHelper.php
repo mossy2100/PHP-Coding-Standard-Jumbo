@@ -21,29 +21,16 @@ class TokenHelper
      *
      * @var list<int|string>
      */
-    public const array CLASS_REFERENCE = [
-        T_STRING,
-        T_NAME_QUALIFIED,
-        T_NAME_FULLY_QUALIFIED,
-        T_NAME_RELATIVE,
-        T_VARIABLE,
-        T_SELF,
-        T_STATIC,
-        T_PARENT,
-    ];
+    public const array CLASS_REFERENCE
+        = [T_STRING, T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED, T_NAME_RELATIVE, T_VARIABLE, T_SELF, T_STATIC, T_PARENT];
 
     /**
      * Tokens that dereference the expression before them.
      *
      * @var list<int|string>
      */
-    public const array DEREFERENCE = [
-        T_OBJECT_OPERATOR,
-        T_NULLSAFE_OBJECT_OPERATOR,
-        T_DOUBLE_COLON,
-        T_OPEN_SQUARE_BRACKET,
-        T_OPEN_PARENTHESIS,
-    ];
+    public const array DEREFERENCE
+        = [T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR, T_DOUBLE_COLON, T_OPEN_SQUARE_BRACKET, T_OPEN_PARENTHESIS];
 
     /**
      * Tokens that close a pair of parentheses, brackets or braces, or an attribute.

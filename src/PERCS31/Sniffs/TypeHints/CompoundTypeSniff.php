@@ -467,8 +467,8 @@ class CompoundTypeSniff implements Sniff
      */
     private static function reportIndent(File $phpcsFile, int $symbol, int $indent): void
     {
-        $error = 'A line of a compound type split across lines is indented incorrectly; expected %s spaces but found '
-            . '%s';
+        $error
+            = 'A line of a compound type split across lines is indented incorrectly; expected %s spaces but found %s';
         $found = $phpcsFile->getTokens()[$symbol]['column'] - 1;
         FixerHelper::reportIndent($phpcsFile, $symbol, $indent, $error, self::CODE_INDENT, [$indent, $found]);
     }
@@ -528,8 +528,8 @@ class CompoundTypeSniff implements Sniff
         $before = $tokens[($stackPtr - 1)];
         $after = $tokens[($stackPtr + 1)];
         // An indent before the symbol, at the start of its line, isn't a space before it.
-        $hasSpaceBefore = $before['code'] === T_WHITESPACE
-            && $tokens[($stackPtr - 2)]['line'] === $tokens[$stackPtr]['line'];
+        $hasSpaceBefore
+            = $before['code'] === T_WHITESPACE && $tokens[($stackPtr - 2)]['line'] === $tokens[$stackPtr]['line'];
         $isLineEnd = $after['code'] === T_WHITESPACE && str_contains($after['content'], $phpcsFile->eolChar);
         $hasSpaceAfter = $after['code'] === T_WHITESPACE && !$isLineEnd;
         $data = [$tokens[$stackPtr]['content']];
@@ -884,8 +884,8 @@ class CompoundTypeSniff implements Sniff
             if (isset($seen[$key])) {
                 $error = 'The type "%s" is repeated in "%s"';
                 $data = [$texts[$index], $whole];
-                $fix = self::reportFixable($phpcsFile, $error, $ptr, self::CODE_DUPLICATE_TYPE, $fixable, $data)
-                    || $fix;
+                $fix
+                    = self::reportFixable($phpcsFile, $error, $ptr, self::CODE_DUPLICATE_TYPE, $fixable, $data) || $fix;
                 continue;
             }
 

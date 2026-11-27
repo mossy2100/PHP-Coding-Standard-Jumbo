@@ -51,8 +51,8 @@ class DisallowMultipleAttributesPerLineSniff extends SlevomatSniff
         // line. PERCS31.Attributes.AttributeLayout moves the first one to its own line.
         $first = AttributeHelper::findFirstAttribute($phpcsFile, $attributeOpenerPointer);
         $before = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($first - 1), null, true);
-        $followsStatement = $before !== false
-            && in_array($tokens[$before]['code'], [T_SEMICOLON, T_CLOSE_CURLY_BRACKET], true);
+        $followsStatement
+            = $before !== false && in_array($tokens[$before]['code'], [T_SEMICOLON, T_CLOSE_CURLY_BRACKET], true);
         $isContinued = $tokens[$firstOnLine]['code'] !== T_ATTRIBUTE && !$followsStatement;
         $isHook = $isNextOnLine && PropertyHookHelper::isInsidePropertyHook($phpcsFile, $attributeOpenerPointer);
         if (!$isNextOnLine || (!$isContinued && !$isHook)) {

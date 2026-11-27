@@ -73,8 +73,8 @@ class RequireCloneParenthesesSniff implements Sniff
 
         $error = 'Use parentheses with clone, e.g. "clone($a)", not "clone $a"';
         $end = self::findOperandEnd($phpcsFile, $next);
-        $hasComment = $end !== null
-            && $phpcsFile->findNext(Tokens::COMMENT_TOKENS, ($stackPtr + 1), ($end + 1)) !== false;
+        $hasComment
+            = $end !== null && $phpcsFile->findNext(Tokens::COMMENT_TOKENS, ($stackPtr + 1), ($end + 1)) !== false;
         if ($end === null || $hasComment) {
             $phpcsFile->addWarning($error, $stackPtr, self::CODE_MISSING);
             return;

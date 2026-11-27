@@ -122,29 +122,14 @@ class PhpDocTagsSniff implements Sniff
     /**
      * Aliases, in lower case, and the main tag that replaces each one.
      */
-    private const array ALIASES = [
-        'const' => 'var',
-        'inheritdocs' => 'inheritDoc',
-        'link' => 'see',
-        'returns' => 'return',
-        'type' => 'var',
-    ];
+    private const array ALIASES
+        = ['const' => 'var', 'inheritdocs' => 'inheritDoc', 'link' => 'see', 'returns' => 'return', 'type' => 'var'];
 
     /**
      * The tags whose inline format is checked. A longer name comes before a shorter one it starts with.
      */
-    private const array INLINE_TAGS = [
-        'example',
-        'id',
-        'inheritdocs',
-        'inheritdoc',
-        'internal',
-        'link',
-        'see',
-        'source',
-        'toc',
-        'tutorial',
-    ];
+    private const array INLINE_TAGS
+        = ['example', 'id', 'inheritdocs', 'inheritdoc', 'internal', 'link', 'see', 'source', 'toc', 'tutorial'];
 
     private const array STANDARD_TAGS = [
         'api',
@@ -799,9 +784,8 @@ class PhpDocTagsSniff implements Sniff
         }
 
         $rest = substr($value, strlen($type));
-        $pattern = $node instanceof ParamTagValueNode
-            ? '/^\s+(&?(?:\.\.\.)?\$\S+)(?:\s+(.*))?$/s'
-            : '/^()(?:\s+(.*))?$/s';
+        $pattern
+            = $node instanceof ParamTagValueNode ? '/^\s+(&?(?:\.\.\.)?\$\S+)(?:\s+(.*))?$/s' : '/^()(?:\s+(.*))?$/s';
         if (preg_match($pattern, $rest, $match) !== 1) {
             return;
         }

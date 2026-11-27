@@ -67,40 +67,24 @@ class PropertyHookHelper
      *
      * @var list<int|string>
      */
-    private const array PROMOTION_MODIFIERS = [
-        T_PUBLIC,
-        T_PROTECTED,
-        T_PRIVATE,
-        T_READONLY,
-        T_FINAL,
-        T_PUBLIC_SET,
-        T_PROTECTED_SET,
-        T_PRIVATE_SET,
-    ];
+    private const array PROMOTION_MODIFIERS
+        = [T_PUBLIC, T_PROTECTED, T_PRIVATE, T_READONLY, T_FINAL, T_PUBLIC_SET, T_PROTECTED_SET, T_PRIVATE_SET];
 
     /**
      * The tokens PHP_CodeSniffer gives a `&`.
      *
      * @var list<int|string>
      */
-    private const array AMPERSANDS = [
-        T_BITWISE_AND,
-        T_AMPERSAND_FOLLOWED_BY_VAR_OR_VARARG,
-        T_AMPERSAND_NOT_FOLLOWED_BY_VAR_OR_VARARG,
-    ];
+    private const array AMPERSANDS
+        = [T_BITWISE_AND, T_AMPERSAND_FOLLOWED_BY_VAR_OR_VARARG, T_AMPERSAND_NOT_FOLLOWED_BY_VAR_OR_VARARG];
 
     /**
      * Tokens that can come directly before a hook name, or its `&`, in a property's hook list.
      *
      * @var list<int|string>
      */
-    private const array BEFORE_HOOK_NAME = [
-        T_OPEN_CURLY_BRACKET,
-        T_SEMICOLON,
-        T_CLOSE_CURLY_BRACKET,
-        T_FINAL,
-        T_ATTRIBUTE_END,
-    ];
+    private const array BEFORE_HOOK_NAME
+        = [T_OPEN_CURLY_BRACKET, T_SEMICOLON, T_CLOSE_CURLY_BRACKET, T_FINAL, T_ATTRIBUTE_END];
 
     /**
      * Tokens that can follow a hook's name: its body, its `=>`, its parameter list, or the `;` of one with no body.

@@ -191,8 +191,8 @@ class AfterClosingBraceSniff implements Sniff
         $comments = array_diff_key(Tokens::COMMENT_TOKENS, Tokens::PHPCS_ANNOTATION_TOKENS);
         $skipped = in_array(T_COMMA, ($allowed ?? []), true) ? [T_WHITESPACE, T_COMMA] : [T_WHITESPACE];
         $comment = $phpcsFile->findNext($skipped, ($closer + 1), null, true);
-        $hasComment = $comment !== false && $tokens[$comment]['line'] === $line
-            && isset($comments[$tokens[$comment]['code']]);
+        $hasComment
+            = $comment !== false && $tokens[$comment]['line'] === $line && isset($comments[$tokens[$comment]['code']]);
         if ($hasComment && $isCommentBanned) {
             assert(is_int($comment));
             $phpcsFile->addError(

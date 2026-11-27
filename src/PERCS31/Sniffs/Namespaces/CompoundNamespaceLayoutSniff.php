@@ -84,8 +84,8 @@ class CompoundNamespaceLayoutSniff implements Sniff
         $nameIndent = str_repeat(' ', ($indent + LayoutHelper::INDENT));
 
         // Each name follows the `{` or a comma.
-        $first = 'The first name in a compound namespace split across lines must be on the line after the opening '
-            . 'brace';
+        $first
+            = 'The first name in a compound namespace split across lines must be on the line after the opening brace';
         $other = 'Each name in a compound namespace split across lines must be on a line of its own';
         for ($i = $stackPtr; $i < $closer; $i++) {
             if ($i !== $stackPtr && $tokens[$i]['code'] !== T_COMMA) {

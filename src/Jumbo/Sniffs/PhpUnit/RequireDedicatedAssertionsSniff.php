@@ -126,9 +126,8 @@ class RequireDedicatedAssertionsSniff extends AssertPrimitivesSniff
     {
         $tokens = $phpcsFile->getTokens();
         $operator = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($methodPtr - 1), null, true);
-        $object = $operator === false
-            ? false
-            : $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($operator - 1), null, true);
+        $object
+            = $operator === false ? false : $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($operator - 1), null, true);
         $opener = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($methodPtr + 1), null, true);
         if (
             $operator === false || $object === false || $opener === false

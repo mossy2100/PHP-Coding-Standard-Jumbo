@@ -54,10 +54,8 @@ class RulesetPropertiesUnitTest extends TestCase
 
         try {
             $twoSpaces = $this->runTool('phpcs', ["--standard={$ruleset}", $fixture]);
-            $default = $this->runTool(
-                'phpcs',
-                ['--standard=Jumbo', '--sniffs=PERCS31.WhiteSpace.ScopeIndent', $fixture],
-            );
+            $default
+                = $this->runTool('phpcs', ['--standard=Jumbo', '--sniffs=PERCS31.WhiteSpace.ScopeIndent', $fixture]);
         } finally {
             unlink($ruleset);
         }
