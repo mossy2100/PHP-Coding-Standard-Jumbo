@@ -510,10 +510,12 @@ class PhpDocTagsSniff implements Sniff
         }
 
         if (!$isBeforeOk) {
-            $phpcsFile->fixer->replaceToken(
-                ($closer - 1),
-                $before['code'] === T_DOC_COMMENT_WHITESPACE ? ' ' : rtrim($before['content']) . ' ',
-            );
+            $phpcsFile
+                ->fixer
+                ->replaceToken(
+                    ($closer - 1),
+                    $before['code'] === T_DOC_COMMENT_WHITESPACE ? ' ' : rtrim($before['content']) . ' ',
+                );
         }
 
         $phpcsFile->fixer->endChangeset();
