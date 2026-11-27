@@ -73,7 +73,7 @@ sections link to it.
 | `SlevomatCodingStandard.Exceptions.DeadCatch`                                            | No unreachable `catch` blocks                                  | No      |
 | `SlevomatCodingStandard.Exceptions.RequireNonCapturingCatch`                             | No variable on a `catch` that doesn't use it                   | Yes     |
 | `SlevomatCodingStandard.Functions.FunctionLength`                                        | A function of no more than 100 lines                           | No      |
-| `SlevomatCodingStandard.Functions.RequireArrowFunction`                                  | An arrow function for a closure that only returns              | Yes     |
+| `SlevomatCodingStandard.Functions.RequireArrowFunction`                                  | An arrow function for a closure, through a Jumbo version       | Yes     |
 | `SlevomatCodingStandard.Functions.StaticClosure`                                         | `static` on a closure that doesn't use `$this`                 | Yes     |
 | `SlevomatCodingStandard.Functions.StrictCall`                                            | The strict argument in `in_array()` and similar                | No      |
 | `SlevomatCodingStandard.Functions.UselessParameterDefaultValue`                          | No useless parameter default values                            | Yes     |
@@ -693,8 +693,9 @@ Enforces maximum function length of 100 lines.
 
 ## SlevomatCodingStandard.Functions.RequireArrowFunction
 
-Requires an arrow function for a closure whose body is only a `return`, as in `fn($x) => $x * 2`. A closure that
-captures a variable by reference is left alone.
+Requires an arrow function for a closure whose body is only a `return`, as in `fn($x) => $x * 2`. Used through
+[`Jumbo.Functions.RequireArrowFunction`](Jumbo_Custom_Sniffs.md#jumbofunctionsrequirearrowfunction), which only
+converts a closure where that keeps its meaning.
 
 **Auto-fixable:** yes.
 

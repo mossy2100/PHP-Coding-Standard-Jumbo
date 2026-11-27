@@ -25,6 +25,7 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.ControlStructures.RequireShortTernaryOperator`      | `$a ?: $b`, skipping a nullable type in a `set` hook            | Yes     |
 | `Jumbo.ControlStructures.SimplifyForLoop`                  | `while ($a)`, not `for (; $a;)`, and `while (true)`             | Yes     |
 | `Jumbo.Formatting.RequireSingleLineStatement`              | A split statement or `case` label fits on a line                | Yes     |
+| `Jumbo.Functions.RequireArrowFunction`                     | An arrow function for a closure that only returns, if it's safe | Yes     |
 | `Jumbo.Functions.RequireSingleLineSignature`               | A split function or closure signature fits on a line            | Yes     |
 | `Jumbo.Namespaces.UnusedUses`                              | No unused `use` statements, safe with a miscased `use Function` | Yes     |
 | `Jumbo.NamingConventions.ValidNamespaceName`               | A namespace's name in ASCII                                     | No      |
@@ -676,6 +677,49 @@ function total(
 | `maxLineLength` | int  | 120     | Maximum line length for a collapsed line. |
 
 To use a different limit, set every line-length property, as described in [Line Length](LineLength.md).
+
+---
+
+## Jumbo.Functions.RequireArrowFunction
+
+Requires an arrow function for a closure whose body is only a `return`, as
+`SlevomatCodingStandard.Functions.RequireArrowFunction` does, but only where that doesn't change what the code does. It
+extends that sniff.
+
+**Why:** the parent converts any such closure, which can change its meaning or break it:
+
+- An operator after the closure joins the arrow function's body, so `function () { return 1; } ?? null` becomes
+  `fn() => 1 ?? null`, which returns `1 ?? null`.
+- An arrow function captures every outer variable it uses, so `function () { return $x; }`, which doesn't see an outer
+  `$x`, would start returning it.
+- A bare `return;` becomes `fn() =>`, which PHP rejects.
+
+So a closure is only converted when its `return` has an expression, nothing after the closure continues the expression
+it's in, and every variable in the expression is a parameter, a `use` variable, `$this` or a superglobal. A closure
+nested in the expression counts only its `use` list, and a variable variable or a nested arrow function is never
+treated as safe. A closure that captures a variable by reference is left alone, as by the parent. One with a comment in
+a part the fix would remove is reported, but not fixed.
+
+**Auto-fixable:** yes, except for a comment in the way.
+
+**Good:**
+
+```php
+$double = fn($x) => $x * 2;
+
+// An outer variable, which an arrow function would capture.
+$read = function () {
+    return $outer;
+};
+```
+
+**Bad:**
+
+```php
+$double = function ($x) {
+    return $x * 2;
+};
+```
 
 ---
 

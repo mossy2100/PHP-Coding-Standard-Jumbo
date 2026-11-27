@@ -971,6 +971,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
+- **A closure converted to an arrow function changed its meaning, in Jumbo.**
+  `SlevomatCodingStandard.Functions.RequireArrowFunction` converted any closure that only returns, so `function () {
+  return 1; } ?? null` became `fn() => 1 ?? null`, a closure using an outer variable it didn't see started capturing it,
+  and a bare `return;` became `fn() =>`, which PHP rejects. It's replaced by `Jumbo.Functions.RequireArrowFunction`,
+  which only converts a closure where that keeps its meaning, and reports one with a comment the fix would remove
+  without fixing it.
 - **Strings split because of what followed them, in Jumbo.** `PERCS31.Formatting.ExpressionFormat` counted everything
   after a string or expression on its line as text it had to fit, so on a long line it split a short array key, or a
   string with a comment after it, and phpcbf then failed to fix the file. Now only its own text, and punctuation

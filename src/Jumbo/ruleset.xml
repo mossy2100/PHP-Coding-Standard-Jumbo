@@ -588,8 +588,9 @@
 
     <rule ref="SlevomatCodingStandard.Functions.StaticClosure"/>
 
-    <!-- An arrow function for a closure that only returns -->
-    <rule ref="SlevomatCodingStandard.Functions.RequireArrowFunction"/>
+    <!-- An arrow function for a closure that only returns, through the Jumbo version of
+         SlevomatCodingStandard.Functions.RequireArrowFunction, which only converts one where that keeps its meaning -->
+    <rule ref="Jumbo.Functions.RequireArrowFunction"/>
 
     <!-- A warning for a closure over 10 lines of code, and an error over 20 -->
     <rule ref="Universal.FunctionDeclarations.NoLongClosures">

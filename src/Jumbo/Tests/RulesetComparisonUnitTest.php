@@ -254,7 +254,7 @@ class RulesetComparisonUnitTest extends TestCase
         $file = $this->copyToTempFile(null, $source);
         $declareFile = $this->copyToTempFile(null, $declare);
         // The closure stays a closure, so its body's blank lines can be checked.
-        $ignored = '--exclude=PSR1.Files.SideEffects,SlevomatCodingStandard.Functions.RequireArrowFunction';
+        $ignored = '--exclude=PSR1.Files.SideEffects,Jumbo.Functions.RequireArrowFunction';
 
         try {
             $percs31 = $this->runTool('phpcs', ['--standard=PERCS31', $ignored, '--report=emacs', $file, $declareFile]);
