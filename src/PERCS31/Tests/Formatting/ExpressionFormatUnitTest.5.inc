@@ -124,5 +124,19 @@ $n = fn($first) => fn($b) => $first + $b + $cc;
 $n = fn($first) => fn($second) => $first + $second + $third;
 $n = fn($first) => fn($second) => $first + $second + $third + $fourth + $fifth;
 $n = fn($a) => fn($b) => fn($c) => $a + $b + $c + $dd;
+// Assignments as pairs: a value that fits on its own line goes there, after a break before `=`; one that doesn't is
+// split after `=`; a split that fits is joined, a property's default and a compound operator too; and an assignment in
+// a ternary's branch is left to the ternary.
+$this->items[$key] = $someValue + $otherValue;
+$total = $price + $tax + $shipping - $discount + $x;
+$total =
+    $price;
+$total += $price * $quantity + $tax * $rate;
+class Order
+{
+    public int $count
+        = 1;
+}
+$found ? $first = $someLongValueName : $second = 2;
 // phpcs:set PERCS31.Formatting.ExpressionFormat strict false
 // phpcs:set PERCS31.Formatting.ExpressionFormat maxLineLength 120

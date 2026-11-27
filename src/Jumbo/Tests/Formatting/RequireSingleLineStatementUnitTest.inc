@@ -49,6 +49,26 @@ switch ($a) {
 }
 #[D]
 const E = 1;
+// Left to PERCS31.Formatting.ExpressionFormat: a line break at an assignment's operator, a property's default too.
+$a
+    = $b ? 1 : 2;
+$a =
+    $b;
+class J
+{
+    public int $h
+        = 1;
+}
+$a =
+    foo(function () {
+        return 1;
+    });
+$a =
+    [
+        'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz',
+        'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz',
+        'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz',
+    ];
 // Left to PERCS31.Formatting.ExpressionFormat: a line break at a binary operator.
 $a = $b
     + $c;
@@ -70,10 +90,6 @@ class H
 }
 
 // Invalid: all of these fit.
-$a
-    = $b ? 1 : 2;
-$a =
-    $b;
 $a = (
     $b
 );
@@ -91,9 +107,6 @@ echo $a,
     $b;
 class G
 {
-    public int $h
-        = 1;
-
     public A
         |B $j;
 }
@@ -131,18 +144,8 @@ $a = function () {
     return 1;
 }
     ?? null;
-$a =
-    foo(function () {
-        return 1;
-    });
 $a = $b
     ?? ['abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz', 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz'];
-$a =
-    [
-        'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz',
-        'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz',
-        'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz',
-    ];
 
 // Valid: a comment in the part to join, or a chain of two or more with a body.
 $a = $b // Why.

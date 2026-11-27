@@ -47,7 +47,9 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
                 // Arrow functions and a yield pair, empty brackets, and a destructuring list.
                 + [106 => 1, 108 => 1, 109 => 1, 110 => 1, 111 => 1, 113 => 1]
                 // Nested arrow functions.
-                + [123 => 1, 124 => 1, 125 => 1, 126 => 1];
+                + [123 => 1, 124 => 1, 125 => 1, 126 => 1]
+                // Assignments.
+                + [130 => 1, 131 => 1, 132 => 1, 134 => 1, 137 => 1, 140 => 1];
         }
 
         if ($testFile === 'ExpressionFormatUnitTest.4.inc') {

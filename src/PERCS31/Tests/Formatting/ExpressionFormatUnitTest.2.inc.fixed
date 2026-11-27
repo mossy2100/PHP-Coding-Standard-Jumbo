@@ -47,7 +47,7 @@ foo('z');
 
 // Invalid: too long, so split before the last `.`, word or character that fits.
 $message = "The distance from here to the Sun is {$earth->distSun}km, which takes light about $minutes minutes to "
-    . 'cross.';
+    . 'cross the gap.';
 $message = 'This is a really long literal on its own that goes on and on past the line length limit of one hundred '
     . 'twenty chars.';
 $message = 'Supercalifragilisticexpialidocious-supercalifragilisticexpialidocious-supercalifragilisticexpialidocious-ab'
@@ -60,7 +60,7 @@ $result = $n < 0
         . M_E . " or " . sqrt(2)
     : $monkeys->monkeyNames();
 $result = $cachedValueFromSomewhere
-    ?? "Some long message about the $thing that goes on and on past the limit of the line";
+    ?? "Some long message about the $thing that goes on and on and on past the limit of the line";
 
 // Invalid: a string conversion that echo, print or <?= does already.
 echo $x;

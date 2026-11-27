@@ -323,8 +323,15 @@ class ExpressionHelper
             }
         }
 
+        // An arrow function found from its `fn` runs to the token that ends its body.
+        $from = max($stackPtr, $skipTo ?? $stackPtr);
+        $fromCloser = $tokens[$from]['scope_closer'] ?? null;
+        if ($tokens[$from]['code'] === T_FN && is_int($fromCloser)) {
+            $from = $fromCloser - 1;
+        }
+
         $count = count($tokens);
-        for ($after = (max($stackPtr, $skipTo ?? $stackPtr) + 1); $after < $count; $after++) {
+        for ($after = ($from + 1); $after < $count; $after++) {
             $code = $tokens[$after]['code'];
 
             // An arrow function runs to the token that ends its body.
@@ -384,6 +391,12 @@ class ExpressionHelper
     public static function findOutermostExpression(File $phpcsFile, int $stackPtr, bool $throughSplitCalls): ?array
     {
         $tokens = $phpcsFile->getTokens();
+
+        // An assignment is found from its value.
+        if (self::isAssignmentPair($phpcsFile, $stackPtr)) {
+            $stackPtr = (int) $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($stackPtr + 1), null, true);
+        }
+
         $candidates = [$stackPtr];
         $ptr = $stackPtr;
         while (true) {
@@ -412,14 +425,7 @@ class ExpressionHelper
                 $candidate,
                 $isOpener ? TokenHelper::findCloser($tokens[$candidate]) : null,
             );
-            $region = $region === null ? null : self::widenToArm($phpcsFile, $region) ?? $region;
-            $region = $region === null ? null : self::widenToTernary($phpcsFile, $region) ?? $region;
-            // An arrow function can be another's body, so it's widened to the outermost.
-            $widened = $region === null ? null : self::widenToArrowFunction($phpcsFile, $region);
-            while ($widened !== null) {
-                $region = $widened;
-                $widened = self::widenToArrowFunction($phpcsFile, $region);
-            }
+            $region = $region === null ? null : self::widen($phpcsFile, $region);
 
             if ($region !== null && self::isReadable($phpcsFile, $region)) {
                 return $region;
@@ -526,6 +532,11 @@ class ExpressionHelper
             return $arrowFunction;
         }
 
+        $assignment = self::findAssignment($phpcsFile, $start, $end);
+        if ($assignment !== null) {
+            return self::parseAssignment($phpcsFile, $start, $end, $assignment);
+        }
+
         $arm = self::findArmArrow($phpcsFile, $start, $end);
         if ($arm !== null) {
             return self::parseArm($phpcsFile, $start, $end, $arm);
@@ -556,6 +567,159 @@ class ExpressionHelper
         return $operators === []
             ? self::parseOperand($phpcsFile, $start, $end)
             : self::parseLevel($phpcsFile, $start, $end, $operators);
+    }
+
+    /**
+     * Widen an expression to the arm, ternary, arrow function or assignment it's part of, outermost, until nothing
+     * changes.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param array{int, int, int, int} $region The expression's region.
+     * @param bool $toTarget Whether an assignment's value is widened to its target, which it isn't when it's being
+     * found from the target.
+     * @return array{int, int, int, int} The widened region.
+     */
+    private static function widen(File $phpcsFile, array $region, bool $toTarget = true): array
+    {
+        do {
+            $previous = $region;
+            $region = self::widenToArm($phpcsFile, $region) ?? $region;
+            $region = self::widenToTernary($phpcsFile, $region) ?? $region;
+            $region = self::widenToArrowFunction($phpcsFile, $region) ?? $region;
+            $region = self::widenToAssignment($phpcsFile, $region, $toTarget) ?? $region;
+        } while ($region !== $previous);
+
+        return $region;
+    }
+
+    /**
+     * Check whether a token is an assignment operator read as a pair, `$target = $value`: one with a target on its
+     * left, with no operator, outside a function's parameters, where `=` gives a default value, and `declare()`.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $ptr The position of the token.
+     * @return bool True if it is.
+     */
+    public static function isAssignmentPair(File $phpcsFile, int $ptr): bool
+    {
+        $tokens = $phpcsFile->getTokens();
+        $code = $tokens[$ptr]['code'];
+        if (!isset(Tokens::ASSIGNMENT_TOKENS[$code]) || $code === T_DOUBLE_ARROW) {
+            return false;
+        }
+
+        $parentheses = array_keys($tokens[$ptr]['nested_parenthesis'] ?? []);
+        $opener = end($parentheses);
+        $owner = is_int($opener) ? ($tokens[$opener]['parenthesis_owner'] ?? null) : null;
+        if (is_int($owner) && in_array($tokens[$owner]['code'], [T_FUNCTION, T_CLOSURE, T_FN, T_DECLARE], true)) {
+            return false;
+        }
+
+        // One in a ternary's branch, as in `$a ? $b = 1 : $c = 2`, isn't read.
+        $previous = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($ptr - 1), null, true);
+        $target = $previous === false ? null : self::findExpressionAround($phpcsFile, $previous);
+        if (
+            $target === null
+            || ($target[2] >= 0 && in_array($tokens[$target[2]]['code'], [T_INLINE_THEN, T_INLINE_ELSE], true))
+        ) {
+            return false;
+        }
+
+        for ($i = $target[0]; $i <= $target[1]; $i++) {
+            if (self::isBinary($phpcsFile, $i) || in_array($tokens[$i]['code'], [T_INLINE_THEN, T_INLINE_ELSE], true)) {
+                return false;
+            }
+
+            $i = self::findNestedEnd($tokens[$i], $i);
+        }
+
+        return true;
+    }
+
+    /**
+     * Widen an expression that's an assignment's value to the whole assignment, or one that's its target.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param array{int, int, int, int} $region The expression's region.
+     * @param bool $toTarget Whether a value is widened to its target.
+     * @return array{int, int, int, int}|null The assignment's region, or null if the expression is neither.
+     */
+    private static function widenToAssignment(File $phpcsFile, array $region, bool $toTarget): ?array
+    {
+        [$start, $end, $before, $after] = $region;
+        if ($toTarget && $before >= 0 && self::isAssignmentPair($phpcsFile, $before)) {
+            $previous = (int) $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($before - 1), null, true);
+            $target = self::findExpressionAround($phpcsFile, $previous);
+
+            return $target === null ? null : [$target[0], $end, $target[2], $after];
+        }
+
+        $next = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($after + 1), null, true);
+        if ($next === false || !self::isAssignmentPair($phpcsFile, $after)) {
+            return null;
+        }
+
+        $value = self::findExpressionAround($phpcsFile, $next);
+        $value = $value === null ? null : self::widen($phpcsFile, $value, false);
+
+        return $value === null ? null : [$start, $value[1], $before, $value[3]];
+    }
+
+    /**
+     * Find an assignment's operator outside any brackets, the first if there are several, as in `$a = $b = 1`.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $start The position of the expression's first token.
+     * @param int $end The position of its last token.
+     * @return ?int The position of the operator, or null if there's none.
+     */
+    private static function findAssignment(File $phpcsFile, int $start, int $end): ?int
+    {
+        $tokens = $phpcsFile->getTokens();
+        for ($i = $start; $i <= $end; $i++) {
+            if ($tokens[$i]['code'] === T_FN) {
+                return null;
+            }
+
+            if (self::isAssignmentPair($phpcsFile, $i)) {
+                return $i;
+            }
+
+            $i = self::findNestedEnd($tokens[$i], $i);
+        }
+
+        return null;
+    }
+
+    /**
+     * Parse an assignment, as a pair: its target is the key, and its value the value.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $start The position of the target's first token.
+     * @param int $end The position of the value's last token.
+     * @param int $operator The position of the assignment operator.
+     * @return ?ExpressionNode The assignment, or null if it can't be read.
+     */
+    private static function parseAssignment(File $phpcsFile, int $start, int $end, int $operator): ?ExpressionNode
+    {
+        $targetEnd = (int) $phpcsFile->findPrevious(T_WHITESPACE, ($operator - 1), $start, true);
+        $valueStart = $phpcsFile->findNext(T_WHITESPACE, ($operator + 1), ($end + 1), true);
+        $target = self::parse($phpcsFile, $start, $targetEnd);
+        $value = $valueStart === false ? null : self::parse($phpcsFile, $valueStart, $end);
+        if ($target === null || $value === null) {
+            return null;
+        }
+
+        $length = mb_strlen($phpcsFile->getTokens()[$operator]['content']);
+
+        return new ExpressionNode(
+            ExpressionNode::LEVEL,
+            $start,
+            $end,
+            $target->flatLength + $length + 2 + $value->flatLength,
+            [$target, $value],
+            [$operator],
+        );
     }
 
     /**
@@ -646,11 +810,11 @@ class ExpressionHelper
                 break;
             }
 
-            // A pair's `=>` binds more loosely than a ternary, so the ternary is in the pair's value.
-            if (
-                in_array($tokens[$i]['code'], [T_DOUBLE_ARROW, T_MATCH_ARROW], true)
-                && self::isArrowOperator($phpcsFile, $i)
-            ) {
+            // A pair's `=>`, or an assignment's operator, binds more loosely than a ternary, so the ternary is in the
+            // pair's value.
+            $isArrow = in_array($tokens[$i]['code'], [T_DOUBLE_ARROW, T_MATCH_ARROW], true)
+                && self::isArrowOperator($phpcsFile, $i);
+            if ($isArrow || self::isAssignmentPair($phpcsFile, $i)) {
                 return [];
             }
 
@@ -982,9 +1146,8 @@ class ExpressionHelper
     {
         $tokens = $phpcsFile->getTokens();
         $precedences = self::precedences();
-        $loosest = min(
-            array_map(static fn(int $operator): int => $precedences[$tokens[$operator]['code']], $operators),
-        );
+        $loosest
+            = min(array_map(static fn(int $operator): int => $precedences[$tokens[$operator]['code']], $operators));
 
         $children = [];
         $levelOperators = [];
@@ -1272,7 +1435,7 @@ class ExpressionHelper
     private static function findOperatorBeside(File $phpcsFile, int $before, int $after): ?int
     {
         foreach ([$before, $after] as $ptr) {
-            if (self::isBinary($phpcsFile, $ptr)) {
+            if (self::isBinary($phpcsFile, $ptr) || self::isAssignmentPair($phpcsFile, $ptr)) {
                 return $ptr;
             }
         }

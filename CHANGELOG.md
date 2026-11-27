@@ -526,15 +526,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   operators, then its calls and arrays. A call is chopped down, one argument per line with a trailing comma, if that
   lets every argument fit; otherwise its one closure, or array too long even on a line of its own, is hugged, as in
   `merge($defaults, [`, with the other arguments on the call's lines. A `match` or anonymous class argument is never
-  hugged. An array's values go one per line. A last
-  operand that's a call or array too long even on its own line stays after its operator. A ternary too long for its
-  line takes three lines, `?` and `:` starting the second and third, or two for `?:`, and each part is then split in
-  its own line's room. After a group split over lines, the next operator starts a line. A `yield $key => $value`, and an
-  arrow function, its signature as the key, are laid out as pairs, and an arrow function is an ordinary argument, never
-  hugged. Nested arrow functions break before the fewest `=>` that let each line fit, the outer ones first. Empty
-  brackets and destructuring lists split over lines are joined. Reported as `TooLong`, a
-  warning in PERCS31 and an error in Jumbo. With `strict`, as in Jumbo, a call or array split over lines is checked
-  too: joined if it fits, and laid out again if split any other way. Auto-fixable.
+  hugged. An array's values go one per line. A last operand that's a call or array too long even on its own line stays
+  after its operator. A ternary too long for its line takes three lines, `?` and `:` starting the second and third, or
+  two for `?:`, and each part is then split in its own line's room. After a group split over lines, the next operator
+  starts a line. A `yield $key => $value`, and an arrow function, its signature as the key, are laid out as pairs, and
+  an arrow function is an ordinary argument, never hugged. Nested arrow functions break before the fewest `=>` that let
+  each line fit, the outer ones first. Empty brackets and destructuring lists split over lines are joined. An
+  assignment, `$target = $value`, with any assignment operator, and a property's default or a constant's value, is laid
+  out as a pair too: a value that fits on a line of its own goes there, after a break before `=`, and otherwise stays
+  after `=` and is split there. Reported as `TooLong`, a warning in PERCS31 and an error in Jumbo. With `strict`, as in
+  Jumbo, a call or array split over lines is checked too: joined if it fits, and laid out again if split any other way.
+  Auto-fixable.
 - **String expressions, in Jumbo (breaking).** `PERCS31.Formatting.ExpressionFormat` has a new
   `reflowStringExpressions` property, on in Jumbo. It rewrites a chain of `.` operations as the fewest strings it can
   be, interpolating variables, property reads and method calls, so `'Hello, ' . $name . '!'` becomes `"Hello, $name!"`.

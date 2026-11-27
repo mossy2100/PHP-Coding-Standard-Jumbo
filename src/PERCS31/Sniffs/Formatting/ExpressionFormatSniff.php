@@ -31,31 +31,31 @@ use PHP_CodeSniffer\Util\Tokens;
  *   parentheses keeps the same indent, as `$b` then `&& $c` does in `$a` then `|| $b` then `&& $c`. One in grouping
  *   parentheses keeps them with its contents, and its new lines are indented once past the line with its `(`.
  *
- * A `key => value` pair, in an array or a `match` arm with one condition, is one expression, but its `=>` isn't split
- * at first. A pair that doesn't fit on one line is laid out by the first of these that applies:
- * - A value with operators of its own is split at them, with `key =>` kept on the first line. A string expression
- *   that becomes one string counts as one operand.
- * - A value that fits on a line of its own goes there, starting with the `=>`, indented once.
- * - Otherwise, the value stays after `key =>`, and a string is split.
- * A key too long for its line is split as any string is. There's never a line break after a `=>`.
+ * A `key => value` pair, in an array, a `yield` or a `match` arm, an assignment, `$target = $value`, and an arrow
+ * function, its signature as the key, are each one expression. One that doesn't fit on one line is laid out by the
+ * first of these that applies:
+ * - A key too long for its line is split, and the `=>` or `=` starts a line of its own.
+ * - A value that fits on a line of its own goes there, after a break before the `=>` or `=`, indented once.
+ * - Otherwise, the value stays after the key, and is split at its own operators, as a call or array, or as a string.
+ * There's never a line break after a `=>` or `=`. Calls and arrays, ternaries, nested arrow functions and `match` arms
+ * with several conditions have layouts of their own, described in the docs.
  *
  * An expression fits on its line if its own text, and any punctuation straight after it, such as a `;`, `,` or `)`,
  * fit within the line length. What follows that, such as an array value after its key or a comment, has a place of
  * its own to break at, so it's never a reason to split the expression, or a string in it.
  *
- * An expression ends at anything that isn't part of it: a `;`, `,`, any other `=>`, assignment, ternary `?` or `:`, or
- * the brackets of a call, array or control structure. Each argument of a call is its own expression. An operand isn't
- * changed inside, so the sniff skips an expression with a line break inside an operand, such as a multi-line call or
- * closure, and one with a comment, a heredoc, a nowdoc, a multi-line string or an arrow function. It also skips a
- * `case` condition. It never splits a ternary's condition or value, which share their lines with the rest of the
- * ternary, or an expression written on one line that's too long, unless it's a whole statement, a value after an
- * assignment, `return` or the like, a `key => value` pair that starts its line, or a control structure's condition on
- * its own line, where a split can't clash with the layout of the code around it.
+ * An expression ends at anything that isn't part of it: a `;`, `,`, any other `=>`, an assignment that isn't a whole
+ * `$target = $value`, or the brackets of a call, array or control structure. Each argument of a call is its own
+ * expression. The sniff skips an expression with a comment, a heredoc, a nowdoc, a multi-line string, or a line break
+ * inside an operand it doesn't read, such as a chain. It also skips a `case` condition. It never splits an expression
+ * written on one line that's too long, unless it's a whole statement, a value after `return` or the like, a
+ * `key => value` pair that starts its line, or a control structure's condition on its own line, where a split can't
+ * clash with the layout of the code around it.
  *
- * It covers every binary operator except the assignment operators and `and`, `or` and `xor`, which bind more loosely
- * than assignment. It only decides where the lines break. An operator at the end of a line counts as a break at it,
- * and PERCS31.Operators.OperatorPlacement reports it there, and checks each line's indent. The fix puts each operator
- * at the start of its line, as that sniff does.
+ * It covers every binary operator except `and`, `or` and `xor`, which bind more loosely than assignment. It only
+ * decides where the lines break. An operator at the end of a line counts as a break at it, and
+ * PERCS31.Operators.OperatorPlacement reports it there, and checks each line's indent. The fix puts each operator at
+ * the start of its line, as that sniff does.
  */
 class ExpressionFormatSniff implements Sniff
 {
@@ -190,6 +190,7 @@ class ExpressionFormatSniff implements Sniff
             T_OPEN_SHORT_ARRAY,
             T_MATCH_ARROW,
             T_INLINE_THEN,
+            ...array_keys(array_diff_key(Tokens::ASSIGNMENT_TOKENS, [T_DOUBLE_ARROW => true])),
         ];
     }
 
@@ -349,7 +350,8 @@ class ExpressionFormatSniff implements Sniff
         $isChecked = match ($code) {
             T_OPEN_PARENTHESIS, T_OPEN_SHORT_ARRAY => ExpressionHelper::isCallOpener($phpcsFile, $stackPtr),
             T_MATCH_ARROW, T_INLINE_THEN => true,
-            default => ExpressionHelper::isBinary($phpcsFile, $stackPtr),
+            default => ExpressionHelper::isBinary($phpcsFile, $stackPtr)
+                || ExpressionHelper::isAssignmentPair($phpcsFile, $stackPtr),
         };
         if (!$isChecked) {
             return null;
@@ -361,12 +363,8 @@ class ExpressionFormatSniff implements Sniff
             return $stackPtr;
         }
 
-        $first = $phpcsFile->findNext(
-            [...array_keys(Tokens::EMPTY_TOKENS), T_INLINE_ELSE],
-            ($stackPtr + 1),
-            null,
-            true,
-        );
+        $first
+            = $phpcsFile->findNext([...array_keys(Tokens::EMPTY_TOKENS), T_INLINE_ELSE], ($stackPtr + 1), null, true);
 
         return $first === false ? null : $first;
     }
@@ -413,11 +411,11 @@ class ExpressionFormatSniff implements Sniff
      */
     private static function isPair(File $phpcsFile, ExpressionNode $node): bool
     {
-        return $node->kind === ExpressionNode::LEVEL && in_array(
-            $phpcsFile->getTokens()[$node->operators[0]]['code'],
-            [T_DOUBLE_ARROW, T_MATCH_ARROW, T_FN_ARROW],
-            true,
-        );
+        $operator = $node->operators[0] ?? null;
+
+        return $node->kind === ExpressionNode::LEVEL && is_int($operator)
+            && (in_array($phpcsFile->getTokens()[$operator]['code'], [T_DOUBLE_ARROW, T_MATCH_ARROW, T_FN_ARROW], true)
+                || ExpressionHelper::isAssignmentPair($phpcsFile, $operator));
     }
 
     /**
@@ -805,9 +803,8 @@ class ExpressionFormatSniff implements Sniff
             return;
         }
 
-        $keywordName = $tokens[$keyword]['code'] === T_OPEN_TAG_WITH_ECHO
-            ? '<?='
-            : strtolower($tokens[$keyword]['content']);
+        $keywordName
+            = $tokens[$keyword]['code'] === T_OPEN_TAG_WITH_ECHO ? '<?=' : strtolower($tokens[$keyword]['content']);
         $fix = $phpcsFile->addFixableWarning(
             'The string conversion isn\'t needed, as %s converts its arguments to strings.',
             $from,
@@ -1260,6 +1257,7 @@ class ExpressionFormatSniff implements Sniff
     ): int {
         [$key, $value] = $node->children;
         $arrow = $node->operators[0];
+        $arrowLength = mb_strlen($phpcsFile->getTokens()[$arrow]['content']);
         $keyEnd = $this->delegateString($phpcsFile, $key, $column, $indent, 0, true)
             ?? $this->layout($phpcsFile, $key, $column, $lineIndent, $indent, 0, false, $breaks);
         $isKeySplit = $keyEnd !== $column + $key->flatLength;
@@ -1275,13 +1273,17 @@ class ExpressionFormatSniff implements Sniff
             }
         }
 
-        $valueColumn = $keyEnd + 4;
+        $valueColumn = $keyEnd + $arrowLength + 2;
         if (!$isKeySplit && ($valueColumn + $valueLength + $trailing) <= $this->maxLineLength) {
+            if ($string !== null) {
+                $this->delegated[$value->start] = [$value, $string->flat()];
+            }
+
             return $valueColumn + $valueLength;
         }
 
         // On a line of its own, starting with the `=>`.
-        $ownLineColumn = $indent + 3;
+        $ownLineColumn = $indent + $arrowLength + 1;
         if ($isKeySplit || ($ownLineColumn + $valueLength + $trailing) <= $this->maxLineLength) {
             $breaks[$arrow] = $indent;
             if (($ownLineColumn + $valueLength + $trailing) <= $this->maxLineLength) {
@@ -1295,8 +1297,11 @@ class ExpressionFormatSniff implements Sniff
             return $this->layoutValue($phpcsFile, $value, $ownLineColumn, $indent, $trailing, $breaks);
         }
 
-        // No room after `key =>` for even the start of the value: `=>` starts a line anyway.
-        if (($valueColumn + self::leadLength($value)) > $this->maxLineLength) {
+        // No room after `key =>` for even the start of the value: `=>` starts a line anyway. A string can be split
+        // anywhere, so it always has room.
+        $isString = $this->reflowStringExpressions
+            && (self::isConcatenation($phpcsFile, $value) || $this->isStringLiteral($phpcsFile, $value));
+        if (!$isString && ($valueColumn + self::leadLength($value)) > $this->maxLineLength) {
             $breaks[$arrow] = $indent;
 
             return $this->layoutValue($phpcsFile, $value, $ownLineColumn, $indent, $trailing, $breaks);
@@ -1472,7 +1477,7 @@ class ExpressionFormatSniff implements Sniff
      */
     private function findCurrentBreaks(File $phpcsFile, ExpressionNode $node, array &$current, bool &$misplaced): void
     {
-        if ($this->isDelegated($node)) {
+        if ($this->isStringOwned($phpcsFile, $node)) {
             return;
         }
 
@@ -1583,7 +1588,7 @@ class ExpressionFormatSniff implements Sniff
      */
     private function applyLayout(File $phpcsFile, ExpressionNode $node, array $breaks): void
     {
-        if ($this->isDelegated($node)) {
+        if ($this->isStringOwned($phpcsFile, $node)) {
             return;
         }
 
@@ -1683,6 +1688,22 @@ class ExpressionFormatSniff implements Sniff
     private function isDelegated(ExpressionNode $node): bool
     {
         return isset($this->delegated[$node->start]) && $this->delegated[$node->start][0] === $node;
+    }
+
+    /**
+     * Check whether a node's line breaks are the string layout's: one laid out as a string, or, when string expressions
+     * are reflowed, a chain of `.` operations that's read as one, with no call too long for a line of its own, which
+     * is rewritten on one line if it fits.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $node The node.
+     * @return bool True if they are.
+     */
+    private function isStringOwned(File $phpcsFile, ExpressionNode $node): bool
+    {
+        return $this->isDelegated($node)
+            || ($this->reflowStringExpressions && self::isConcatenation($phpcsFile, $node)
+                && $this->operandsFitOnALine($phpcsFile, $node) && new StringHelper($phpcsFile)->read($node));
     }
 
     /**

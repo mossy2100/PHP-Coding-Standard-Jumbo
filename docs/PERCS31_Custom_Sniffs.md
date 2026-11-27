@@ -1585,14 +1585,15 @@ each new line indented once, as section 6.4 says "ternaries MUST occupy 3 lines,
 with `?:` starting the second. Each part is then split in the room its own line leaves it, outermost first. After a
 group split over lines, such as one holding a split ternary, the next operator starts a line.
 
-**A `key => value` pair**, in an array, a `yield` or a `match` arm with one condition, is one expression. The first
-preference is always the key and the value each on a single line. One that doesn't fit on one line is laid out by the
-first of these that applies:
+**A `key => value` pair**, in an array, a `yield` or a `match` arm with one condition, is one expression, and so is an
+assignment, `$target = $value`, its target as the key, with any assignment operator, a property's default or a
+constant's value. The first preference is always the key and the value each on a single line. One that doesn't fit on
+one line is laid out by the first of these that applies:
 
-1. A key too long for its line is split, at its operators or as a string, and `=>` goes on a line of its own, indented
-   once.
-2. A value that fits on a line of its own goes there, starting with the `=>`, indented once. A string expression that
-   becomes one string, such as `'a ' . 'b'`, counts as one value.
+1. A key too long for its line is split, at its operators or as a string, and `=>` or `=` goes on a line of its own,
+   indented once.
+2. A value that fits on a line of its own goes there, starting with the `=>` or `=`, indented once. A string expression
+   that becomes one string, such as `'a ' . 'b'`, counts as one value.
 3. Otherwise, the value stays after `key =>`, as breaking before `=>` would save nothing, and is split there: at its
    operators, as a call or array, or as a string.
 4. Only when `key =>` leaves no room for even the start of the value does `=>` start a line anyway. The value's new
@@ -1620,10 +1621,9 @@ and a line split at any other operator once past the line its operand starts on.
 `requireExactConditionIndent`. This sniff only reports where the lines break. A wrong indent, or an operator at the end
 of a line, is that sniff's to report.
 
-It covers every binary operator, including `.`, `instanceof` and, on PHP 8.5, `|>`. An assignment operator, or `and`,
-`or` or `xor`, ends an expression, so `$total = $price` then `+ $tax` is checked as `$price + $tax`. So does a `,`,
-any other `=>`, or the brackets of a call, array or control structure. Each argument of a call is
-its own expression.
+It covers every binary operator, including `.`, `instanceof` and, on PHP 8.5, `|>`. `and`, `or` or `xor` ends
+an expression, as they bind more loosely than assignment. So does a `,`, any other `=>`, an assignment inside a
+ternary's branch, or the brackets of a call, array or control structure. Each argument of a call is its own expression.
 
 These are left alone, and `RequireSingleLineStatement` still checks the first:
 

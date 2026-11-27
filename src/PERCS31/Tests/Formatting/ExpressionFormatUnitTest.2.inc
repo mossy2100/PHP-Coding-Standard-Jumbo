@@ -46,7 +46,7 @@ $b = (('y')) . $c;
 foo(('z'));
 
 // Invalid: too long, so split before the last `.`, word or character that fits.
-$message = "The distance from here to the Sun is " . $earth->distSun . "km, which takes light about " . $minutes . ' minutes to cross.';
+$message = "The distance from here to the Sun is " . $earth->distSun . "km, which takes light about " . $minutes . ' minutes to cross the gap.';
 $message = 'This is a really long literal on its own that goes on and on past the line length limit of one hundred twenty chars.';
 $message = 'Supercalifragilisticexpialidocious-supercalifragilisticexpialidocious-supercalifragilisticexpialidocious-abcdefghijk';
 $message = 'Some long text that goes on for quite a while, then some more, and then even more text, '
@@ -57,7 +57,7 @@ $result = $n < 0
     ? 'Looks like ' . $n . ' is negative!' . " Although it's difficult to say for sure. " . "What even is '\$n'?" . " Is it " . M_PI
         . " or " . M_E . " or " . sqrt(2)
     : $monkeys->monkeyNames();
-$result = $cachedValueFromSomewhere ?? 'Some long message about the ' . $thing . ' that goes on and on past the limit of the line';
+$result = $cachedValueFromSomewhere ?? 'Some long message about the ' . $thing . ' that goes on and on and on past the limit of the line';
 
 // Invalid: a string conversion that echo, print or <?= does already.
 echo (string) $x;
