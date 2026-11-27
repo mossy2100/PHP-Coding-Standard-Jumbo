@@ -16,6 +16,8 @@ namespace PERCS31\Helpers;
  *   the conditions. It's the key of the arm's pair.
  * - A ternary: a condition, `?`, a value, `:` and another value, whose children are the condition and the values, and
  *   whose operators are the `?` and the `:`. A short ternary, `$a ?: $b`, has the condition and one value.
+ * - A chain: an object and two or more links after `->` or `?->`, such as `$query->where($a)->get()`, whose children
+ *   are the object and the links, and whose operators are the arrows.
  * - A body: a closure, `match` or anonymous class, which always spans lines. Its body isn't laid out here; only where
  *   it starts, after its first line up to the `{`, which must be on one line.
  */
@@ -34,6 +36,8 @@ readonly class ExpressionNode
     public const string LIST = 'list';
 
     public const string TERNARY = 'ternary';
+
+    public const string CHAIN = 'chain';
 
     /**
      * The length given to a body, which never fits on one line.
@@ -73,4 +77,47 @@ readonly class ExpressionNode
         public int $headLength = 0,
         public bool $isClosure = false,
     ) {}
+
+    /**
+     * Get the length of what comes before a call's opening bracket, such as `foo` or `$this->bar`.
+     *
+     * @return int The length.
+     */
+    public function calleeLength(): int
+    {
+        $arguments = array_sum(array_map(static fn(self $child): int => $child->flatLength, $this->children));
+
+        return $this->flatLength - $arguments - 2 * max(0, count($this->children) - 1) - 2;
+    }
+
+    /**
+     * Get the length of a call's or body's first line when it's split: up to and including its opening bracket, or its
+     * body's `{`. A call with no arguments can't be split, so its first line is all of it.
+     *
+     * @return int The length.
+     */
+    public function firstLineLength(): int
+    {
+        return match (true) {
+            $this->kind === self::BODY => $this->headLength,
+            $this->children === [] => $this->flatLength,
+            default => $this->calleeLength() + 1,
+        };
+    }
+
+    /**
+     * Get the length of the first piece, which can't be split from the start of its line: a level's, ternary's or
+     * chain's first part's, a call's name and opening bracket, or a body's first line.
+     *
+     * @return int The length.
+     */
+    public function leadLength(): int
+    {
+        return match ($this->kind) {
+            self::LEVEL, self::TERNARY, self::CHAIN => $this->children[0]->leadLength(),
+            self::GROUP => $this->flatLength - $this->children[0]->flatLength - 1 + $this->children[0]->leadLength(),
+            self::CALL, self::BODY => $this->firstLineLength(),
+            default => $this->flatLength,
+        };
+    }
 }

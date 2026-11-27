@@ -1580,6 +1580,13 @@ joined, and one split any other way than the layout above is laid out again. A c
 class's body isn't changed, only where it starts; PERCS31.WhiteSpace.ScopeIndent re-indents a body that moves. Empty
 brackets split over lines are joined, and so is a destructuring list, unless it skips an element, as in `[$a, , $c]`.
 
+**A chain** with two or more `->` or `?->`, as in `$query->where($a)->get()`, that's too long for its line puts each
+arrow at the start of a line of its own, property accesses included, indented once past the line with the object, as
+PER's own example does. Each link is then laid out in its own line's room, so a link's call can hug a closure. A `::`
+never starts a line, so a static call stays with the object, as in `Foo::create()`. A single arrow is part of a call,
+as in `$this->process(`, so only its arguments are split. A chain that's an expression's last operand doesn't stay
+after its operator when it's too long for its own line: the operator starts a line first.
+
 **A ternary** too long for its line takes three lines: the condition, then `?` and its value, then `:` and its value,
 each new line indented once, as section 6.4 says "ternaries MUST occupy 3 lines, never 2". A short ternary takes two,
 with `?:` starting the second. Each part is then split in the room its own line leaves it, outermost first. After a
@@ -1627,8 +1634,8 @@ ternary's branch, or the brackets of a call, array or control structure. Each ar
 
 These are left alone, and `RequireSingleLineStatement` still checks the first:
 
-- An expression with a comment, a heredoc or nowdoc, a multi-line string, or a line break inside an operand, such as a
-  chain split over lines, or an arrow function's signature split over lines.
+- An expression with a comment, a heredoc or nowdoc, a multi-line string, or a line break inside an operand it doesn't
+  read, such as `$a` then `->b` on the next line, or an arrow function's signature split over lines.
 - A `case` condition.
 - An expression written on one line that's too long, unless it's a whole statement, a value after an assignment or
   `return`, a `key => value` pair that starts its line, a condition on its own line, or an argument or value on its own

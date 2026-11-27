@@ -138,5 +138,15 @@ class Order
         = 1;
 }
 $found ? $first = $someLongValueName : $second = 2;
+// Chains: every `->` and `?->` on its own line, property accesses too; `::` stays with the object; a single arrow is a
+// call; the operator before a chain breaks first; a split chain that fits is joined.
+$this->em->persist($someLongUserVariable);
+$users = $query->where('active', 1)?->orderBy('name')->get();
+Foo::create($someArgument)->run()->get();
+$this->process($firstArgument, $secondArgument);
+$ok = $value !== null && $repository->findUser($id)->isActive();
+$x = $a
+    ->b()
+    ->c();
 // phpcs:set PERCS31.Formatting.ExpressionFormat strict false
 // phpcs:set PERCS31.Formatting.ExpressionFormat maxLineLength 120

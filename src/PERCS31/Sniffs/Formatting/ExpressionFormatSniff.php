@@ -37,8 +37,8 @@ use PHP_CodeSniffer\Util\Tokens;
  * - A key too long for its line is split, and the `=>` or `=` starts a line of its own.
  * - A value that fits on a line of its own goes there, after a break before the `=>` or `=`, indented once.
  * - Otherwise, the value stays after the key, and is split at its own operators, as a call or array, or as a string.
- * There's never a line break after a `=>` or `=`. Calls and arrays, ternaries, nested arrow functions and `match` arms
- * with several conditions have layouts of their own, described in the docs.
+ * There's never a line break after a `=>` or `=`. Calls and arrays, chains, ternaries, nested arrow functions and
+ * `match` arms with several conditions have layouts of their own, described in the docs.
  *
  * An expression fits on its line if its own text, and any punctuation straight after it, such as a `;`, `,` or `)`,
  * fit within the line length. What follows that, such as an array value after its key or a comment, has a place of
@@ -47,10 +47,10 @@ use PHP_CodeSniffer\Util\Tokens;
  * An expression ends at anything that isn't part of it: a `;`, `,`, any other `=>`, an assignment that isn't a whole
  * `$target = $value`, or the brackets of a call, array or control structure. Each argument of a call is its own
  * expression. The sniff skips an expression with a comment, a heredoc, a nowdoc, a multi-line string, or a line break
- * inside an operand it doesn't read, such as a chain. It also skips a `case` condition. It never splits an expression
- * written on one line that's too long, unless it's a whole statement, a value after `return` or the like, a
- * `key => value` pair that starts its line, or a control structure's condition on its own line, where a split can't
- * clash with the layout of the code around it.
+ * inside an operand it doesn't read, such as `$a` then `->b` on the next line. It also skips a `case` condition. It
+ * never splits an expression written on one line that's too long, unless it's a whole statement, a value after
+ * `return` or the like, a `key => value` pair that starts its line, or a control structure's condition on its own
+ * line, where a split can't clash with the layout of the code around it.
  *
  * It covers every binary operator except `and`, `or` and `xor`, which bind more loosely than assignment. It only
  * decides where the lines break. An operator at the end of a line counts as a break at it, and
@@ -277,7 +277,7 @@ class ExpressionFormatSniff implements Sniff
         // expression on one line is only split where that can't clash with the layout around it. Neither is checked,
         // and nor are the strings laid out to fit the layout.
         $isLeftAlone = !$isLaidOut
-            && (($breaks !== [] && self::isInTernary($phpcsFile, $before, $after))
+            && (($breaks !== [] && ExpressionHelper::isInTernary($phpcsFile, $before, $after))
                 || ($current === [] && !$misplaced && !$isCondition && !self::isSplittableAfter($phpcsFile, $before)
                     && !self::isPairOnItsOwnLine($phpcsFile, $root)
                     && !self::isElementOnItsOwnLine($phpcsFile, $start, $before))
@@ -367,23 +367,6 @@ class ExpressionFormatSniff implements Sniff
             = $phpcsFile->findNext([...array_keys(Tokens::EMPTY_TOKENS), T_INLINE_ELSE], ($stackPtr + 1), null, true);
 
         return $first === false ? null : $first;
-    }
-
-    /**
-     * Check whether an expression is a ternary's condition or value.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $before The position of the token that ends the expression before it, or -1.
-     * @param int $after The position of the token that ends it after it.
-     * @return bool True if it is.
-     */
-    private static function isInTernary(File $phpcsFile, int $before, int $after): bool
-    {
-        $tokens = $phpcsFile->getTokens();
-        $ternary = [T_INLINE_THEN, T_INLINE_ELSE];
-
-        return in_array($tokens[$after]['code'] ?? null, $ternary, true)
-            || ($before >= 0 && in_array($tokens[$before]['code'], $ternary, true));
     }
 
     /**
@@ -500,8 +483,8 @@ class ExpressionFormatSniff implements Sniff
         $tokens = $phpcsFile->getTokens();
 
         return self::findConditionOpener($phpcsFile, $start) === null
-            && (!self::isInTernary($phpcsFile, $before, $after)
-                || self::isTernaryBranchOnItsOwnLine($phpcsFile, $before))
+            && (!ExpressionHelper::isInTernary($phpcsFile, $before, $after)
+                || ExpressionHelper::isTernaryBranchOnItsOwnLine($phpcsFile, $before))
             && (self::isSplittableAfter($phpcsFile, $before) || LayoutHelper::startsLine($phpcsFile, $start)
                 || $tokens[$start]['line'] !== $tokens[$end]['line']);
     }
@@ -562,21 +545,6 @@ class ExpressionFormatSniff implements Sniff
 
         return !in_array($node->kind, [ExpressionNode::CALL, ExpressionNode::BODY], true)
             || $indent + 2 + $node->flatLength <= $this->maxLineLength;
-    }
-
-    /**
-     * Check whether an expression is a whole ternary branch whose `?` or `:` starts a line.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $before The position of the token that ends the expression before it, or -1.
-     * @return bool True if it is.
-     */
-    private static function isTernaryBranchOnItsOwnLine(File $phpcsFile, int $before): bool
-    {
-        $tokens = $phpcsFile->getTokens();
-
-        return $before >= 0 && in_array($tokens[$before]['code'], [T_INLINE_THEN, T_INLINE_ELSE], true)
-            && LayoutHelper::startsLine($phpcsFile, $before);
     }
 
     /**
@@ -875,35 +843,20 @@ class ExpressionFormatSniff implements Sniff
             return $flatEnd;
         }
 
-        if ($node->kind === ExpressionNode::CALL) {
-            return $this->layoutCall($phpcsFile, $node, $column, $lineIndent, $trailing, $breaks);
+        $end = match ($node->kind) {
+            ExpressionNode::CALL => $this->layoutCall($phpcsFile, $node, $column, $lineIndent, $trailing, $breaks),
+            ExpressionNode::LIST => $this->layoutList($phpcsFile, $node, $column, $breaks),
+            ExpressionNode::CHAIN => $this->layoutChain($phpcsFile, $node, $column, $lineIndent, $trailing, $breaks),
+            ExpressionNode::TERNARY
+                => $this->layoutTernary($phpcsFile, $node, $column, $lineIndent, $indent, $trailing, $breaks),
+            default => null,
+        };
+        if ($end !== null) {
+            return $end;
         }
 
-        if ($node->kind === ExpressionNode::LIST) {
-            return $this->layoutList($phpcsFile, $node, $column, $breaks);
-        }
-
-        if ($node->kind === ExpressionNode::TERNARY) {
-            return $this->layoutTernary($phpcsFile, $node, $column, $lineIndent, $indent, $trailing, $breaks);
-        }
-
-        // A group's contents go on its first line, and any new lines inside it are indented once past the line with
-        // its `(`, as PERCS31.Operators.OperatorPlacement requires.
         if ($node->kind === ExpressionNode::GROUP) {
-            $inner = $node->children[0];
-            $innerColumn = $column + ($node->flatLength - $inner->flatLength - 1);
-            $innerIndent = $lineIndent + LayoutHelper::INDENT;
-
-            return $this->layout(
-                $phpcsFile,
-                $inner,
-                $innerColumn,
-                $lineIndent,
-                $innerIndent,
-                ($trailing + 1),
-                false,
-                $breaks,
-            ) + 1;
+            return $this->layoutGroup($phpcsFile, $node, $column, $lineIndent, $trailing, $breaks);
         }
 
         $chain = self::findArrowChain($phpcsFile, $node);
@@ -951,7 +904,7 @@ class ExpressionFormatSniff implements Sniff
                 ($index + 1) === $lastIndex
                 && in_array($child->kind, [ExpressionNode::CALL, ExpressionNode::BODY], true)
                 && $ownLineEnd > $this->maxLineLength
-                && ($childColumn + self::firstLineLength($child)) <= $this->maxLineLength
+                && ($childColumn + $child->firstLineLength()) <= $this->maxLineLength
             ) {
                 $end = $this->layout(
                     $phpcsFile,
@@ -1110,7 +1063,7 @@ class ExpressionFormatSniff implements Sniff
             // The arguments before the hugged one, and the hugged one's first line, are on the call's first line.
             $breaks[$opener] = $lineIndent;
             $this->callLayouts[$opener] = [null, $hugged];
-            $end = $column + self::calleeLength($node) + 1;
+            $end = $column + $node->calleeLength() + 1;
             foreach ($node->children as $index => $child) {
                 if ($index === $hugged) {
                     $end = $this->layout($phpcsFile, $child, $end, $lineIndent, $argumentIndent, 0, false, $breaks);
@@ -1173,7 +1126,7 @@ class ExpressionFormatSniff implements Sniff
 
         // The arguments before it fit on the first line, up to the hugged one's opening bracket or brace, and those
         // after it fit on the last line, after its closing one.
-        $before = $column + self::calleeLength($node) + 1 + self::firstLineLength($child);
+        $before = $column + $node->calleeLength() + 1 + $child->firstLineLength();
         $after = $lineIndent + 1;
         foreach ($node->children as $index => $other) {
             if ($index < $hugged) {
@@ -1197,35 +1150,6 @@ class ExpressionFormatSniff implements Sniff
     private function hugsAnArgument(ExpressionNode $node, int $lineIndent): bool
     {
         return !$node->isArray && $this->findHuggedArgument($node, 0, $lineIndent, 0) !== null;
-    }
-
-    /**
-     * Get the length of a call's or body's first line when it's split: up to and including its opening bracket, or its
-     * body's `{`.
-     *
-     * @param ExpressionNode $node The call or body.
-     * @return int The length.
-     */
-    private static function firstLineLength(ExpressionNode $node): int
-    {
-        return match (true) {
-            $node->kind === ExpressionNode::BODY => $node->headLength,
-            $node->children === [] => $node->flatLength,
-            default => self::calleeLength($node) + 1,
-        };
-    }
-
-    /**
-     * Get the length of what comes before a call's opening bracket, such as `foo` or `$this->bar`.
-     *
-     * @param ExpressionNode $node The call.
-     * @return int The length.
-     */
-    private static function calleeLength(ExpressionNode $node): int
-    {
-        $arguments = array_sum(array_map(static fn(ExpressionNode $child): int => $child->flatLength, $node->children));
-
-        return $node->flatLength - $arguments - 2 * (count($node->children) - 1) - 2;
     }
 
     /**
@@ -1301,7 +1225,7 @@ class ExpressionFormatSniff implements Sniff
         // anywhere, so it always has room.
         $isString = $this->reflowStringExpressions
             && (self::isConcatenation($phpcsFile, $value) || $this->isStringLiteral($phpcsFile, $value));
-        if (!$isString && ($valueColumn + self::leadLength($value)) > $this->maxLineLength) {
+        if (!$isString && ($valueColumn + $value->leadLength()) > $this->maxLineLength) {
             $breaks[$arrow] = $indent;
 
             return $this->layoutValue($phpcsFile, $value, $ownLineColumn, $indent, $trailing, $breaks);
@@ -1311,6 +1235,83 @@ class ExpressionFormatSniff implements Sniff
 
         return $this->delegateString($phpcsFile, $value, $valueColumn, $indent, $trailing, true)
             ?? $this->layout($phpcsFile, $value, $valueColumn, $valueLineIndent, $indent, $trailing, false, $breaks);
+    }
+
+    /**
+     * Work out the layout of a group that doesn't fit on its line: its contents go on its first line, and any new lines
+     * inside it are indented once past the line with its `(`, as PERCS31.Operators.OperatorPlacement requires.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $node The group.
+     * @param int $column The number of characters before the group on its first line.
+     * @param int $lineIndent The indent of the group's first line.
+     * @param int $trailing The number of characters straight after the group on its last line.
+     * @param array<int, int> $breaks The operators to break the line before, and the calls to split, with indents.
+     * @return int The number of characters before the group's end, on its last line.
+     */
+    private function layoutGroup(
+        File $phpcsFile,
+        ExpressionNode $node,
+        int $column,
+        int $lineIndent,
+        int $trailing,
+        array &$breaks,
+    ): int {
+        $inner = $node->children[0];
+        $innerColumn = $column + ($node->flatLength - $inner->flatLength - 1);
+        $innerIndent = $lineIndent + LayoutHelper::INDENT;
+
+        return $this->layout(
+            $phpcsFile,
+            $inner,
+            $innerColumn,
+            $lineIndent,
+            $innerIndent,
+            ($trailing + 1),
+            false,
+            $breaks,
+        ) + 1;
+    }
+
+    /**
+     * Work out the layout of a chain that doesn't fit on its line: each `->` or `?->` starts a line, indented once past
+     * the line with the object, and each link is then laid out in the room its line leaves it.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $node The chain.
+     * @param int $column The number of characters before the chain on its first line.
+     * @param int $lineIndent The indent of the chain's first line.
+     * @param int $trailing The number of characters straight after the chain on its last line.
+     * @param array<int, int> $breaks The operators to break the line before, and the calls to split, with indents.
+     * @return int The number of characters before the chain's end, on its last line.
+     */
+    private function layoutChain(
+        File $phpcsFile,
+        ExpressionNode $node,
+        int $column,
+        int $lineIndent,
+        int $trailing,
+        array &$breaks,
+    ): int {
+        $linkIndent = $lineIndent + LayoutHelper::INDENT;
+        $tokens = $phpcsFile->getTokens();
+        $end = $this->layout($phpcsFile, $node->children[0], $column, $lineIndent, $linkIndent, 0, false, $breaks);
+        $last = count($node->operators) - 1;
+        foreach ($node->operators as $index => $arrow) {
+            $breaks[$arrow] = $linkIndent;
+            $end = $this->layout(
+                $phpcsFile,
+                $node->children[$index + 1],
+                $linkIndent + mb_strlen($tokens[$arrow]['content']),
+                $linkIndent,
+                $linkIndent + LayoutHelper::INDENT,
+                $index === $last ? $trailing : 0,
+                false,
+                $breaks,
+            );
+        }
+
+        return $end;
     }
 
     /**
@@ -1405,24 +1406,6 @@ class ExpressionFormatSniff implements Sniff
 
         return $this->delegateString($phpcsFile, $value, $column, $indent, $trailing, true)
             ?? $this->layout($phpcsFile, $value, $column, $lineIndent, $indent, $trailing, false, $breaks);
-    }
-
-    /**
-     * Get the length of a node's first piece, which can't be split from the start of its line: a level's first operand,
-     * a ternary's condition's, a call's name and opening bracket, or a body's first line.
-     *
-     * @param ExpressionNode $node The node.
-     * @return int The length.
-     */
-    private static function leadLength(ExpressionNode $node): int
-    {
-        return match ($node->kind) {
-            ExpressionNode::LEVEL, ExpressionNode::TERNARY => self::leadLength($node->children[0]),
-            ExpressionNode::GROUP
-                => $node->flatLength - $node->children[0]->flatLength - 1 + self::leadLength($node->children[0]),
-            ExpressionNode::CALL, ExpressionNode::BODY => self::firstLineLength($node),
-            default => $node->flatLength,
-        };
     }
 
     /**
@@ -1607,10 +1590,13 @@ class ExpressionFormatSniff implements Sniff
             self::setGap($phpcsFile, $question, $colon, '');
             self::setGap($phpcsFile, $colon, $node->children[1]->start, ' ');
         } else {
+            // A chain's arrows have no space around them, unless one starts a line.
+            $space = $node->kind === ExpressionNode::CHAIN ? '' : ' ';
             foreach ($node->operators as $index => $operator) {
-                $before = isset($breaks[$operator]) ? $phpcsFile->eolChar . str_repeat(' ', $breaks[$operator]) : ' ';
+                $before
+                    = isset($breaks[$operator]) ? $phpcsFile->eolChar . str_repeat(' ', $breaks[$operator]) : $space;
                 self::setGap($phpcsFile, $node->children[$index]->end, $operator, $before);
-                self::setGap($phpcsFile, $operator, $node->children[($index + 1)]->start, ' ');
+                self::setGap($phpcsFile, $operator, $node->children[($index + 1)]->start, $space);
             }
         }
 

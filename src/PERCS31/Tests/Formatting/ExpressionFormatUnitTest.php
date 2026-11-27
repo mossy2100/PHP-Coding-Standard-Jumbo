@@ -49,7 +49,9 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
                 // Nested arrow functions.
                 + [123 => 1, 124 => 1, 125 => 1, 126 => 1]
                 // Assignments.
-                + [130 => 1, 131 => 1, 132 => 1, 134 => 1, 137 => 1, 140 => 1];
+                + [130 => 1, 131 => 1, 132 => 1, 134 => 1, 137 => 1, 140 => 1]
+                // Chains.
+                + [143 => 1, 144 => 1, 145 => 1, 146 => 1, 147 => 1, 148 => 1];
         }
 
         if ($testFile === 'ExpressionFormatUnitTest.4.inc') {
@@ -73,20 +75,20 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
 
         return [
             // Fits on one line, an arrow function too.
-            44 => 1,
-            46 => 1,
-            48 => 1,
-            50 => 1,
-            54 => 1,
+            43 => 1,
+            45 => 1,
+            47 => 1,
+            49 => 1,
+            53 => 1,
             // Split at a tighter operator, or not split at all.
-            61 => 1,
+            60 => 1,
+            67 => 1,
             68 => 1,
-            69 => 1,
             // A line broken before an operand that fits on it.
-            71 => 1,
+            70 => 1,
             // An operand split while the level around it isn't.
-            74 => 1,
-            76 => 1,
+            73 => 1,
+            75 => 1,
         ];
     }
 }

@@ -593,6 +593,38 @@ class ExpressionHelper
     }
 
     /**
+     * Check whether an expression is a ternary's condition or value.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $before The position of the token that ends the expression before it, or -1.
+     * @param int $after The position of the token that ends it after it.
+     * @return bool True if it is.
+     */
+    public static function isInTernary(File $phpcsFile, int $before, int $after): bool
+    {
+        $tokens = $phpcsFile->getTokens();
+        $ternary = [T_INLINE_THEN, T_INLINE_ELSE];
+
+        return in_array($tokens[$after]['code'] ?? null, $ternary, true)
+            || ($before >= 0 && in_array($tokens[$before]['code'], $ternary, true));
+    }
+
+    /**
+     * Check whether an expression is a whole ternary branch whose `?` or `:` starts a line.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $before The position of the token that ends the expression before it, or -1.
+     * @return bool True if it is.
+     */
+    public static function isTernaryBranchOnItsOwnLine(File $phpcsFile, int $before): bool
+    {
+        $tokens = $phpcsFile->getTokens();
+
+        return $before >= 0 && in_array($tokens[$before]['code'], [T_INLINE_THEN, T_INLINE_ELSE], true)
+            && LayoutHelper::startsLine($phpcsFile, $before);
+    }
+
+    /**
      * Check whether a token is an assignment operator read as a pair, `$target = $value`: one with a target on its
      * left, with no operator, outside a function's parameters, where `=` gives a default value, and `declare()`.
      *
@@ -720,6 +752,56 @@ class ExpressionHelper
             [$target, $value],
             [$operator],
         );
+    }
+
+    /**
+     * Parse a chain: an object, then two or more links after `->` or `?->` outside any brackets. A static call or
+     * property before the first arrow is part of the object, and a `::` or an index after a link is part of the link.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $start The position of the operand's first token.
+     * @param int $end The position of its last token.
+     * @return ExpressionNode|false|null The chain, false if the operand isn't one, or null if it can't be read.
+     */
+    private static function parseChain(File $phpcsFile, int $start, int $end): ExpressionNode|false|null
+    {
+        $tokens = $phpcsFile->getTokens();
+        $arrows = [];
+        for ($i = $start; $i <= $end; $i++) {
+            if (in_array($tokens[$i]['code'], [T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR], true)) {
+                $arrows[] = $i;
+            }
+
+            $i = self::findNestedEnd($tokens[$i], $i);
+        }
+
+        if (count($arrows) < 2) {
+            return false;
+        }
+
+        $headEnd = $phpcsFile->findPrevious(T_WHITESPACE, ($arrows[0] - 1), $start, true);
+        $head = $headEnd === false ? null : self::parse($phpcsFile, $start, $headEnd);
+        if ($head === null) {
+            return null;
+        }
+
+        $children = [$head];
+        $flatLength = $head->flatLength;
+        foreach ($arrows as $index => $arrow) {
+            $linkStart = $phpcsFile->findNext(T_WHITESPACE, ($arrow + 1), ($end + 1), true);
+            $linkEnd = $phpcsFile->findPrevious(T_WHITESPACE, (($arrows[$index + 1] ?? ($end + 1)) - 1), $arrow, true);
+            $link = $linkStart === false || $linkEnd === false || $linkEnd < $linkStart
+                ? null
+                : self::parse($phpcsFile, $linkStart, $linkEnd);
+            if ($link === null) {
+                return null;
+            }
+
+            $children[] = $link;
+            $flatLength += mb_strlen($tokens[$arrow]['content']) + $link->flatLength;
+        }
+
+        return new ExpressionNode(ExpressionNode::CHAIN, $start, $end, $flatLength, $children, $arrows);
     }
 
     /**
@@ -1219,6 +1301,11 @@ class ExpressionHelper
         $prefix = $phpcsFile->getTokensAsString($start, ($opener - $start));
         $isGroup = self::isGrouping($phpcsFile, $opener) && ($tokens[$opener]['parenthesis_closer'] ?? null) === $end;
         if (!$isGroup) {
+            $chain = self::parseChain($phpcsFile, $start, $end);
+            if ($chain !== false) {
+                return $chain;
+            }
+
             // A call, an array or a body can span lines; any other operand that does is left alone.
             $call = self::parseCall($phpcsFile, $start, $end) ?? self::parseBody($phpcsFile, $start, $end);
             $text = $phpcsFile->getTokensAsString($start, ($end - $start + 1));
