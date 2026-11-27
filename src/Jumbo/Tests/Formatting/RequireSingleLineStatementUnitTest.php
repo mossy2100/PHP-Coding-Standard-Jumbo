@@ -20,22 +20,20 @@ class RequireSingleLineStatementUnitTest extends AbstractSniffTestCase
     {
         return [
             // Every statement or case label that fits on one line.
-            93 => 1,
-            96 => 1,
-            99 => 1,
-            102 => 1,
+            98 => 1,
+            101 => 1,
             104 => 1,
-            106 => 1,
-            110 => 1,
-            114 => 1,
-            119 => 1,
+            107 => 1,
+            111 => 1,
+            115 => 1,
+            120 => 1,
             // The lines around a body, or a call or array too long to collapse.
-            125 => 1,
-            129 => 1,
-            132 => 1,
-            134 => 1,
-            138 => 1,
-            145 => 1,
+            126 => 1,
+            130 => 1,
+            133 => 1,
+            135 => 1,
+            139 => 1,
+            146 => 1,
         ];
     }
 

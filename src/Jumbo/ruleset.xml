@@ -633,12 +633,7 @@
     <!-- No key repeated in an array, where PHP silently keeps the last value -->
     <rule ref="Universal.Arrays.DuplicateArrayKey"/>
 
-    <!-- Multi-line arrays that fit on one line must be written on one line -->
-    <rule ref="Jumbo.Arrays.ArrayDeclaration">
-        <properties>
-            <property name="maxLineLength" value="&lineLength;"/>
-        </properties>
-    </rule>
+    <!-- An array split over lines that fits on one is joined by PERCS31.Formatting.ExpressionFormat -->
 
     <!-- The comma after a multi-line array's element on the element's last line, replacing Squiz's NoComma, which
          only checks a keyed element and gets a heredoc element wrong -->

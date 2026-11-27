@@ -6,6 +6,7 @@ namespace PERCS31\Sniffs\Formatting;
 
 use PERCS31\Helpers\ExpressionHelper;
 use PERCS31\Helpers\ExpressionNode;
+use PERCS31\Helpers\ExpressionParser;
 use PERCS31\Helpers\FixerHelper;
 use PERCS31\Helpers\LayoutHelper;
 use PERCS31\Helpers\StringHelper;
@@ -64,21 +65,6 @@ class ExpressionFormatSniff implements Sniff
     public const string CODE_INCORRECT_SPLIT = 'IncorrectSplit';
 
     public const string CODE_TOO_LONG = 'TooLong';
-
-    /**
-     * A call or array on one line, from findCallLayout().
-     */
-    private const string FLAT = 'flat';
-
-    /**
-     * A call or array chopped down, one argument per line, from findCallLayout().
-     */
-    private const string CHOPPED = 'chopped';
-
-    /**
-     * A call or array split in some other way, from findCallLayout().
-     */
-    private const string OTHER = 'other';
 
     public const string CODE_INCORRECT_STRING_FORMAT = 'IncorrectStringFormat';
 
@@ -216,10 +202,17 @@ class ExpressionFormatSniff implements Sniff
                 self::processConversions($phpcsFile, $stackPtr);
             }
 
-            return;
+            // An `echo` with several values is laid out as a list, from its first value.
+            $first = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($stackPtr + 1), null, true);
+            $value = $code === T_ECHO && $first !== false ? ExpressionHelper::findExpression($phpcsFile, $first) : null;
+            if ($value === null || $phpcsFile->getTokens()[$value[3]]['code'] !== T_COMMA) {
+                return;
+            }
+
+            $stackPtr = $first;
         }
 
-        $start = self::findStartToken($phpcsFile, $stackPtr);
+        $start = $code === T_ECHO ? $stackPtr : self::findStartToken($phpcsFile, $stackPtr);
         if ($start === null) {
             return;
         }
@@ -646,7 +639,7 @@ class ExpressionFormatSniff implements Sniff
             return;
         }
 
-        $node = ExpressionHelper::parse($phpcsFile, $stackPtr, $stackPtr);
+        $node = ExpressionParser::parse($phpcsFile, $stackPtr, $stackPtr);
         $helper = new StringHelper($phpcsFile);
         if ($node === null || !$helper->read($node)) {
             return;
@@ -732,7 +725,7 @@ class ExpressionFormatSniff implements Sniff
             }
 
             [$start, $end, , $after] = $region;
-            $node = ExpressionHelper::parse($phpcsFile, $start, $end);
+            $node = ExpressionParser::parse($phpcsFile, $start, $end);
             if ($node !== null && $node->kind !== ExpressionNode::LEVEL) {
                 self::processConversion($phpcsFile, $stackPtr, $start, $end);
             }
@@ -845,7 +838,7 @@ class ExpressionFormatSniff implements Sniff
 
         $end = match ($node->kind) {
             ExpressionNode::CALL => $this->layoutCall($phpcsFile, $node, $column, $lineIndent, $trailing, $breaks),
-            ExpressionNode::LIST => $this->layoutList($phpcsFile, $node, $column, $breaks),
+            ExpressionNode::LIST => $this->layoutList($phpcsFile, $node, $column, $lineIndent, $trailing, $breaks),
             ExpressionNode::CHAIN => $this->layoutChain($phpcsFile, $node, $column, $lineIndent, $trailing, $breaks),
             ExpressionNode::TERNARY
                 => $this->layoutTernary($phpcsFile, $node, $column, $lineIndent, $indent, $trailing, $breaks),
@@ -999,34 +992,61 @@ class ExpressionFormatSniff implements Sniff
     }
 
     /**
-     * Work out the layout of a `match` arm's conditions that are too long for their line: one per line, level with the
-     * first, each followed by a comma.
+     * Work out the layout of a list that doesn't fit on its line, one item per line: a `match` arm's conditions, level
+     * with the first, each followed by a comma, or an `echo`'s values, each after the first indented once, with no
+     * comma after the last.
      *
      * @param File $phpcsFile The file being scanned.
-     * @param ExpressionNode $node The list of conditions.
-     * @param int $column The number of characters before the first condition on its line.
-     * @param array<int, int> $breaks The operators to break the line before, and the calls and lists to split.
-     * @return int The number of characters before the last condition's comma, on its line, plus the comma.
+     * @param ExpressionNode $node The list.
+     * @param int $column The number of characters before the list on its first line.
+     * @param int $lineIndent The indent of the list's first line.
+     * @param int $trailing The number of characters straight after the list on its last line.
+     * @param array<int, int> $breaks The operators to break the line before, with each one's indent.
+     * @return int The number of characters before the list's end, on its last line.
      */
-    private function layoutList(File $phpcsFile, ExpressionNode $node, int $column, array &$breaks): int
-    {
-        $breaks[$node->separators[0]] = $column;
-        $this->listLayouts[$node->separators[0]] = $column;
+    private function layoutList(
+        File $phpcsFile,
+        ExpressionNode $node,
+        int $column,
+        int $lineIndent,
+        int $trailing,
+        array &$breaks,
+    ): int {
+        $isEcho = self::isEchoList($phpcsFile, $node);
+        $indent = $isEcho ? $lineIndent + LayoutHelper::INDENT : $column;
+        $breaks[$node->separators[0]] = $indent;
+        $this->listLayouts[$node->separators[0]] = $indent;
         $end = $column;
-        foreach ($node->children as $child) {
+        $last = count($node->children) - 1;
+        foreach ($node->children as $index => $child) {
+            $childColumn = $index === 0 ? $column : $indent;
             $end = $this->layout(
                 $phpcsFile,
                 $child,
-                $column,
-                $column,
-                $column + LayoutHelper::INDENT,
-                1,
+                $childColumn,
+                $index === 0 ? $lineIndent : $indent,
+                $childColumn + LayoutHelper::INDENT,
+                $isEcho && $index === $last ? $trailing : 1,
                 false,
                 $breaks,
             );
         }
 
-        return $end + 1;
+        return $isEcho ? $end : $end + 1;
+    }
+
+    /**
+     * Check whether a list is an `echo`'s values.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $node The list.
+     * @return bool True if it is.
+     */
+    private static function isEchoList(File $phpcsFile, ExpressionNode $node): bool
+    {
+        $previous = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($node->start - 1), null, true);
+
+        return $previous !== false && $phpcsFile->getTokens()[$previous]['code'] === T_ECHO;
     }
 
     /**
@@ -1477,6 +1497,8 @@ class ExpressionFormatSniff implements Sniff
             }
         }
 
+        // A line break before a call's opening bracket is never a place to split.
+        $misplaced = $misplaced || $node->calleeGaps !== [];
         if ($node->kind === ExpressionNode::GROUP && is_int($node->opener) && is_int($node->closer)) {
             $inner = $node->children[0];
             $misplaced = $misplaced || $tokens[$node->opener]['line'] !== $tokens[$inner->start]['line']
@@ -1498,68 +1520,19 @@ class ExpressionFormatSniff implements Sniff
 
         // A call split over lines: as it should be, if it's chopped down or hugging the same argument as worked out.
         if ($node->kind === ExpressionNode::CALL && is_int($node->opener)) {
-            $layout = self::findCallLayout($phpcsFile, $node);
-            if ($layout !== self::FLAT) {
+            $layout = $node->findLayout($phpcsFile);
+            if ($layout !== ExpressionNode::FLAT) {
                 $current[$node->opener] = true;
                 $expected = $this->callLayouts[$node->opener] ?? null;
                 $isExpected = $expected !== null
-                    && (($layout === self::CHOPPED && $expected[0] !== null) || $layout === $expected[1]);
-                $misplaced = $misplaced || ($expected !== null && !$isExpected) || $layout === self::OTHER;
+                    && (($layout === ExpressionNode::CHOPPED && $expected[0] !== null) || $layout === $expected[1]);
+                $misplaced = $misplaced || ($expected !== null && !$isExpected) || $layout === ExpressionNode::OTHER;
             }
         }
 
         foreach ($node->children as $child) {
             $this->findCurrentBreaks($phpcsFile, $child, $current, $misplaced);
         }
-    }
-
-    /**
-     * Find how a call or array is laid out now.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param ExpressionNode $node The call.
-     * @return int|string FLAT if it's on one line, CHOPPED if each argument starts a line and the closer has one of its
-     * own, the index of the one argument that spans lines with the rest on the call's lines, or OTHER.
-     */
-    private static function findCallLayout(File $phpcsFile, ExpressionNode $node): int|string
-    {
-        $tokens = $phpcsFile->getTokens();
-        if ($node->children === []) {
-            return $tokens[(int) $node->opener]['line'] === $tokens[(int) $node->closer]['line']
-                ? self::FLAT
-                : self::OTHER;
-        }
-
-        $last = $node->children[count($node->children) - 1];
-        $gaps = [[(int) $node->opener, $node->children[0]->start]];
-        foreach ($node->separators as $index => $comma) {
-            $gaps[] = [$comma, $node->children[$index + 1]->start];
-        }
-
-        $gaps[] = [$node->trailingComma ?? $last->end, (int) $node->closer];
-        $isBroken = static fn(array $gap): bool => $tokens[$gap[0]]['line'] !== $tokens[$gap[1]]['line'];
-        $broken = array_map($isBroken, $gaps);
-        if (!in_array(false, $broken, true)) {
-            return self::CHOPPED;
-        }
-
-        if (in_array(true, $broken, true)) {
-            return self::OTHER;
-        }
-
-        $spanning = array_keys(
-            array_filter(
-                $node->children,
-                static fn(ExpressionNode $child): bool
-                    => $tokens[$child->start]['line'] !== $tokens[$child->end]['line'],
-            ),
-        );
-
-        return match (count($spanning)) {
-            0 => self::FLAT,
-            1 => $spanning[0],
-            default => self::OTHER,
-        };
     }
 
     /**
@@ -1573,6 +1546,14 @@ class ExpressionFormatSniff implements Sniff
     {
         if ($this->isStringOwned($phpcsFile, $node)) {
             return;
+        }
+
+        foreach ($node->calleeGaps as $ptr => $content) {
+            $phpcsFile->fixer->replaceToken($ptr, $content);
+        }
+
+        if ($node->kind === ExpressionNode::LIST && self::isEchoList($phpcsFile, $node)) {
+            $this->applyListLayout($phpcsFile, $node);
         }
 
         // A `match` arm's conditions first, so a comma added after the last comes before the line break after it.
@@ -1623,10 +1604,10 @@ class ExpressionFormatSniff implements Sniff
             self::setGap($phpcsFile, $node->trailingComma ?? $last, $node->closer, $closerLine);
         } elseif (
             $node->kind === ExpressionNode::CALL && $node->children === []
-            && self::findCallLayout($phpcsFile, $node) !== self::FLAT
+            && $node->findLayout($phpcsFile) !== ExpressionNode::FLAT
         ) {
             self::setGap($phpcsFile, (int) $node->opener, (int) $node->closer, '');
-        } elseif ($node->kind === ExpressionNode::CALL && self::findCallLayout($phpcsFile, $node) !== self::FLAT) {
+        } elseif ($node->kind === ExpressionNode::CALL && $node->findLayout($phpcsFile) !== ExpressionNode::FLAT) {
             // Hugging an argument, or on one line: the list itself isn't split, so it has no trailing comma.
             self::setGap($phpcsFile, (int) $node->opener, $node->children[0]->start, '');
             foreach ($node->separators as $index => $comma) {
@@ -1655,6 +1636,10 @@ class ExpressionFormatSniff implements Sniff
         $gap = $indent === null ? ' ' : $phpcsFile->eolChar . str_repeat(' ', $indent);
         foreach ($node->separators as $index => $comma) {
             self::setGap($phpcsFile, $comma, $node->children[$index + 1]->start, $gap);
+        }
+
+        if (self::isEchoList($phpcsFile, $node)) {
+            return;
         }
 
         if ($indent !== null && $node->trailingComma === null) {

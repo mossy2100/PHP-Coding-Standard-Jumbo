@@ -213,5 +213,13 @@ $ok = $value !== null
         ->findUser($id)
         ->isActive();
 $x = $a->b()->c();
+// A line break before a call's opening bracket is joined, as after `new` or before `::`; an `echo` list is a call
+// without brackets: joined if it fits, otherwise one value per line, with no trailing comma.
+$order = new Order($customer);
+$x = [$a->b()?->c()::d()];
+echo $greeting, $name;
+echo $greeting,
+    $someLongName,
+    $punctuation;
 // phpcs:set PERCS31.Formatting.ExpressionFormat strict false
 // phpcs:set PERCS31.Formatting.ExpressionFormat maxLineLength 120

@@ -535,9 +535,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   assignment, `$target = $value`, with any assignment operator, and a property's default or a constant's value, is laid
   out as a pair too: a value that fits on a line of its own goes there, after a break before `=`, and otherwise stays
   after `=` and is split there. A chain with two or more `->` or `?->` that doesn't fit puts each arrow on a line of its
-  own, property accesses included, with `::` kept on the line before. Reported as `TooLong`, a warning in PERCS31 and an
-  error in Jumbo. With `strict`, as in Jumbo, a call or array split over lines is checked too: joined if it fits, and
-  laid out again if split any other way. Auto-fixable.
+  own, property accesses included, with `::` kept on the line before. A line break before a call's opening bracket, as
+  after `new`, is joined, and an `echo` with several values is laid out like a call's arguments. Reported as `TooLong`,
+  a warning in PERCS31 and an error in Jumbo. With `strict`, as in Jumbo, a call or array split over lines is checked
+  too: joined if it fits, and laid out again if split any other way. Auto-fixable.
 - **String expressions, in Jumbo (breaking).** `PERCS31.Formatting.ExpressionFormat` has a new
   `reflowStringExpressions` property, on in Jumbo. It rewrites a chain of `.` operations as the fewest strings it can
   be, interpolating variables, property reads and method calls, so `'Hello, ' . $name . '!'` becomes `"Hello, $name!"`.
@@ -855,8 +856,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   comment between the hooks.
 - **An arrow function may span lines.** Its expression can go on the next line, as PER Coding Style 3.1 allows.
   `SlevomatCodingStandard.Functions.ArrowFunctionDeclaration` previously required it on one line.
-- **Array formatting follows PER Coding Style, with no alignment (breaking).** `Jumbo.Arrays.ArrayDeclaration` was
-  rewritten to do one thing: collapse a multi-line array that fits on one line. Stock sniffs handle the rest:
+- **Array formatting follows PER Coding Style, with no alignment (breaking).** `OceanMoon.Arrays.ArrayDeclaration` is
+  removed. `PERCS31.Formatting.ExpressionFormat` joins a multi-line array that fits on one line, and splits one that
+  doesn't. Stock sniffs handle the rest:
   - An array is single-line if it fits, otherwise one element per line. Grid layout is gone, and a single-line
     associative array is now allowed.
   - Trailing commas are required on multi-line arrays and disallowed on single-line ones, as before.
@@ -864,10 +866,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
     diffs.
 
   The added stock sniffs are `Generic.Arrays.ArrayIndent`, `Squiz.Arrays.ArrayDeclaration` (alignment checks excluded),
-  `Squiz.WhiteSpace.OperatorSpacing` and `SlevomatCodingStandard.Arrays.MultiLineArrayEndBracketPlacement`. The sniff's
-  `indent` property was removed; `maxLineLength` remains. Run `phpcbf` to reformat existing code. Its error codes are
-  replaced by one, `Jumbo.Arrays.ArrayDeclaration.ShouldBeSingleLine`. Update any `phpcs:ignore` comments or `<exclude>`
-  rules that name an old code, such as `ListShouldBeSingleLine`.
+  `Squiz.WhiteSpace.OperatorSpacing` and `SlevomatCodingStandard.Arrays.MultiLineArrayEndBracketPlacement`. Run
+  `phpcbf` to reformat existing code. Update any `phpcs:ignore` comments or `<exclude>` rules that name one of the old
+  sniff's codes, such as `ListShouldBeSingleLine`.
 - **`PERCS31.Classes.PropertyDeclaration.LeadingUnderscore` replaces the `Underscore` warning, as an error, and covers
   promoted constructor parameters (breaking).** A property named like `$_name` was a warning, and a promoted one wasn't
   reported at all. PER Coding Style 3.1 says property names must not start with a single underscore, so a double one, as

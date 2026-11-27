@@ -1587,6 +1587,10 @@ never starts a line, so a static call stays with the object, as in `Foo::create(
 as in `$this->process(`, so only its arguments are split. A chain that's an expression's last operand doesn't stay
 after its operator when it's too long for its own line: the operator starts a line first.
 
+A line break before a call's opening bracket, as after `new` or before a `::`, is never a place to split, so with
+`strict` it's joined, as in `new Order()`. An `echo` with several values is a call without brackets: joined if it
+fits, and otherwise one value per line, the first after `echo`, each later one indented once, with no trailing comma.
+
 **A ternary** too long for its line takes three lines: the condition, then `?` and its value, then `:` and its value,
 each new line indented once, as section 6.4 says "ternaries MUST occupy 3 lines, never 2". A short ternary takes two,
 with `?:` starting the second. Each part is then split in the room its own line leaves it, outermost first. After a

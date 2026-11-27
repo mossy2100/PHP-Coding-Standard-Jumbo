@@ -49,7 +49,12 @@ switch ($a) {
 }
 #[D]
 const E = 1;
-// Left to PERCS31.Formatting.ExpressionFormat: a line break at an assignment's operator, a property's default too.
+// Left to PERCS31.Formatting.ExpressionFormat: a line break at an assignment's operator, a property's default too,
+// before a call's opening bracket, or in an `echo` list.
+echo $a,
+    $b;
+$a = new
+    Foo();
 $a
     = $b ? 1 : 2;
 $a =
@@ -101,10 +106,6 @@ $a = $b
     : 2;
 $a = $b
     ->c;
-$a = new
-    Foo();
-echo $a,
-    $b;
 class G
 {
     public A

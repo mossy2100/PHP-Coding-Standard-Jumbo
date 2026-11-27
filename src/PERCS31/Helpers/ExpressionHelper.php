@@ -111,13 +111,6 @@ class ExpressionHelper
     ];
 
     /**
-     * Prefix operators that can come before an operand's grouping parentheses, besides casts.
-     *
-     * @var list<int|string>
-     */
-    private const array PREFIXES = [T_BOOLEAN_NOT, T_BITWISE_NOT, T_ASPERAND, T_MINUS, T_PLUS];
-
-    /**
      * Whether each expression read can be read, by file, token count and region, so a statement isn't parsed again for
      * each token in it.
      *
@@ -281,7 +274,7 @@ class ExpressionHelper
             return null;
         }
 
-        $root = self::parse($phpcsFile, $region[0], $region[1]);
+        $root = ExpressionParser::parse($phpcsFile, $region[0], $region[1]);
 
         return $root === null || $root->kind === ExpressionNode::OPERAND ? null : [$root, $region[2], $region[3]];
     }
@@ -449,7 +442,7 @@ class ExpressionHelper
     {
         $key = "{$phpcsFile->getFilename()}:{$phpcsFile->numTokens}:{$region[0]}:{$region[1]}";
         self::$readable[$key] ??= !self::isSkipped($phpcsFile, $region[0], $region[1], $region[2])
-            && self::parse($phpcsFile, $region[0], $region[1]) !== null;
+            && ExpressionParser::parse($phpcsFile, $region[0], $region[1]) !== null;
 
         return self::$readable[$key];
     }
@@ -517,59 +510,6 @@ class ExpressionHelper
     }
 
     /**
-     * Parse part of an expression into a tree of its operands, groups and levels of operators.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the first token.
-     * @param int $end The position of the last token.
-     * @return ?ExpressionNode The node, or null if an operand has a line break inside it.
-     */
-    public static function parse(File $phpcsFile, int $start, int $end): ?ExpressionNode
-    {
-        $tokens = $phpcsFile->getTokens();
-        $arrowFunction = self::parseArrowFunction($phpcsFile, $start, $end);
-        if ($arrowFunction !== false) {
-            return $arrowFunction;
-        }
-
-        $assignment = self::findAssignment($phpcsFile, $start, $end);
-        if ($assignment !== null) {
-            return self::parseAssignment($phpcsFile, $start, $end, $assignment);
-        }
-
-        $arm = self::findArmArrow($phpcsFile, $start, $end);
-        if ($arm !== null) {
-            return self::parseArm($phpcsFile, $start, $end, $arm);
-        }
-
-        $questions = self::findTernaryTokens($phpcsFile, $start, $end);
-        if ($questions !== []) {
-            return count($questions) === 2 ? self::parseTernary($phpcsFile, $start, $end, ...$questions) : null;
-        }
-
-        $operators = [];
-        for ($i = $start; $i <= $end; $i++) {
-            // An arrow function runs to the end, and its body's operators are its own.
-            if ($tokens[$i]['code'] === T_FN) {
-                break;
-            }
-
-            if ($i !== $start && self::isBinary($phpcsFile, $i)) {
-                $operators[] = $i;
-            }
-
-            $closer = TokenHelper::findCloser($tokens[$i]);
-            if ($closer !== null && $closer > $i) {
-                $i = $closer;
-            }
-        }
-
-        return $operators === []
-            ? self::parseOperand($phpcsFile, $start, $end)
-            : self::parseLevel($phpcsFile, $start, $end, $operators);
-    }
-
-    /**
      * Widen an expression to the arm, ternary, arrow function or assignment it's part of, outermost, until nothing
      * changes.
      *
@@ -587,6 +527,7 @@ class ExpressionHelper
             $region = self::widenToTernary($phpcsFile, $region) ?? $region;
             $region = self::widenToArrowFunction($phpcsFile, $region) ?? $region;
             $region = self::widenToAssignment($phpcsFile, $region, $toTarget) ?? $region;
+            $region = self::widenToEchoList($phpcsFile, $region) ?? $region;
         } while ($region !== $previous);
 
         return $region;
@@ -698,156 +639,69 @@ class ExpressionHelper
     }
 
     /**
-     * Find an assignment's operator outside any brackets, the first if there are several, as in `$a = $b = 1`.
+     * Find the `echo` whose list of values an expression is one of, as `$b` is in `echo $a, $b;`.
      *
      * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the expression's first token.
-     * @param int $end The position of its last token.
-     * @return ?int The position of the operator, or null if there's none.
+     * @param array{int, int, int, int} $region The expression's region.
+     * @return ?int The position of the `echo`, or null if the expression isn't one of its values.
      */
-    private static function findAssignment(File $phpcsFile, int $start, int $end): ?int
+    private static function findEcho(File $phpcsFile, array $region): ?int
     {
         $tokens = $phpcsFile->getTokens();
-        for ($i = $start; $i <= $end; $i++) {
-            if ($tokens[$i]['code'] === T_FN) {
-                return null;
-            }
-
-            if (self::isAssignmentPair($phpcsFile, $i)) {
+        for ($i = $region[2]; $i >= 0; $i--) {
+            $code = $tokens[$i]['code'];
+            if ($code === T_ECHO) {
                 return $i;
             }
 
-            $i = self::findNestedEnd($tokens[$i], $i);
+            $opener = TokenHelper::findOpener($tokens[$i]);
+            if ($opener !== null) {
+                $i = $opener;
+                continue;
+            }
+
+            if ($code !== T_COMMA && self::isBoundary($phpcsFile, $i)) {
+                return null;
+            }
         }
 
         return null;
     }
 
     /**
-     * Parse an assignment, as a pair: its target is the key, and its value the value.
+     * Widen one of an `echo`'s values to its whole list of values, when it has more than one.
      *
      * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the target's first token.
-     * @param int $end The position of the value's last token.
-     * @param int $operator The position of the assignment operator.
-     * @return ?ExpressionNode The assignment, or null if it can't be read.
+     * @param array{int, int, int, int} $region The expression's region.
+     * @return array{int, int, int, int}|null The list's region, or null if the expression isn't in one.
      */
-    private static function parseAssignment(File $phpcsFile, int $start, int $end, int $operator): ?ExpressionNode
-    {
-        $targetEnd = (int) $phpcsFile->findPrevious(T_WHITESPACE, ($operator - 1), $start, true);
-        $valueStart = $phpcsFile->findNext(T_WHITESPACE, ($operator + 1), ($end + 1), true);
-        $target = self::parse($phpcsFile, $start, $targetEnd);
-        $value = $valueStart === false ? null : self::parse($phpcsFile, $valueStart, $end);
-        if ($target === null || $value === null) {
-            return null;
-        }
-
-        $length = mb_strlen($phpcsFile->getTokens()[$operator]['content']);
-
-        return new ExpressionNode(
-            ExpressionNode::LEVEL,
-            $start,
-            $end,
-            $target->flatLength + $length + 2 + $value->flatLength,
-            [$target, $value],
-            [$operator],
-        );
-    }
-
-    /**
-     * Parse a chain: an object, then two or more links after `->` or `?->` outside any brackets. A static call or
-     * property before the first arrow is part of the object, and a `::` or an index after a link is part of the link.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the operand's first token.
-     * @param int $end The position of its last token.
-     * @return ExpressionNode|false|null The chain, false if the operand isn't one, or null if it can't be read.
-     */
-    private static function parseChain(File $phpcsFile, int $start, int $end): ExpressionNode|false|null
+    private static function widenToEchoList(File $phpcsFile, array $region): ?array
     {
         $tokens = $phpcsFile->getTokens();
-        $arrows = [];
-        for ($i = $start; $i <= $end; $i++) {
-            if (in_array($tokens[$i]['code'], [T_OBJECT_OPERATOR, T_NULLSAFE_OBJECT_OPERATOR], true)) {
-                $arrows[] = $i;
-            }
-
-            $i = self::findNestedEnd($tokens[$i], $i);
-        }
-
-        if (count($arrows) < 2) {
-            return false;
-        }
-
-        $headEnd = $phpcsFile->findPrevious(T_WHITESPACE, ($arrows[0] - 1), $start, true);
-        $head = $headEnd === false ? null : self::parse($phpcsFile, $start, $headEnd);
-        if ($head === null) {
+        $isValue = $region[2] >= 0 && in_array($tokens[$region[2]]['code'], [T_ECHO, T_COMMA], true);
+        $echo = $isValue ? self::findEcho($phpcsFile, $region) : null;
+        if ($echo === null) {
             return null;
         }
 
-        $children = [$head];
-        $flatLength = $head->flatLength;
-        foreach ($arrows as $index => $arrow) {
-            $linkStart = $phpcsFile->findNext(T_WHITESPACE, ($arrow + 1), ($end + 1), true);
-            $linkEnd = $phpcsFile->findPrevious(T_WHITESPACE, (($arrows[$index + 1] ?? ($end + 1)) - 1), $arrow, true);
-            $link = $linkStart === false || $linkEnd === false || $linkEnd < $linkStart
-                ? null
-                : self::parse($phpcsFile, $linkStart, $linkEnd);
-            if ($link === null) {
+        $end = $region[3];
+        while ($tokens[$end]['code'] === T_COMMA) {
+            $next = self::findExpression(
+                $phpcsFile,
+                (int) $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($end + 1), null, true),
+            );
+            if ($next === null) {
                 return null;
             }
 
-            $children[] = $link;
-            $flatLength += mb_strlen($tokens[$arrow]['content']) + $link->flatLength;
+            $end = $next[3];
         }
 
-        return new ExpressionNode(ExpressionNode::CHAIN, $start, $end, $flatLength, $children, $arrows);
-    }
+        $first = (int) $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($echo + 1), null, true);
+        $last = (int) $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($end - 1), null, true);
+        $list = [$first, $last, $echo, $end];
 
-    /**
-     * Parse an arrow function, as a pair: its signature, which must be on one line, is the key, and its body the value.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the expression's first token.
-     * @param int $end The position of its last token.
-     * @return ExpressionNode|false|null The arrow function, false if the expression isn't one, or null if it can't be
-     * read.
-     */
-    private static function parseArrowFunction(File $phpcsFile, int $start, int $end): ExpressionNode|false|null
-    {
-        $tokens = $phpcsFile->getTokens();
-        $fn = $tokens[$start]['code'] === T_STATIC
-            ? $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($start + 1), $end, true)
-            : $start;
-        $arrow = $fn === false ? null : ($tokens[$fn]['scope_opener'] ?? null);
-        $closer = $fn === false ? null : ($tokens[$fn]['scope_closer'] ?? null);
-        if ($fn === false || $tokens[$fn]['code'] !== T_FN || !is_int($arrow) || !is_int($closer)) {
-            return false;
-        }
-
-        $bodyEnd = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($closer - 1), $arrow, true);
-        $bodyStart = $phpcsFile->findNext(T_WHITESPACE, ($arrow + 1), ($end + 1), true);
-        $signatureEnd = (int) $phpcsFile->findPrevious(T_WHITESPACE, ($arrow - 1), $start, true);
-        $signature = $phpcsFile->getTokensAsString($start, ($signatureEnd - $start + 1));
-        if ($bodyEnd !== $end) {
-            return false;
-        }
-
-        $body = $bodyStart === false ? null : self::parse($phpcsFile, $bodyStart, $end);
-        if ($body === null || str_contains($signature, "\n")) {
-            return null;
-        }
-
-        $key = new ExpressionNode(ExpressionNode::OPERAND, $start, $signatureEnd, mb_strlen($signature));
-
-        return new ExpressionNode(
-            ExpressionNode::LEVEL,
-            $start,
-            $end,
-            $key->flatLength + 4 + $body->flatLength,
-            [$key, $body],
-            [$arrow],
-        );
+        return $list === $region || $phpcsFile->findNext(T_COMMA, $first, $last) === false ? null : $list;
     }
 
     /**
@@ -872,92 +726,6 @@ class ExpressionHelper
         }
 
         return self::findExpression($phpcsFile, $fn, $closer - 1);
-    }
-
-    /**
-     * Find a ternary's `?` and `:` outside any brackets.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the expression's first token.
-     * @param int $end The position of its last token.
-     * @return list<int> The positions of the `?` and the `:`, nothing if there's no ternary, or anything else, such
-     * as a chain of two, which isn't read.
-     */
-    private static function findTernaryTokens(File $phpcsFile, int $start, int $end): array
-    {
-        $tokens = $phpcsFile->getTokens();
-        $found = [];
-        for ($i = $start; $i <= $end; $i++) {
-            if ($tokens[$i]['code'] === T_FN) {
-                break;
-            }
-
-            // A pair's `=>`, or an assignment's operator, binds more loosely than a ternary, so the ternary is in the
-            // pair's value.
-            $isArrow = in_array($tokens[$i]['code'], [T_DOUBLE_ARROW, T_MATCH_ARROW], true)
-                && self::isArrowOperator($phpcsFile, $i);
-            if ($isArrow || self::isAssignmentPair($phpcsFile, $i)) {
-                return [];
-            }
-
-            if (in_array($tokens[$i]['code'], [T_INLINE_THEN, T_INLINE_ELSE], true)) {
-                $found[] = $i;
-            }
-
-            $i = self::findNestedEnd($tokens[$i], $i);
-        }
-
-        $isPair = count($found) === 2 && $tokens[$found[0]]['code'] === T_INLINE_THEN;
-
-        return $found === [] || $isPair ? $found : [-1];
-    }
-
-    /**
-     * Parse a ternary into its condition and values.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the ternary's first token.
-     * @param int $end The position of its last token.
-     * @param int $question The position of its `?`.
-     * @param int $colon The position of its `:`.
-     * @return ?ExpressionNode The ternary, or null if a part can't be read.
-     */
-    private static function parseTernary(
-        File $phpcsFile,
-        int $start,
-        int $end,
-        int $question,
-        int $colon,
-    ): ?ExpressionNode {
-        $tokens = $phpcsFile->getTokens();
-        $conditionEnd = $phpcsFile->findPrevious(T_WHITESPACE, ($question - 1), $start, true);
-        $elseStart = $phpcsFile->findNext(T_WHITESPACE, ($colon + 1), ($end + 1), true);
-        $isShort = $phpcsFile->findNext(T_WHITESPACE, ($question + 1), $colon, true) === false;
-        $thenStart = $isShort ? false : $phpcsFile->findNext(T_WHITESPACE, ($question + 1), $colon, true);
-        $thenEnd = $isShort ? false : $phpcsFile->findPrevious(T_WHITESPACE, ($colon - 1), $question, true);
-        if (
-            $conditionEnd === false || $elseStart === false
-            || (!$isShort && ($thenStart === false || $thenEnd === false))
-        ) {
-            return null;
-        }
-
-        $parts = [[$start, $conditionEnd], ...($isShort ? [] : [[$thenStart, $thenEnd]]), [$elseStart, $end]];
-        $children = [];
-        foreach ($parts as [$partStart, $partEnd]) {
-            $child = self::parse($phpcsFile, (int) $partStart, (int) $partEnd);
-            if ($child === null) {
-                return null;
-            }
-
-            $children[] = $child;
-        }
-
-        // On one line: the parts, with ` ? ` and ` : ` between them, or ` ?: ` for a short ternary.
-        $flatLength = array_sum(array_map(static fn(ExpressionNode $child): int => $child->flatLength, $children))
-            + ($isShort ? 4 : 6);
-
-        return new ExpressionNode(ExpressionNode::TERNARY, $start, $end, $flatLength, $children, [$question, $colon]);
     }
 
     /**
@@ -1028,7 +796,7 @@ class ExpressionHelper
      * @param int $ptr Its position.
      * @return int The position of its closer, or its own position if it doesn't open anything.
      */
-    private static function findNestedEnd(array $token, int $ptr): int
+    public static function findNestedEnd(array $token, int $ptr): int
     {
         $closer = TokenHelper::findCloser($token);
         if ($closer === null && !in_array($token['code'], [T_FN, T_FN_ARROW], true)) {
@@ -1077,102 +845,6 @@ class ExpressionHelper
     }
 
     /**
-     * Find the `=>` of a `match` arm with several conditions, when the expression is that whole arm.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the expression's first token.
-     * @param int $end The position of its last token.
-     * @return ?int The position of the `=>`, or null if there isn't one outside any brackets, or the arm has one
-     * condition, whose `=>` is read as an operator.
-     */
-    private static function findArmArrow(File $phpcsFile, int $start, int $end): ?int
-    {
-        $tokens = $phpcsFile->getTokens();
-        for ($i = $start; $i <= $end; $i++) {
-            if ($tokens[$i]['code'] === T_FN) {
-                return null;
-            }
-
-            if ($tokens[$i]['code'] === T_MATCH_ARROW) {
-                return self::isArrowOperator($phpcsFile, $i) ? null : $i;
-            }
-
-            $i = self::findNestedEnd($tokens[$i], $i);
-        }
-
-        return null;
-    }
-
-    /**
-     * Parse a `match` arm with several conditions into a pair, whose key is the list of conditions.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the arm's first token.
-     * @param int $end The position of its last token.
-     * @param int $arrow The position of its `=>`.
-     * @return ?ExpressionNode The pair, or null if a part can't be read.
-     */
-    private static function parseArm(File $phpcsFile, int $start, int $end, int $arrow): ?ExpressionNode
-    {
-        $tokens = $phpcsFile->getTokens();
-        $conditionsEnd = $phpcsFile->findPrevious(T_WHITESPACE, ($arrow - 1), $start, true);
-        $valueStart = $phpcsFile->findNext(T_WHITESPACE, ($arrow + 1), ($end + 1), true);
-        if ($conditionsEnd === false || $valueStart === false) {
-            return null;
-        }
-
-        // The commas between the conditions, outside any brackets.
-        $commas = [];
-        for ($i = $start; $i <= $conditionsEnd; $i++) {
-            if ($tokens[$i]['code'] === T_COMMA) {
-                $commas[] = $i;
-            }
-
-            $i = self::findNestedEnd($tokens[$i], $i);
-        }
-
-        $trailingComma = $commas !== [] && end($commas) === $conditionsEnd ? array_pop($commas) : null;
-        $children = [];
-        $conditionStart = $start;
-        foreach ([...$commas, ($trailingComma ?? $conditionsEnd + 1)] as $boundary) {
-            $last = $phpcsFile->findPrevious(T_WHITESPACE, ($boundary - 1), $conditionStart, true);
-            $child = $last === false ? null : self::parse($phpcsFile, $conditionStart, $last);
-            if ($child === null) {
-                return null;
-            }
-
-            $children[] = $child;
-            $conditionStart = (int) $phpcsFile->findNext(T_WHITESPACE, ($boundary + 1), null, true);
-        }
-
-        $value = self::parse($phpcsFile, $valueStart, $end);
-        if ($value === null || count($children) < 2) {
-            return null;
-        }
-
-        $listLength = array_sum(array_map(static fn(ExpressionNode $child): int => $child->flatLength, $children))
-            + 2 * (count($children) - 1);
-        $list = new ExpressionNode(
-            kind: ExpressionNode::LIST,
-            start: $start,
-            end: $trailingComma ?? $children[count($children) - 1]->end,
-            flatLength: $listLength,
-            children: $children,
-            separators: $commas,
-            trailingComma: $trailingComma,
-        );
-
-        return new ExpressionNode(
-            ExpressionNode::LEVEL,
-            $start,
-            $end,
-            $listLength + 4 + $value->flatLength,
-            [$list, $value],
-            [$arrow],
-        );
-    }
-
-    /**
      * Widen an expression in a `match` arm with several conditions, a condition or the value, to the whole arm.
      *
      * @param File $phpcsFile The file being scanned.
@@ -1215,124 +887,6 @@ class ExpressionHelper
     }
 
     /**
-     * Parse a run of operands and operators into a level of its loosest operators, whose operands are levels of the
-     * tighter ones.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the first token.
-     * @param int $end The position of the last token.
-     * @param non-empty-list<int> $operators The positions of the operators, outside any brackets.
-     * @return ?ExpressionNode The level, or null if an operand has a line break inside it.
-     */
-    private static function parseLevel(File $phpcsFile, int $start, int $end, array $operators): ?ExpressionNode
-    {
-        $tokens = $phpcsFile->getTokens();
-        $precedences = self::precedences();
-        $loosest
-            = min(array_map(static fn(int $operator): int => $precedences[$tokens[$operator]['code']], $operators));
-
-        $children = [];
-        $levelOperators = [];
-        $flatLength = 0;
-        $segmentStart = $start;
-        $segmentOperators = [];
-        foreach ([...$operators, null] as $operator) {
-            if ($operator !== null && $precedences[$tokens[$operator]['code']] !== $loosest) {
-                $segmentOperators[] = $operator;
-                continue;
-            }
-
-            $segmentEnd = $end;
-            if ($operator !== null) {
-                $segmentEnd = $phpcsFile->findPrevious(T_WHITESPACE, ($operator - 1), null, true);
-            }
-
-            if ($segmentEnd === false) {
-                return null;
-            }
-
-            // An operand can be a ternary, as a pair's value can, which only parse() reads.
-            $child = $segmentOperators === []
-                ? self::parse($phpcsFile, $segmentStart, $segmentEnd)
-                : self::parseLevel($phpcsFile, $segmentStart, $segmentEnd, $segmentOperators);
-            if ($child === null) {
-                return null;
-            }
-
-            $children[] = $child;
-            $flatLength += $child->flatLength;
-            if ($operator !== null) {
-                $next = $phpcsFile->findNext(T_WHITESPACE, ($operator + 1), null, true);
-                if ($next === false) {
-                    return null;
-                }
-
-                $levelOperators[] = $operator;
-                $flatLength += mb_strlen($tokens[$operator]['content']) + 2;
-                $segmentStart = $next;
-                $segmentOperators = [];
-            }
-        }
-
-        return new ExpressionNode(ExpressionNode::LEVEL, $start, $end, $flatLength, $children, $levelOperators);
-    }
-
-    /**
-     * Parse an operand: grouping parentheses, with any prefix operators before them, or anything else, which is kept as
-     * it's written.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the first token.
-     * @param int $end The position of the last token.
-     * @return ?ExpressionNode The operand or group, or null if it has a line break inside it.
-     */
-    private static function parseOperand(File $phpcsFile, int $start, int $end): ?ExpressionNode
-    {
-        $tokens = $phpcsFile->getTokens();
-        $opener = $start;
-        while (
-            $opener < $end
-            && ($tokens[$opener]['code'] === T_WHITESPACE || in_array($tokens[$opener]['code'], self::PREFIXES, true)
-                || isset(Tokens::CAST_TOKENS[$tokens[$opener]['code']]))
-        ) {
-            $opener++;
-        }
-
-        $prefix = $phpcsFile->getTokensAsString($start, ($opener - $start));
-        $isGroup = self::isGrouping($phpcsFile, $opener) && ($tokens[$opener]['parenthesis_closer'] ?? null) === $end;
-        if (!$isGroup) {
-            $chain = self::parseChain($phpcsFile, $start, $end);
-            if ($chain !== false) {
-                return $chain;
-            }
-
-            // A call, an array or a body can span lines; any other operand that does is left alone.
-            $call = self::parseCall($phpcsFile, $start, $end) ?? self::parseBody($phpcsFile, $start, $end);
-            $text = $phpcsFile->getTokensAsString($start, ($end - $start + 1));
-            if ($call !== null || str_contains($text, "\n")) {
-                return $call;
-            }
-
-            return new ExpressionNode(ExpressionNode::OPERAND, $start, $end, mb_strlen($text));
-        }
-
-        $innerStart = $phpcsFile->findNext(T_WHITESPACE, ($opener + 1), $end, true);
-        $innerEnd = $phpcsFile->findPrevious(T_WHITESPACE, ($end - 1), $opener, true);
-        if (str_contains($prefix, "\n") || $innerStart === false || $innerEnd === false) {
-            return null;
-        }
-
-        $inner = self::parse($phpcsFile, $innerStart, $innerEnd);
-        if ($inner === null) {
-            return null;
-        }
-
-        $flatLength = mb_strlen($prefix) + $inner->flatLength + 2;
-
-        return new ExpressionNode(ExpressionNode::GROUP, $start, $end, $flatLength, [$inner], [], $opener, $end);
-    }
-
-    /**
      * Check whether a bracket opens a call's argument list or an array's values, which ExpressionFormat lays out.
      *
      * @param File $phpcsFile The file being scanned.
@@ -1363,137 +917,6 @@ class ExpressionHelper
     }
 
     /**
-     * Parse an operand that's a closure, `match` or anonymous class, whose body isn't laid out here.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the operand's first token.
-     * @param int $end The position of its last token.
-     * @return ?ExpressionNode The body, or null if the operand isn't one, or its first line spans lines.
-     */
-    private static function parseBody(File $phpcsFile, int $start, int $end): ?ExpressionNode
-    {
-        $tokens = $phpcsFile->getTokens();
-        $keyword = $tokens[$start]['code'] === T_STATIC
-            ? $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($start + 1), $end, true)
-            : $start;
-        if ($keyword !== false && $tokens[$keyword]['code'] === T_NEW) {
-            $keyword = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($keyword + 1), $end, true);
-            $keyword = $keyword !== false && $tokens[$keyword]['code'] === T_ANON_CLASS ? $keyword : false;
-        }
-
-        $opener = $keyword === false ? null : ($tokens[$keyword]['scope_opener'] ?? null);
-        if (
-            $keyword === false || !in_array($tokens[$keyword]['code'], [T_CLOSURE, T_MATCH, T_ANON_CLASS], true)
-            || ($tokens[$keyword]['scope_closer'] ?? null) !== $end || !is_int($opener)
-        ) {
-            return null;
-        }
-
-        $head = $phpcsFile->getTokensAsString($start, ($opener - $start + 1));
-        if (str_contains($head, "\n")) {
-            return null;
-        }
-
-        return new ExpressionNode(
-            kind: ExpressionNode::BODY,
-            start: $start,
-            end: $end,
-            flatLength: ExpressionNode::BODY_LENGTH,
-            headLength: mb_strlen($head),
-            isClosure: $tokens[$keyword]['code'] === T_CLOSURE,
-        );
-    }
-
-    /**
-     * Parse an operand that ends with a call's argument list or an array's values, with at least one, into a call.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $start The position of the operand's first token.
-     * @param int $end The position of its last token.
-     * @return ?ExpressionNode The call, or null if the operand isn't one, or an argument can't be read.
-     */
-    private static function parseCall(File $phpcsFile, int $start, int $end): ?ExpressionNode
-    {
-        $tokens = $phpcsFile->getTokens();
-        $opener = TokenHelper::findOpener($tokens[$end]);
-        if ($opener === null || $opener < $start || !self::isCallOpener($phpcsFile, $opener)) {
-            return null;
-        }
-
-        // What comes before the bracket, such as a chain, must be on one line.
-        $callee = $phpcsFile->getTokensAsString($start, ($opener - $start));
-        if (str_contains($callee, "\n")) {
-            return null;
-        }
-
-        // The commas between the arguments, outside any brackets or bodies in them.
-        $commas = [];
-        for ($i = ($opener + 1); $i < $end; $i++) {
-            if ($tokens[$i]['code'] === T_COMMA) {
-                $commas[] = $i;
-            }
-
-            $i = self::findNestedEnd($tokens[$i], $i);
-        }
-
-        $children = [];
-        $separators = [];
-        $trailingComma = null;
-        $argumentStart = $opener;
-        foreach ([...$commas, $end] as $boundary) {
-            $first = $phpcsFile->findNext(T_WHITESPACE, ($argumentStart + 1), $boundary, true);
-            // A destructuring list's skipped element, as in `[$a, , $c] = $list`, isn't read.
-            if ($first === false && $boundary !== $end) {
-                return null;
-            }
-
-            if ($first === false) {
-                // Nothing after the last comma: a trailing comma.
-                if ($commas !== []) {
-                    $trailingComma = array_pop($separators);
-                }
-
-                break;
-            }
-
-            $last = (int) $phpcsFile->findPrevious(T_WHITESPACE, ($boundary - 1), $first, true);
-            $child = self::parse($phpcsFile, $first, $last);
-            if ($child === null) {
-                return null;
-            }
-
-            $children[] = $child;
-            if ($boundary !== $end) {
-                $separators[] = $boundary;
-            }
-
-            $argumentStart = $boundary;
-        }
-
-        // On one line: what comes before the bracket, the bracket, the arguments with ", " between, and the closer. A
-        // call with no arguments may still be split over lines, with nothing but whitespace between its brackets.
-        $flatLength = mb_strlen($callee) + 2
-            + array_sum(array_map(static fn(ExpressionNode $child): int => $child->flatLength, $children))
-            + 2 * max(0, count($children) - 1);
-        // isCallOpener() only takes an owned parenthesis if it's array()'s.
-        $isArray = $tokens[$opener]['code'] === T_OPEN_SHORT_ARRAY || isset($tokens[$opener]['parenthesis_owner']);
-
-        return new ExpressionNode(
-            ExpressionNode::CALL,
-            $start,
-            $end,
-            $flatLength,
-            $children,
-            [],
-            $opener,
-            $end,
-            $separators,
-            $trailingComma,
-            $isArray,
-        );
-    }
-
-    /**
      * Check whether a line break between two tokens is part of an expression's layout, which
      * PERCS31.Formatting.ExpressionFormat checks: next to a binary operator, or just inside grouping parentheses next
      * to or holding one.
@@ -1506,8 +929,50 @@ class ExpressionHelper
     public static function isExpressionBreak(File $phpcsFile, int $before, int $after): bool
     {
         $operator = self::findOperatorBeside($phpcsFile, $before, $after);
+        if ($operator !== null) {
+            return self::read($phpcsFile, $operator) !== null;
+        }
 
-        return $operator !== null && self::read($phpcsFile, $operator) !== null;
+        // A line break after a comma in an `echo` list.
+        $tokens = $phpcsFile->getTokens();
+        if ($tokens[$before]['code'] === T_COMMA) {
+            $value = self::findExpression($phpcsFile, $after);
+            $list = $value === null ? null : self::widenToEchoList($phpcsFile, $value);
+
+            return $list !== null && self::read($phpcsFile, $after, $list) !== null;
+        }
+
+        // A line break before a call's opening bracket, as in `new` then `Foo()`, but not after a keyword that ends an
+        // expression, such as `return`.
+        $opener = self::isBoundary($phpcsFile, $before) ? null : self::findCalleeOpener($phpcsFile, $after);
+        $region = $opener === null ? null : self::findExpressionAround($phpcsFile, $opener);
+
+        return $region !== null && self::read($phpcsFile, (int) $opener, $region) !== null;
+    }
+
+    /**
+     * Find the opening bracket of the call whose callee a token is in, as `Foo` is in `new Foo()`.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $ptr The position of the token.
+     * @return ?int The position of the bracket, or null if the token isn't in a callee.
+     */
+    private static function findCalleeOpener(File $phpcsFile, int $ptr): ?int
+    {
+        $tokens = $phpcsFile->getTokens();
+        for ($i = $ptr; $i < count($tokens); $i++) {
+            if (self::isCallOpener($phpcsFile, $i)) {
+                return $i;
+            }
+
+            if (self::isBoundary($phpcsFile, $i) || self::isBinary($phpcsFile, $i)) {
+                return null;
+            }
+
+            $i = self::findNestedEnd($tokens[$i], $i);
+        }
+
+        return null;
     }
 
     /**

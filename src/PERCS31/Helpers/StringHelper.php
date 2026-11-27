@@ -291,7 +291,7 @@ class StringHelper
             $innerStart = $this->phpcsFile->findNext(T_WHITESPACE, ($start + 1), $end, true);
             $innerEnd = $this->phpcsFile->findPrevious(T_WHITESPACE, ($end - 1), $start, true);
             $inner = is_int($innerStart) && is_int($innerEnd)
-                ? ExpressionHelper::parse($this->phpcsFile, $innerStart, $innerEnd)
+                ? ExpressionParser::parse($this->phpcsFile, $innerStart, $innerEnd)
                 : null;
             if (
                 $inner !== null && $inner->kind === ExpressionNode::LEVEL

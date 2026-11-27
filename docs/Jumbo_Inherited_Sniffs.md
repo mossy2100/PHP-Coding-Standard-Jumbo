@@ -955,8 +955,8 @@ comment is allowed (`ignoreSpacesInComment`, `ignoreSpacesInAnnotation`).
 The check PERCS31 leaves out: no mix of keyed and unkeyed values. Which line a comma goes on is left to
 [`Jumbo.Arrays.ElementComma`](Jumbo_Custom_Sniffs.md#jumboarrayselementcomma). The spacing around `=>` is left to [`PERCS31.WhiteSpace.ArrowSpacing`](PERCS31_Custom_Sniffs.md#percs31whitespacearrowspacing), as Squiz only checks
 it in a single-line array. Its alignment checks and `SingleLineNotAllowed` stay excluded, so keys, values and arrows are
-not aligned, and a single-line array with several values is allowed. `Jumbo.Arrays.ArrayDeclaration` requires
-single-line where it fits.
+not aligned, and a single-line array with several values is allowed. `PERCS31.Formatting.ExpressionFormat` joins an
+array that fits on one line.
 
 **Auto-fixable:** no.
 

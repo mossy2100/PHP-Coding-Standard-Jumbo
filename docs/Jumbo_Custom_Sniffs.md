@@ -6,7 +6,6 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 
 | Sniff                                                      | Checks                                                          | Fixable |
 | ---------------------------------------------------------- | --------------------------------------------------------------- | ------- |
-| `Jumbo.Arrays.ArrayDeclaration`                            | A multi-line array is on one line if it fits                    | Yes     |
 | `Jumbo.Arrays.ElementComma`                                | A multi-line array element's comma on the element's last line   | Yes     |
 | `Jumbo.Classes.ConstantSpacing`                            | Blank lines after a constant, safe on the last line             | Yes     |
 | `Jumbo.Classes.EmptyLinesAroundClassBraces`                | No blank lines inside class braces, allowing `{}`               | Yes     |
@@ -47,54 +46,6 @@ that misreads modern PHP. Each section gives the reason. The custom sniffs for P
 | `Jumbo.WhiteSpace.BlockBlankLines`                         | No blank line at either end of a block `declare` or a hook      | Yes     |
 | `Jumbo.WhiteSpace.DocBlockSpacing`                         | No blank line after a doc comment, before any declaration       | Yes     |
 | `Jumbo.WhiteSpace.LanguageConstructSpacing`                | One space after `return`, `echo` and others, with no line break | Yes     |
-
-## Jumbo.Arrays.ArrayDeclaration
-
-Requires a multi-line array to be written on one line if it fits.
-
-**Why:** no inherited sniff collapses a multi-line array that fits on one line. The stock array sniffs (see [Inherited
-Sniffs](Jumbo_Inherited_Sniffs.md)) only check the layout of an array that's already multi-line.
-
-**Auto-fixable:** yes.
-
-- **Fits** means the whole resulting line is within `maxLineLength`: the text before the opening bracket, the collapsed
-  array, and the text after the closing bracket on its line. A fix never creates a line that's too long.
-- **Outermost first.** If an enclosing array fits, only that one is reported, as fixing it collapses the nested ones.
-- **Clean output.** The fix uses single spaces, no space inside brackets or around `->`, `?->` and `::`, and no trailing
-  commas.
-- **Skipped** if the array contains a comment, a heredoc or nowdoc, a multi-line string, or a brace body such as a
-  closure, anonymous class or `match` expression.
-
-**Good:**
-
-```php
-$user = ['name' => 'John', 'email' => 'john@example.com'];
-
-$words = [
-    'The quick brown fox jumps over the lazy dog.',
-    'Pack my box with five dozen liquor jugs, please.',
-    'How vexingly quick daft zebras jump!',
-];
-```
-
-**Bad:**
-
-```php
-$user = [
-    'name' => 'John',
-    'email' => 'john@example.com',
-];
-```
-
-**Configuration:**
-
-| Property        | Type | Default | Description                                |
-| --------------- | ---- | ------- | ------------------------------------------ |
-| `maxLineLength` | int  | 120     | Maximum line length for a collapsed array. |
-
-To use a different limit, set every line-length property, as described in [Line Length](LineLength.md).
-
----
 
 ## Jumbo.Arrays.ElementComma
 
@@ -484,11 +435,11 @@ Requires a control structure's header on one line if it fits, and split over lin
 
 **Why:** PER allows either layout for a header that fits on one line, so joining one is an extra rule, in Jumbo only.
 For one that doesn't fit, PER shows the layout but no sniff produces it. A header split over lines is also often left
-over after `Jumbo.Arrays.ArrayDeclaration` collapses the array inside it.
+over after `PERCS31.Formatting.ExpressionFormat` joins the array inside it.
 
 - **A header split over lines** is joined if the whole resulting line, up to and including ` {`, fits within
-  `maxLineLength`. A header with a comment, heredoc, multi-line string or brace body is left alone, as for
-  [Jumbo.Arrays.ArrayDeclaration](#jumboarraysarraydeclaration). Reported as `ShouldBeSingleLine`.
+  `maxLineLength`. A header with a comment, heredoc, multi-line string or brace body is left alone. Reported as
+  `ShouldBeSingleLine`.
 - **A header on one line that's too long** is split. Its condition goes on its own line after the `(`, indented once,
   and `) {` goes on the next line, level with the keyword's line. A `for` header's expressions go on a line each.
   Reported as `ShouldBeMultiLine`.

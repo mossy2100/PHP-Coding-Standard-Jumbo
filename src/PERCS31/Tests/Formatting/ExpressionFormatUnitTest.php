@@ -51,7 +51,9 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
                 // Assignments.
                 + [130 => 1, 131 => 1, 132 => 1, 134 => 1, 137 => 1, 140 => 1]
                 // Chains.
-                + [143 => 1, 144 => 1, 145 => 1, 146 => 1, 147 => 1, 148 => 1];
+                + [143 => 1, 144 => 1, 145 => 1, 146 => 1, 147 => 1, 148 => 1]
+                // A line break before a call's bracket, and echo lists.
+                + [153 => 1, 155 => 1, 157 => 1, 159 => 1];
         }
 
         if ($testFile === 'ExpressionFormatUnitTest.4.inc') {
