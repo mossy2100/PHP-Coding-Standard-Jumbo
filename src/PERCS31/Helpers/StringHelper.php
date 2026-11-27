@@ -95,7 +95,13 @@ class StringHelper
      */
     public function layout(int $column, int $indent, int $trailing, int $maxLineLength): string
     {
+        $heredoc = $this->layoutHeredoc($column, $indent, $trailing, $maxLineLength);
+        if ($heredoc !== null) {
+            return $heredoc;
+        }
+
         $segments = $this->segments();
+
         $code = '';
         $end = $column;
         $lineHasCode = false;
@@ -219,10 +225,23 @@ class StringHelper
      */
     private static function renderDouble(array $atoms): string
     {
+        return '"' . self::renderDoubleBody($atoms, false) . '"';
+    }
+
+    /**
+     * Write atoms as the body of a double-quoted string or a heredoc, which needs no `\"`, and has its `\n` written as
+     * line breaks.
+     *
+     * @param list<StringAtom> $atoms The atoms.
+     * @param bool $isHeredoc Whether it's a heredoc's body.
+     * @return string The code.
+     */
+    private static function renderDoubleBody(array $atoms, bool $isHeredoc): string
+    {
         $code = '';
         foreach ($atoms as $index => $atom) {
             $next = isset($atoms[($index + 1)]) ? $atoms[($index + 1)]->double : '';
-            $text = $atom->double;
+            $text = $isHeredoc ? (['\\"' => '"', '\\n' => "\n"][$atom->double] ?? $atom->double) : $atom->double;
             if (
                 $atom->kind === StringAtom::TEXT && $text === '$' && preg_match('/^[A-Za-z_\x80-\xff{]/', $next) === 1
             ) {
@@ -238,7 +257,162 @@ class StringHelper
             $code .= $text;
         }
 
-        return "\"{$code}\"";
+        return $code;
+    }
+
+    /**
+     * Write what was read as a heredoc or nowdoc, if it's one string with two or more line breaks that doesn't fit on
+     * its line, its line breaks counted as `\n`.
+     *
+     * @param int $column The number of characters before it on its first line.
+     * @param int $indent The indent of the heredoc's body and closing marker.
+     * @param int $trailing The number of characters after it on its last line.
+     * @param int $maxLineLength The maximum line length.
+     * @return ?string The code, or null if it isn't written as a heredoc.
+     */
+    public function layoutHeredoc(int $column, int $indent, int $trailing, int $maxLineLength): ?string
+    {
+        $segments = $this->segments();
+        if (count($segments) !== 1 || !is_array($segments[0])) {
+            return null;
+        }
+
+        $flat = str_replace("\n", '\n', $this->render($segments[0]));
+
+        return ($column + mb_strlen($flat) + $trailing) > $maxLineLength ? $this->heredoc($segments[0], $indent) : null;
+    }
+
+    /**
+     * Find the last token of a string literal, which is one token per line when it's written over several.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $ptr The position of its first token.
+     * @return int The position of its last token.
+     */
+    public static function findLiteralEnd(File $phpcsFile, int $ptr): int
+    {
+        $tokens = $phpcsFile->getTokens();
+        $code = $tokens[$ptr]['code'];
+        if (!in_array($code, [T_CONSTANT_ENCAPSED_STRING, T_DOUBLE_QUOTED_STRING], true)) {
+            return $ptr;
+        }
+
+        while (
+            isset($tokens[$ptr + 1]) && $tokens[$ptr + 1]['code'] === $code
+            && str_ends_with($tokens[$ptr]['content'], "\n")
+        ) {
+            $ptr++;
+        }
+
+        return $ptr;
+    }
+
+    /**
+     * Check whether a token is a later line of a string literal written over several lines.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $ptr The position of the token.
+     * @return bool True if it is.
+     */
+    public static function isLiteralContinuation(File $phpcsFile, int $ptr): bool
+    {
+        $tokens = $phpcsFile->getTokens();
+
+        return $ptr > 0 && $tokens[$ptr - 1]['code'] === $tokens[$ptr]['code']
+            && str_ends_with($tokens[$ptr - 1]['content'], "\n");
+    }
+
+    /**
+     * Write a string with two or more line breaks as a heredoc, or as a nowdoc if it would be single-quoted, with its
+     * body and closing marker at the given indent. The marker names the content's language only where that's certain:
+     * JSON, XML or HTML, with no escape or variable in it. Otherwise it's TEXT, then TEXT2 and so on, if a line of the
+     * content would end the heredoc early.
+     *
+     * @param list<StringAtom> $atoms The atoms.
+     * @param int $indent The indent of the body and the closing marker.
+     * @return ?string The code, or null if it has fewer than two line breaks, or a line that starts with a tab, which
+     * can't be indented with spaces.
+     */
+    public function heredoc(array $atoms, int $indent): ?string
+    {
+        $isNowdoc = str_starts_with($this->render($atoms), "'");
+        $body = $isNowdoc
+            ? implode(
+                '',
+                array_map(
+                    static fn(StringAtom $atom): string
+                        => ['\\\'' => "'", '\\\\' => '\\'][$atom->single] ?? (string) $atom->single,
+                    $atoms,
+                ),
+            )
+            : self::renderDoubleBody($atoms, true);
+        $lines = explode("\n", $body);
+        $hasTab = array_any($lines, static fn(string $line): bool => str_starts_with($line, "\t"));
+        if (count($lines) < 3 || $hasTab) {
+            return null;
+        }
+
+        $isPlain = $isNowdoc
+            || (!str_contains($body, '\\')
+                && array_all($atoms, static fn(StringAtom $atom): bool => $atom->kind === StringAtom::TEXT));
+        $marker = self::findMarker($body, $lines, $isPlain);
+        $padding = str_repeat(' ', $indent);
+        $code = $isNowdoc ? "<<<'{$marker}'\n" : "<<<{$marker}\n";
+        foreach ($lines as $line) {
+            $code .= ($line === '' ? '' : $padding . $line) . "\n";
+        }
+
+        return "{$code}{$padding}{$marker}";
+    }
+
+    /**
+     * Find a heredoc's marker: the content's language where it's certain, or TEXT, with a number added if a line of
+     * the content would end the heredoc early.
+     *
+     * @param string $body The heredoc's body.
+     * @param list<string> $lines Its lines.
+     * @param bool $isPlain Whether the body is the string's value, with no escape or variable in it.
+     * @return string The marker.
+     */
+    private static function findMarker(string $body, array $lines, bool $isPlain): string
+    {
+        $start = ltrim($body);
+        $name = match (true) {
+            !$isPlain => 'TEXT',
+            in_array($start[0] ?? '', ['{', '['], true) && json_validate($body) => 'JSON',
+            str_starts_with($start, '<?xml') && self::isXml($body) => 'XML',
+            preg_match('/^(<!DOCTYPE\s+html|<html)/i', $start) === 1 => 'HTML',
+            default => 'TEXT',
+        };
+        $marker = $name;
+        $number = 1;
+        while (
+            array_any(
+                $lines,
+                static fn(string $line): bool => preg_match("/^\\s*{$marker}(?![A-Za-z0-9_\\x80-\\xff])/", $line) === 1,
+            )
+        ) {
+            $number++;
+            $marker = "{$name}{$number}";
+        }
+
+        return $marker;
+    }
+
+    /**
+     * Check whether text is well-formed XML.
+     *
+     * @param string $text The text.
+     * @return bool True if it is.
+     */
+    private static function isXml(string $text): bool
+    {
+        $previous = libxml_use_internal_errors(true);
+        $isXml = simplexml_load_string($text) !== false;
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        return $isXml;
     }
 
     /**
@@ -310,7 +484,7 @@ class StringHelper
             }
         }
 
-        if ($start === $end) {
+        if ($start === $end || self::findLiteralEnd($this->phpcsFile, $start) === $end) {
             $atoms = $this->readLiteral($start);
             if ($atoms === null) {
                 return false;
@@ -392,8 +566,12 @@ class StringHelper
      */
     private function readLiteral(int $ptr): ?array
     {
-        $token = $this->phpcsFile->getTokens()[$ptr];
-        $content = $token['content'];
+        // A literal written over several lines is one token per line.
+        $tokens = $this->phpcsFile->getTokens();
+        $token = $tokens[$ptr];
+        $last = self::findLiteralEnd($this->phpcsFile, $ptr);
+        // Its original content, as PHP_CodeSniffer replaces a tab at the start of a line with spaces.
+        $content = $this->phpcsFile->getTokensAsString($ptr, ($last - $ptr + 1), true);
         $atoms = [];
         if ($token['code'] === T_LNUMBER && preg_match('/^(0|[1-9][0-9]*)$/', $content) === 1) {
             foreach (str_split($content) as $digit) {

@@ -9,6 +9,7 @@ use PERCS31\Helpers\ExpressionNode;
 use PERCS31\Helpers\ExpressionParser;
 use PERCS31\Helpers\FixerHelper;
 use PERCS31\Helpers\LayoutHelper;
+use PERCS31\Helpers\StringConversionHelper;
 use PERCS31\Helpers\StringHelper;
 use PERCS31\Helpers\TokenHelper;
 use PHP_CodeSniffer\Files\File;
@@ -67,6 +68,8 @@ class ExpressionFormatSniff implements Sniff
     public const string CODE_TOO_LONG = 'TooLong';
 
     public const string CODE_INCORRECT_STRING_FORMAT = 'IncorrectStringFormat';
+
+    public const string CODE_USE_HEREDOC = 'UseHeredoc';
 
     public const string CODE_UNNECESSARY_STRING_CONVERSION = 'UnnecessaryStringConversion';
 
@@ -199,7 +202,7 @@ class ExpressionFormatSniff implements Sniff
 
         if (in_array($code, [T_ECHO, T_PRINT, T_OPEN_TAG_WITH_ECHO], true)) {
             if ($this->reflowStringExpressions) {
-                self::processConversions($phpcsFile, $stackPtr);
+                StringConversionHelper::process($phpcsFile, $stackPtr, self::CODE_UNNECESSARY_STRING_CONVERSION);
             }
 
             // An `echo` with several values is laid out as a list, from its first value.
@@ -616,6 +619,17 @@ class ExpressionFormatSniff implements Sniff
      */
     private function processLiteral(File $phpcsFile, int $stackPtr): void
     {
+        // A literal written over several lines is one token per line, and checked from its first.
+        if (StringHelper::isLiteralContinuation($phpcsFile, $stackPtr)) {
+            return;
+        }
+
+        $last = StringHelper::findLiteralEnd($phpcsFile, $stackPtr);
+        if ($last !== $stackPtr) {
+            $this->processMultiLineLiteral($phpcsFile, $stackPtr, $last);
+            return;
+        }
+
         // A literal in a call on one line is part of the expression around the call, and checked with it.
         $region = ExpressionHelper::findOutermostExpression($phpcsFile, $stackPtr, $this->strict);
         if ($region === null) {
@@ -681,6 +695,37 @@ class ExpressionFormatSniff implements Sniff
     }
 
     /**
+     * Check a string literal written over several lines, which is the whole of its expression: it's written as a
+     * heredoc or nowdoc if it has two or more line breaks and doesn't fit on its line with them written as `\n`, and
+     * left as it is otherwise.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $first The position of its first token.
+     * @param int $last The position of its last token.
+     */
+    private function processMultiLineLiteral(File $phpcsFile, int $first, int $last): void
+    {
+        $region = ExpressionHelper::findExpression($phpcsFile, $first);
+        $node = ExpressionParser::parse($phpcsFile, $first, $last);
+        $helper = new StringHelper($phpcsFile);
+        if (
+            $region === null || $region[0] !== $first || $region[1] !== $last || $node === null || !$helper->read($node)
+        ) {
+            return;
+        }
+
+        $code = $helper->layoutHeredoc(
+            $phpcsFile->getTokens()[$first]['column'] - 1,
+            LayoutHelper::lineIndent($phpcsFile, $first) + LayoutHelper::INDENT,
+            LayoutHelper::attachedLength($phpcsFile, $last),
+            $this->maxLineLength,
+        );
+        if ($code !== null) {
+            $this->reportString($phpcsFile, $first, $last, str_replace("\n", $phpcsFile->eolChar, $code));
+        }
+    }
+
+    /**
      * Report a string expression that isn't written as it should be, and fix it.
      *
      * @param File $phpcsFile The file being scanned.
@@ -694,11 +739,14 @@ class ExpressionFormatSniff implements Sniff
             return;
         }
 
-        $error = 'A string expression must be written as the fewest strings it can be, with variables interpolated, '
-            . 'and split only where it doesn\'t fit within %s characters.';
-        if (
-            !$phpcsFile->addFixableWarning($error, $start, self::CODE_INCORRECT_STRING_FORMAT, [$this->maxLineLength])
-        ) {
+        $isHeredoc = str_starts_with($code, '<<<');
+        $error = $isHeredoc
+            ? 'A string with two or more line breaks that doesn\'t fit within %s characters must be written as a '
+                . 'heredoc or nowdoc.'
+            : 'A string expression must be written as the fewest strings it can be, with variables interpolated, and '
+                . 'split only where it doesn\'t fit within %s characters.';
+        $errorCode = $isHeredoc ? self::CODE_USE_HEREDOC : self::CODE_INCORRECT_STRING_FORMAT;
+        if (!$phpcsFile->addFixableWarning($error, $start, $errorCode, [$this->maxLineLength])) {
             return;
         }
 
@@ -709,82 +757,6 @@ class ExpressionFormatSniff implements Sniff
         }
 
         $phpcsFile->fixer->endChangeset();
-    }
-
-    /**
-     * Check each argument of `echo`, `print` or `<?=` for a `(string)` cast or `->__toString()` call, which isn't
-     * needed, as they convert their arguments to strings.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $stackPtr The position of the keyword or tag.
-     */
-    private static function processConversions(File $phpcsFile, int $stackPtr): void
-    {
-        $tokens = $phpcsFile->getTokens();
-        $ptr = $stackPtr;
-        do {
-            $argument = $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($ptr + 1), null, true);
-            $region = $argument === false ? null : ExpressionHelper::findExpression($phpcsFile, $argument);
-            if ($region === null) {
-                return;
-            }
-
-            [$start, $end, , $after] = $region;
-            $node = ExpressionParser::parse($phpcsFile, $start, $end);
-            if ($node !== null && $node->kind !== ExpressionNode::LEVEL) {
-                self::processConversion($phpcsFile, $stackPtr, $start, $end);
-            }
-
-            $ptr = $after;
-        } while ($tokens[$stackPtr]['code'] !== T_PRINT && ($tokens[$ptr]['code'] ?? null) === T_COMMA);
-    }
-
-    /**
-     * Report a `(string)` cast or `->__toString()` call around a whole argument of `echo`, `print` or `<?=`.
-     *
-     * @param File $phpcsFile The file being scanned.
-     * @param int $keyword The position of the keyword or tag.
-     * @param int $start The position of the argument's first token.
-     * @param int $end The position of its last token.
-     */
-    private static function processConversion(File $phpcsFile, int $keyword, int $start, int $end): void
-    {
-        $tokens = $phpcsFile->getTokens();
-        $from = null;
-        $to = null;
-        if ($tokens[$start]['code'] === T_STRING_CAST && $start < $end) {
-            $from = $start;
-            $to = (int) $phpcsFile->findNext(T_WHITESPACE, ($start + 1), null, true) - 1;
-        } elseif (
-            ($end - 4) >= $start && $tokens[$end]['code'] === T_CLOSE_PARENTHESIS
-            && $tokens[($end - 1)]['code'] === T_OPEN_PARENTHESIS && $tokens[($end - 2)]['code'] === T_STRING
-            && strtolower($tokens[($end - 2)]['content']) === '__tostring'
-            && $tokens[($end - 3)]['code'] === T_OBJECT_OPERATOR
-        ) {
-            $from = $end - 3;
-            $to = $end;
-        }
-
-        if ($from === null) {
-            return;
-        }
-
-        $keywordName
-            = $tokens[$keyword]['code'] === T_OPEN_TAG_WITH_ECHO ? '<?=' : strtolower($tokens[$keyword]['content']);
-        $fix = $phpcsFile->addFixableWarning(
-            'The string conversion isn\'t needed, as %s converts its arguments to strings.',
-            $from,
-            self::CODE_UNNECESSARY_STRING_CONVERSION,
-            [$keywordName],
-        );
-        if ($fix) {
-            $phpcsFile->fixer->beginChangeset();
-            for ($i = $from; $i <= $to; $i++) {
-                $phpcsFile->fixer->replaceToken($i, '');
-            }
-
-            $phpcsFile->fixer->endChangeset();
-        }
     }
 
     /**

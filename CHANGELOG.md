@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+- **Long multi-line strings as heredocs and nowdocs, in Jumbo (breaking).** With `reflowStringExpressions`,
+  `PERCS31.Formatting.ExpressionFormat` writes a string with two or more line breaks that doesn't fit on its line as a
+  heredoc, or a nowdoc if it would be single-quoted, as php-cs-fixer's `multiline_string_to_heredoc` does, without
+  changing its value. That includes a string literal written over several lines. The marker is `JSON`, `XML` or
+  `HTML` where the content is certainly that, and `TEXT` otherwise. Reported as `UseHeredoc`. Auto-fixable.
 - **Joining a split compound type, in Jumbo (breaking).** `PERCS31.TypeHints.CompoundType` has a new `joinSplitTypes`
   property, on in Jumbo, with `maxLineLength`: a type split across lines that fits on one, as in `public Customer` then
   `|Guest $buyer;`, is joined, reported as `ShouldBeSingleLine`. `Jumbo.Formatting.RequireSingleLineStatement`, which

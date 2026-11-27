@@ -1669,11 +1669,23 @@ If the result doesn't fit, each line breaks before the last `.` that fits on it.
 own is split after the last space that fits, or, if there's none, after the last variable, or, if there's none, after
 the last character. The new lines start with `.`, indented as above.
 
+**Heredocs and nowdocs:** a string that becomes one string, with two or more line breaks, and doesn't fit on its line
+with them written as `\n`, is written as a heredoc instead, or a nowdoc if it would be single-quoted, as php-cs-fixer's
+`multiline_string_to_heredoc` does. That includes a string literal written over several lines. Its value never
+changes: `\n` becomes a line break, `\"` a `"`, and in a nowdoc `\'` a `'` and `\\` a `\`; a trailing line break
+keeps an empty line before the closing marker. The body and the marker are indented once past the line the `<<<` is
+on, as [`HeredocLayout`](#percs31stringsheredoclayout) requires. The marker names the content's language only where
+that's certain, with no escape or variable in it: `JSON` if it starts with `{` or `[` and is valid JSON, `XML` if it
+starts with `<?xml` and parses, and `HTML` if it starts with `<!DOCTYPE html` or `<html`. Otherwise it's `TEXT`, then
+`TEXT2` and so on, where a line of the content would end the heredoc early. A string with a line that starts with a
+tab is left alone, as PHP rejects a body indented with both. Whether a heredoc should be a nowdoc is left to
+`Generic.Strings.UnnecessaryHeredoc`.
+
 A string expression is laid out like this where an expression on one line can be split, as above, where it starts its
 own line, and where it's a whole ternary branch whose `?` or `:` starts a line. One that ExpressionFormat puts on its
 own line, after a split before an outer operator, is laid out from there too. Anywhere else, it's only rewritten, and
-only if the result fits on its line. A string with a comment, a heredoc or nowdoc, a line break inside it, or `${` is
-left alone, as is one in `declare()`.
+only if the result fits on its line. A string with a comment, a heredoc or nowdoc, or `${` is left alone, as is one in
+`declare()`, and one with a line break inside it, unless it's written as a heredoc or nowdoc.
 
 | Code                          | Reported for                                                                    |
 | ----------------------------- | ------------------------------------------------------------------------------- |
@@ -1681,6 +1693,7 @@ left alone, as is one in `declare()`.
 | `ShouldBeSingleLine`          | A split expression that fits on one line, with `strict`                         |
 | `IncorrectSplit`              | A longer expression that isn't laid out as above, with `strict`                 |
 | `IncorrectStringFormat`       | A string expression that isn't written or laid out as above                     |
+| `UseHeredoc`                  | A string with two or more line breaks that doesn't fit, not as a heredoc        |
 | `UnnecessaryStringConversion` | A `(string)` or `->__toString()` around an argument of `echo`, `print` or `<?=` |
 
 **Auto-fixable:** yes. Without `reflowStringExpressions`, only the whitespace around its operators and inside its

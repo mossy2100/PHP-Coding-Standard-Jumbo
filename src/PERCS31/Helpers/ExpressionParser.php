@@ -559,6 +559,17 @@ class ExpressionParser
             // A call, an array or a body can span lines; any other operand that does is left alone.
             $call = self::parseCall($phpcsFile, $start, $end) ?? self::parseBody($phpcsFile, $start, $end);
             $text = $phpcsFile->getTokensAsString($start, ($end - $start + 1));
+
+            // A string literal written over several lines, measured with its line breaks written as `\n`.
+            if ($end > $start && StringHelper::findLiteralEnd($phpcsFile, $start) === $end) {
+                return new ExpressionNode(
+                    ExpressionNode::OPERAND,
+                    $start,
+                    $end,
+                    mb_strlen(str_replace("\n", '\n', $text)),
+                );
+            }
+
             if ($call !== null || str_contains($text, "\n")) {
                 return $call;
             }

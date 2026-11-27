@@ -56,6 +56,11 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
                 + [153 => 1, 155 => 1, 157 => 1, 159 => 1];
         }
 
+        if ($testFile === 'ExpressionFormatUnitTest.6.inc') {
+            // Heredocs and nowdocs, at a line length of 40.
+            return [15 => 1, 16 => 1, 17 => 1, 18 => 1, 21 => 1];
+        }
+
         if ($testFile === 'ExpressionFormatUnitTest.4.inc') {
             // Not strict: only the expression written on one line that's too long.
             return [10 => 1];
