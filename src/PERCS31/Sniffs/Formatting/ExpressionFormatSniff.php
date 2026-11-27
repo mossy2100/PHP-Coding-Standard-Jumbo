@@ -318,6 +318,11 @@ class ExpressionFormatSniff implements Sniff
      */
     private function fitsWithRestOfLine(File $phpcsFile, ExpressionNode $root, int $column): bool
     {
+        // One with a body is never on one line, and its layout has measured each of its lines.
+        if ($root->flatLength >= ExpressionNode::BODY_LENGTH) {
+            return true;
+        }
+
         $tokens = $phpcsFile->getTokens();
         $rest = 0;
         for ($i = ($root->end + 1); isset($tokens[$i]) && $tokens[$i]['line'] === $tokens[$root->end]['line']; $i++) {

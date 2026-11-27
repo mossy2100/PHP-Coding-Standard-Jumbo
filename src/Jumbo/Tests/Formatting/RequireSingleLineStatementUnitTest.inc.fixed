@@ -19,7 +19,9 @@ $a = <<<'X'
     b
     X
     . 'c';
-// Left to their own sniffs, a split compound type too.
+// Left to their own sniffs, a split compound type and `++` too.
+$count
+    ++;
 class G
 {
     public A
@@ -55,7 +57,34 @@ switch ($a) {
 #[D]
 const E = 1;
 // Left to PERCS31.Formatting.ExpressionFormat: a line break at an assignment's operator, a property's default too,
-// before a call's opening bracket, or in an `echo` list.
+// before a call's opening bracket, in an `echo` list, at an operator beside a body, inside grouping parentheses, or at
+// a ternary's `?` or `:`.
+$a = (
+    $b
+);
+$a = $b ? (
+    $c
+) : 2;
+$a = $b
+    ? 1
+    : 2;
+$a = $b
+    ?? function () {
+        return 1;
+    };
+$a = $b
+    ?? new class {
+        public int $c;
+    };
+$a = $b
+    ?? match ($c) {
+        1 => 2,
+        default => 3,
+    };
+$a = function () {
+    return 1;
+}
+    ?? null;
 echo $a,
     $b;
 $a = new
@@ -99,10 +128,13 @@ class H
         + 2;
 }
 
-// Invalid: all of these fit.
-$a = ($b);
-$a = $b ? ($c) : 2;
-$a = $b ? 1 : 2;
+// Invalid: all of these fit, a break after a keyword and a `global` list too.
+function g()
+{
+    global $config, $logger;
+
+    return $config;
+}
 $a = $b->c;
 switch ($a) {
     case ($b):
@@ -111,22 +143,9 @@ switch ($a) {
 $a = foo(1)->bar();
 
 // Invalid: the lines around a body, or a call or array too long to collapse, are joined.
-$a = $b ?? function () {
-    return 1;
-};
 $a = $b ? function () {
     return 1;
 } : null;
-$a = $b ?? new class {
-    public int $c;
-};
-$a = $b ?? match ($c) {
-    1 => 2,
-    default => 3,
-};
-$a = function () {
-    return 1;
-} ?? null;
 $a = $b
     ?? ['abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz', 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz'];
 

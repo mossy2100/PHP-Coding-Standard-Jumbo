@@ -883,11 +883,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   `SlevomatCodingStandard.TypeHints.ReturnTypeHint.MissingTraversableTypeHintSpecification` on `#[Override]` methods
   that inherit their array shape from the parent's docblock, and 8.25.0 also misreports hooked properties as multiple
   property definitions.
-- **`Jumbo.Formatting.RequireSingleLineStatement` leaves expressions to `ExpressionFormat`.** A line break before or
-  after a binary operator, or just inside grouping parentheses, is no longer reported by it, when
-  `PERCS31.Formatting.ExpressionFormat` lays out that expression. So `$a = $b` then `+ $c;` is now reported as
-  `PERCS31.Formatting.ExpressionFormat.ShouldBeSingleLine`. It also no longer joins `$a = $b && (` onto one line before
-  a multi-line group.
+- **`Jumbo.Formatting.RequireSingleLineStatement` leaves expressions to `ExpressionFormat`.** A line break in an
+  expression `PERCS31.Formatting.ExpressionFormat` reads is no longer reported by it, as that sniff lays the
+  expression out: at an operator, an assignment, a ternary's `?` or `:`, grouping parentheses, a call's bracket, a
+  chain, an `echo` list, or beside a closure, `match` or anonymous class body. So `$a = $b` then `+ $c;` is now
+  reported as `PERCS31.Formatting.ExpressionFormat.ShouldBeSingleLine`. Nor is a break beside `++` or `--`, which
+  `Generic.WhiteSpace.IncrementDecrementSpacing` reports. It stays the catch-all for the rest, such as a break after
+  `return` or in a `global` list. It also no longer joins `$a = $b && (` onto one line before a multi-line group.
 
 ### Removed
 

@@ -928,13 +928,19 @@ class ExpressionHelper
      */
     public static function isExpressionBreak(File $phpcsFile, int $before, int $after): bool
     {
+        $tokens = $phpcsFile->getTokens();
+        foreach ([$before, $after] as $ptr) {
+            if (in_array($tokens[$ptr]['code'], [T_INLINE_THEN, T_INLINE_ELSE], true)) {
+                return self::readsOperator($phpcsFile, $ptr);
+            }
+        }
+
         $operator = self::findOperatorBeside($phpcsFile, $before, $after);
         if ($operator !== null) {
-            return self::read($phpcsFile, $operator) !== null;
+            return self::readsOperator($phpcsFile, $operator);
         }
 
         // A line break after a comma in an `echo` list.
-        $tokens = $phpcsFile->getTokens();
         if ($tokens[$before]['code'] === T_COMMA) {
             $value = self::findExpression($phpcsFile, $after);
             $list = $value === null ? null : self::widenToEchoList($phpcsFile, $value);
@@ -948,6 +954,27 @@ class ExpressionHelper
         $region = $opener === null ? null : self::findExpressionAround($phpcsFile, $opener);
 
         return $region !== null && self::read($phpcsFile, (int) $opener, $region) !== null;
+    }
+
+    /**
+     * Check whether ExpressionFormat, in strict mode, reads the expression an operator is in: a binary or assignment
+     * operator, or a ternary's `?` or `:`, which is read from the value after it.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param int $operator The position of the operator.
+     * @return bool True if it does.
+     */
+    private static function readsOperator(File $phpcsFile, int $operator): bool
+    {
+        $ptr = $operator;
+        if (in_array($phpcsFile->getTokens()[$operator]['code'], [T_INLINE_THEN, T_INLINE_ELSE], true)) {
+            $skip = [...array_keys(Tokens::EMPTY_TOKENS), T_INLINE_ELSE];
+            $ptr = (int) $phpcsFile->findNext($skip, ($operator + 1), null, true);
+        }
+
+        $region = self::findOutermostExpression($phpcsFile, $ptr, true);
+
+        return $region !== null && self::read($phpcsFile, $ptr, $region) !== null;
     }
 
     /**
@@ -1017,7 +1044,12 @@ class ExpressionHelper
             $phpcsFile->findNext(Tokens::EMPTY_TOKENS, ($closer + 1), null, true),
         ];
         foreach ($outside as $ptr) {
-            if ($ptr !== false && self::isBinary($phpcsFile, $ptr)) {
+            $isTernary = $ptr !== false
+                && in_array($phpcsFile->getTokens()[$ptr]['code'], [T_INLINE_THEN, T_INLINE_ELSE], true);
+            if (
+                $ptr !== false
+                && ($isTernary || self::isBinary($phpcsFile, $ptr) || self::isAssignmentPair($phpcsFile, $ptr))
+            ) {
                 return $ptr;
             }
         }

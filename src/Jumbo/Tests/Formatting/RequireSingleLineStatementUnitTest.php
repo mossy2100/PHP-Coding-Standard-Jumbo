@@ -19,20 +19,15 @@ class RequireSingleLineStatementUnitTest extends AbstractSniffTestCase
     protected function getErrorList(): array
     {
         return [
-            // Every statement or case label that fits on one line.
-            103 => 1,
-            106 => 1,
-            109 => 1,
-            112 => 1,
-            115 => 1,
-            120 => 1,
-            // The lines around a body, or a call or array too long to collapse.
-            126 => 1,
-            130 => 1,
-            133 => 1,
-            135 => 1,
-            139 => 1,
-            146 => 1,
+            // Every statement or case label that fits on one line, ExpressionFormat's aside.
+            134 => 1,
+            137 => 1,
+            140 => 1,
+            143 => 1,
+            148 => 1,
+            // The lines around a body that ExpressionFormat doesn't read, or a call or array too long to collapse.
+            154 => 1,
+            157 => 1,
         ];
     }
 

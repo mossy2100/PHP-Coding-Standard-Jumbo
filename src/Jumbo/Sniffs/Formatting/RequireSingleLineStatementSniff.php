@@ -14,17 +14,18 @@ use PHP_CodeSniffer\Util\Tokens;
 /**
  * Requires a statement or `case` label split across lines to be written on one line if it fits.
  *
- * PER Coding Style 3.1, section 6.4, says a statement MAY be split at an operator, so this is an extra rule. Other
- * sniffs do the same for a call, an array, a method signature, a condition and a loop header, and
- * PERCS31.Formatting.ExpressionFormat lays out an expression's binary operators and grouping parentheses. This sniff
- * covers the rest of a statement, such as `$a` then `= $b;`, and an expression that sniff leaves alone, such as one
- * with a multi-line closure.
+ * PER Coding Style 3.1, section 6.4, says a statement MAY be split at an operator, so this is an extra rule. It's the
+ * catch-all for line breaks no other sniff lays out. PERCS31.Formatting.ExpressionFormat lays out an expression it
+ * reads, at its operators, assignment, ternary, grouping parentheses, calls, arrays, chain or `echo` list;
+ * PERCS31.TypeHints.CompoundType joins a split type; Generic.WhiteSpace.IncrementDecrementSpacing a break beside `++`
+ * or `--`; and other sniffs a method signature, a condition and a loop header. This sniff covers the rest, such as a
+ * break after `return` or in a `global` list, a `case` label, and an expression ExpressionFormat leaves alone.
  *
  * It only reports a line break outside those constructs, so they keep their own messages. Once it does, the fix
  * collapses the whole statement. If it can't, as it holds a closure, or a call or array too long for one line, the fix
- * joins the lines around it instead, so `$a = $b` then `?? function () {` becomes `$a = $b ?? function () {`. It's
+ * joins the lines around it instead, so `$a = $b` then `? function () {` becomes `$a = $b ? function () {`. It's
  * skipped for:
- * - A chain of two or more methods, each on its own line, which is the usual reason to write a chain that way.
+ * - A chain of two or more methods, each on its own line, which ExpressionFormat lays out.
  * - An import or a function declaration, which have their own rules.
  * - A heredoc or nowdoc, and any part of a statement with a comment or a multi-line string.
  */
@@ -350,14 +351,15 @@ class RequireSingleLineStatementSniff implements Sniff
             }
 
             if ($tokens[$i]['line'] !== $line) {
-                // A break in a compound type is PERCS31.TypeHints.CompoundType's.
+                // A break in a compound type is PERCS31.TypeHints.CompoundType's, and one beside `++` or `--` is
+                // Generic.WhiteSpace.IncrementDecrementSpacing's.
                 $previous = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($i - 1), null, true);
-                $typeSymbols = [T_TYPE_UNION, T_TYPE_INTERSECTION];
-                $isTypeBreak = $previous !== false
-                    && (in_array($tokens[$previous]['code'], $typeSymbols, true)
-                        || in_array($tokens[$i]['code'], $typeSymbols, true));
+                $others = [T_TYPE_UNION, T_TYPE_INTERSECTION, T_INC, T_DEC];
+                $isOthers = $previous !== false
+                    && (in_array($tokens[$previous]['code'], $others, true)
+                        || in_array($tokens[$i]['code'], $others, true));
                 if (
-                    !$isTypeBreak
+                    !$isOthers
                     && ($previous === false || !ExpressionHelper::isExpressionBreak($phpcsFile, $previous, $i))
                 ) {
                     return true;
@@ -385,7 +387,14 @@ class RequireSingleLineStatementSniff implements Sniff
      */
     private static function findOwnSniffCloser(File $phpcsFile, int $stackPtr): ?int
     {
+        // A closure's, `match`'s or anonymous class's body: its lines aren't the statement's.
         $tokens = $phpcsFile->getTokens();
+        if (in_array($tokens[$stackPtr]['code'], [T_CLOSURE, T_ANON_CLASS, T_MATCH], true)) {
+            $closer = $tokens[$stackPtr]['scope_closer'] ?? null;
+
+            return is_int($closer) ? $closer : null;
+        }
+
         if ($tokens[$stackPtr]['code'] === T_OPEN_SHORT_ARRAY) {
             $closer = $tokens[$stackPtr]['bracket_closer'] ?? null;
 

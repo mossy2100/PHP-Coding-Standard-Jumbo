@@ -611,22 +611,27 @@ These are left alone:
 - A chain of two or more methods, each on its own line. A single wrapped `->` is collapsed.
 - A comment, a heredoc or nowdoc, or a multi-line string.
 - A line break only inside a call or array, whose own sniffs report it.
-- A line break before or after a binary operator, or just inside grouping parentheses, in an expression that
-  [`ExpressionFormat`](PERCS31_Custom_Sniffs.md#percs31formattingexpressionformat) lays out.
+- A line break another sniff lays out: one in an expression that
+  [`ExpressionFormat`](PERCS31_Custom_Sniffs.md#percs31formattingexpressionformat) reads, at an operator, an
+  assignment, a ternary's `?` or `:`, grouping parentheses, a call's bracket, a chain or an `echo` list; one in a
+  compound type, which [`CompoundType`](PERCS31_Custom_Sniffs.md#percs31typehintscompoundtype) joins; or one beside `++`
+  or `--`, which `Generic.WhiteSpace.IncrementDecrementSpacing` reports.
 
-A statement with a closure, `match` or anonymous class body, or a call or array too long for one line, can't be
-collapsed. So the lines around it are joined instead, and it moves left to match:
+So it's the catch-all for the rest, such as a break after `return`, `throw` or `yield`, a `global` or `static` list, and
+a `case` label. A statement with a closure, `match` or anonymous class body, or a call or array too long for one line,
+can't be collapsed. So the lines around it are joined instead, and it moves left to match:
 
 ```php
 $a = $b
-    ?? function () {
+    ? function () {
         return 1;
-    };
+    }
+    : null;
 
 // Becomes:
-$a = $b ?? function () {
+$a = $b ? function () {
     return 1;
-};
+} : null;
 ```
 
 **Auto-fixable:** yes.
@@ -635,10 +640,6 @@ $a = $b ?? function () {
 
 ```php
 $a = $b ? 1 : 2;
-
-$query
-    ->select()
-    ->where();
 
 /**
  * @param list<int> $items
@@ -652,16 +653,11 @@ function total(array $items): int
 **Bad:**
 
 ```php
-$a
-    = $b ? 1 : 2;
+return
+    $total;
 
-$a = $b
-    ? 1
-    : 2;
-
-$a = $b ? (
-    $c
-) : 2;
+global $config,
+    $logger;
 
 /**
  * @param list<int> $items
