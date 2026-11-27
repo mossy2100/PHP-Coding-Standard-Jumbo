@@ -150,7 +150,23 @@ $a = foo(
 )
     ->bar();
 
-// Invalid: the lines around a body, or a call or array too long to collapse, are joined.
+// Invalid: the lines around a body, or a call or array too long to collapse, are joined, a break before its keyword
+// too.
+function returnsClosure()
+{
+    return
+        function () {
+            return 1;
+        };
+}
+function returnsMatch($x)
+{
+    return
+        match ($x) {
+            1 => 2,
+            default => 3,
+        };
+}
 $a = $b
     ? function () {
         return 1;
@@ -159,7 +175,17 @@ $a = $b
 $a = $b
     ?? ['abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz', 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz'];
 
-// Valid: a comment in the part to join, or a chain of two or more with a body.
+// Valid: a comment in the part to join, a chain of two or more with a body, or a body whose head is split, which its
+// own sniff joins first.
+function returnsSplitClosure()
+{
+    return
+        function (
+            $a,
+        ) {
+            return $a;
+        };
+}
 $a = $b // Why.
     ?? function () {
         return 1;

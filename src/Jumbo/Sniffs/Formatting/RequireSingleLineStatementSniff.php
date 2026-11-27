@@ -146,10 +146,20 @@ class RequireSingleLineStatementSniff implements Sniff
         $tokens = $phpcsFile->getTokens();
         $partStart = $start;
         for ($i = $start; $i <= $end; $i++) {
-            // A body's part ends before its keyword, which SingleLineHelper won't collapse, and resumes at its closer.
+            // A body's part ends before its `{`, which SingleLineHelper won't collapse, and resumes at its closer. So
+            // its head, as in `function () use ($a)`, joins the part before it, with any line break before the
+            // keyword, unless the head is split itself, as a signature is, which its own sniff joins.
             if (in_array($tokens[$i]['code'], [T_CLOSURE, T_ANON_CLASS, T_MATCH], true)) {
                 $bodyCloser = $tokens[$i]['scope_closer'] ?? null;
+                $bodyOpener = $tokens[$i]['scope_opener'] ?? null;
                 $before = $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($i - 1), $partStart, true);
+                $headEnd = is_int($bodyOpener)
+                    ? $phpcsFile->findPrevious(Tokens::EMPTY_TOKENS, ($bodyOpener - 1), $i, true)
+                    : false;
+                if ($headEnd !== false && $tokens[$headEnd]['line'] === $tokens[$i]['line']) {
+                    $before = $headEnd;
+                }
+
                 if (is_int($bodyCloser) && $before !== false) {
                     $this->joinPart($phpcsFile, $partStart, $before, $bodyCloser);
                     $partStart = $bodyCloser;

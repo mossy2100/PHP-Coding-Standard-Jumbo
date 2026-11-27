@@ -971,6 +971,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 
+- **A line break before a closure, `match` or anonymous class wasn't joined, in Jumbo.**
+  `Jumbo.Formatting.RequireSingleLineStatement` left `return` then `function () {` on the next line as it was, though
+  `return function () {` fits. The body's head now joins the line before it, unless the head is split itself, as a
+  signature can be, which its own sniff joins first.
 - **A closure converted to an arrow function changed its meaning, in Jumbo.**
   `SlevomatCodingStandard.Functions.RequireArrowFunction` converted any closure that only returns, so `function () {
   return 1; } ?? null` became `fn() => 1 ?? null`, a closure using an outer variable it didn't see started capturing it,

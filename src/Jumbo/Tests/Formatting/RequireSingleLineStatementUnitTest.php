@@ -26,8 +26,11 @@ class RequireSingleLineStatementUnitTest extends AbstractSniffTestCase
             143 => 1,
             148 => 1,
             // The lines around a body that ExpressionFormat doesn't read, or a call or array too long to collapse.
-            154 => 1,
+            // A break before a body's keyword, after return.
             157 => 1,
+            164 => 1,
+            170 => 1,
+            173 => 1,
         ];
     }
 
