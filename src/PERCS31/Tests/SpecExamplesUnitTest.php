@@ -94,14 +94,17 @@ class SpecExamplesUnitTest extends TestCase
     #[DataProvider('exampleProvider')]
     public function testExampleGetsExpectedMessages(string $name): void
     {
-        $result = $this->runTool('phpcs', [
-            '--standard=PERCS31',
-            '--exclude=PSR1.Classes.ClassDeclaration,PSR1.Files.SideEffects',
-            '--extensions=inc',
-            '--no-cache',
-            '--report=json',
-            self::FIXTURES . "/{$name}",
-        ]);
+        $result = $this->runTool(
+            'phpcs',
+            [
+                '--standard=PERCS31',
+                '--exclude=PSR1.Classes.ClassDeclaration,PSR1.Files.SideEffects',
+                '--extensions=inc',
+                '--no-cache',
+                '--report=json',
+                self::FIXTURES . "/{$name}",
+            ],
+        );
 
         $this->assertSame(self::EXPECTED[$name] ?? [], $this->messages($result['output']));
     }

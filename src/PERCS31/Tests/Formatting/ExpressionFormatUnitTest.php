@@ -32,28 +32,29 @@ class ExpressionFormatUnitTest extends AbstractSniffTestCase
         if ($testFile === 'ExpressionFormatUnitTest.5.inc') {
             // Calls and arrays too long, at a line length of 40: chopped down, hugged, outermost first, and an argument
             // on its own line.
-            return [12 => 1, 13 => 1, 16 => 1, 19 => 1, 20 => 1, 23 => 1, 24 => 1, 27 => 1, 29 => 1]
-                // In strict: a split call that fits, hugging when chopping lets the array fit, chopped when it should
-                // hug, and a split call in an expression that fits.
-                + [34 => 1, 38 => 1, 41 => 1, 48 => 1]
-                // A chopped closure that should be hugged, two closures hugged, and a hugged match.
-                + [60 => 1, 66 => 1, 71 => 1]
+            return [12 => 1, 13 => 1, 16 => 1, 20 => 1, 21 => 1, 24 => 1, 25 => 1, 28 => 1, 30 => 1]
+                // In strict: a split call that fits, chopped when it should be, and a split call in an expression that
+                // fits.
+                + [35 => 1, 39 => 1, 49 => 1]
+                // Hugging: closures, which never are, a call, a named argument, an expression that fits on its own
+                // line, and one that doesn't, a ternary, a chain, an arrow function, an anonymous class, and a string.
+                + [56 => 1, 65 => 1, 72 => 1, 73 => 1, 74 => 1, 75 => 1, 76 => 1, 77 => 1, 78 => 1, 79 => 1, 83 => 2]
                 // Pairs: a value with operators on its own line, a split key, no room after `key =>`, and an array.
-                + [78 => 1, 79 => 1, 80 => 1, 82 => 1]
+                + [88 => 1, 89 => 1, 90 => 1, 92 => 1]
                 // Arms with several conditions: a value on its own line, conditions too long, and conditions that fit.
-                + [88 => 1, 89 => 1, 90 => 1]
+                + [98 => 1, 99 => 1, 100 => 1]
                 // Ternaries: too long, with a call, short, in a group, and one that fits.
-                + [95 => 1, 96 => 1, 97 => 1, 98 => 1, 99 => 1]
+                + [105 => 1, 106 => 1, 107 => 1, 108 => 1, 109 => 1]
                 // Arrow functions and a yield pair, empty brackets, and a destructuring list.
-                + [106 => 1, 108 => 1, 109 => 1, 110 => 1, 111 => 1, 113 => 1]
+                + [116 => 1, 118 => 1, 119 => 1, 120 => 1, 121 => 1, 123 => 1]
                 // Nested arrow functions.
-                + [123 => 1, 124 => 1, 125 => 1, 126 => 1]
+                + [133 => 1, 134 => 1, 135 => 1, 136 => 1]
                 // Assignments.
-                + [130 => 1, 131 => 1, 132 => 1, 134 => 1, 137 => 1, 140 => 1]
+                + [140 => 1, 141 => 1, 142 => 1, 144 => 1, 147 => 1, 150 => 1]
                 // Chains.
-                + [143 => 1, 144 => 1, 145 => 1, 146 => 1, 147 => 1, 148 => 1]
+                + [153 => 1, 154 => 1, 155 => 1, 156 => 1, 157 => 1, 158 => 1]
                 // A line break before a call's bracket, and echo lists.
-                + [153 => 1, 155 => 1, 157 => 1, 159 => 1];
+                + [163 => 1, 165 => 1, 167 => 1, 169 => 1];
         }
 
         if ($testFile === 'ExpressionFormatUnitTest.6.inc') {

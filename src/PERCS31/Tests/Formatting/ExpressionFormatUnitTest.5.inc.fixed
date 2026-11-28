@@ -28,11 +28,15 @@ $a = merge(
     ['colour' => 'red'],
 );
 
-// Too long: the array is too long even on its own line, so it's hugged, through two calls.
-$a = merge($defaults, [
-    'colour' => 'red',
-    'size' => 'large',
-]);
+// Too long: the array is too long even on its own line, so it's hugged, through two calls, but only as a call's one
+// argument. With another, the call is chopped down, and the array split on its own lines.
+$a = merge(
+    $defaults,
+    [
+        'colour' => 'red',
+        'size' => 'large',
+    ],
+);
 $a = foo(bar([
     'colour' => 'red',
     'size' => 'large',
@@ -62,43 +66,81 @@ $a = foo(
     ),
 );
 
-// In strict, a call split over lines that fits on one is joined, and one hugging the wrong argument is re-laid out.
+// In strict, a call split over lines that fits on one is joined, and one hugging beside another argument is chopped.
 // phpcs:set PERCS31.Formatting.ExpressionFormat strict true
 $short = foo($a, $b);
 $a = merge(
     $defaults,
     ['colour' => 'red'],
 );
-$a = merge($defaults, [
-    'colour' => 'red',
-    'size' => 'large',
-]);
+$a = merge(
+    $defaults,
+    [
+        'colour' => 'red',
+        'size' => 'large',
+    ],
+);
 $a = $b + foo($c);
-// Closures are hugged, last or not, unless there are two; a match is chopped down, never hugged. (Moved bodies are
-// re-indented by PERCS31.WhiteSpace.ScopeIndent.)
-usort($items, function ($a, $b) {
+// A call's one argument is hugged when it's too long for a line of its own: an array, a call however it's split, an
+// operator expression, a ternary, a chain, a string or a match. A closure, arrow function or anonymous class never is,
+// and nor is an argument with others. (Moved bodies are re-indented by PERCS31.WhiteSpace.ScopeIndent.)
+usort(
+    $items,
+    function ($a, $b) {
     return $a <=> $b;
-});
-$b = array_map(function ($x) {
-    return $x * 2;
-}, $items);
-$c = foo($x, function () {
+},
+);
+$c = foo(
+    $x,
+    function () {
         return 1;
-    });
+    },
+);
 $c = foo(
     function () {
     return 1;
 },
-    function () {
-    return 2;
-},
 );
-$d = foo(
-    match ($b) {
+$d = foo(match ($b) {
     1 => 'one',
     default => 'many',
+});
+$e = foo(bar(
+    $first,
+    $second,
+    $third,
+    $fourth,
+));
+$e = foo(data: [
+    'colour' => 'red',
+    'size' => 'large',
+]);
+$e = sqrt(
+    $first + $second * $third - $x,
+);
+$e = sqrt($first + $second * $third
+    - $fourth + $fifth);
+$e = foo($condition && $other
+    ? $first
+    : $second);
+$e = foo($this
+    ->repository
+    ->findAll()
+    ->first());
+$e = foo(
+    fn($x) => $x + $first + $second
+        + $third,
+);
+$e = foo(
+    new class {
+    public $a;
 },
 );
+// phpcs:set PERCS31.Formatting.ExpressionFormat reflowStringExpressions true
+throw new Exception('The given value '
+    . 'is out of range for this '
+    . 'operation.');
+// phpcs:set PERCS31.Formatting.ExpressionFormat reflowStringExpressions false
 // Pairs: a value that fits on its own line goes there, even with operators or as an array; a split key puts `=>` on a
 // line of its own; and with no room after `key =>`, `=>` starts a line anyway.
 $a = match ($b) {

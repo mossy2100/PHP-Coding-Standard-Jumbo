@@ -631,7 +631,7 @@ class ExpressionParser
             end: $end,
             flatLength: ExpressionNode::BODY_LENGTH,
             headLength: mb_strlen($head),
-            isClosure: $tokens[$keyword]['code'] === T_CLOSURE,
+            isMatch: $tokens[$keyword]['code'] === T_MATCH,
         );
     }
 
@@ -673,7 +673,8 @@ class ExpressionParser
                 continue;
             }
 
-            $runEnd = (int) $phpcsFile->findNext(T_WHITESPACE, ($i + 1), $opener, true) - 1;
+            $afterRun = $phpcsFile->findNext(T_WHITESPACE, ($i + 1), $opener, true);
+            $runEnd = ($afterRun === false ? $opener : $afterRun) - 1;
             $run = $phpcsFile->getTokensAsString($i, ($runEnd - $i + 1));
             if (!str_contains($run, "\n")) {
                 $callee .= $run;

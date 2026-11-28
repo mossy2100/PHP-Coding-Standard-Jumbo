@@ -1028,9 +1028,9 @@ class ExpressionFormatSniff implements Sniff
 
     /**
      * Work out how a call or array that doesn't fit on its line is split. It's chopped down, one argument per line, if
-     * that lets each argument fit on its own line. Otherwise, if exactly one argument would span lines however the call
-     * is laid out, an array too long even on a line of its own, or a call hugging one, it's hugged: the other arguments
-     * stay on the call's lines. Anything else is chopped down. An array's values are always chopped down.
+     * that lets each argument fit on its own line. Otherwise a call with one argument may hug it, as hugsItsArgument()
+     * decides: the argument starts after the opening bracket, its new lines are indented once, and the closing bracket
+     * follows its last line. Anything else is chopped down. An array's values are always chopped down.
      *
      * @param File $phpcsFile The file being scanned.
      * @param ExpressionNode $node The call or array.
@@ -1055,26 +1055,26 @@ class ExpressionFormatSniff implements Sniff
 
         $opener = (int) $node->opener;
         $argumentIndent = $lineIndent + LayoutHelper::INDENT;
-        $hugged = $node->isArray ? null : $this->findHuggedArgument($node, $column, $lineIndent, $trailing);
-        if ($hugged !== null) {
-            // The arguments before the hugged one, and the hugged one's first line, are on the call's first line.
-            $breaks[$opener] = $lineIndent;
-            $this->callLayouts[$opener] = [null, $hugged];
-            $end = $column + $node->calleeLength() + 1;
-            foreach ($node->children as $index => $child) {
-                if ($index === $hugged) {
-                    $end = $this->layout($phpcsFile, $child, $end, $lineIndent, $argumentIndent, 0, false, $breaks);
-                } else {
-                    $end += $child->flatLength;
-                }
-
-                $end += $index < count($node->children) - 1 ? 2 : 0;
-            }
+        $breaks[$opener] = $lineIndent;
+        if ($this->hugsItsArgument($phpcsFile, $node, $column, $lineIndent)) {
+            $this->callLayouts[$opener] = [null, 0];
+            $child = $node->children[0];
+            $childColumn = $column + $node->calleeLength() + 1;
+            $end = $this->delegateString($phpcsFile, $child, $childColumn, $argumentIndent, ($trailing + 1), true)
+                ?? $this->layout(
+                    $phpcsFile,
+                    $child,
+                    $childColumn,
+                    $lineIndent,
+                    $argumentIndent,
+                    ($trailing + 1),
+                    false,
+                    $breaks,
+                );
 
             return $end + 1;
         }
 
-        $breaks[$opener] = $lineIndent;
         $this->callLayouts[$opener] = [$argumentIndent, null];
         // Each argument on its own line, followed by a comma, and its new lines indented once more.
         $continuation = $argumentIndent + LayoutHelper::INDENT;
@@ -1088,65 +1088,46 @@ class ExpressionFormatSniff implements Sniff
     }
 
     /**
-     * Find the one argument of a call to hug, if the call isn't to be chopped down.
+     * Check whether a call that doesn't fit on its line hugs its argument, rather than being chopped down. PER Coding
+     * Style 3.1, section 4.7, says "a single argument being split across multiple lines (as might be the case with a
+     * closure or array) does not constitute splitting the argument list itself". PERCS31 only allows it for a call's
+     * only argument, when that's too long even on a line of its own, and is one of these:
+     * - An array, a call, or a `match`.
+     * - An operator expression, ternary or chain, wrapped as it would be anywhere else.
+     * - A string, when string expressions are reflowed.
      *
-     * @param ExpressionNode $node The call.
+     * A closure, arrow function or anonymous class is never hugged. The call's first line must also have room for the
+     * start of the argument.
+     *
+     * @param File $phpcsFile The file being scanned.
+     * @param ExpressionNode $node The call or array.
      * @param int $column The number of characters before the call on its first line.
      * @param int $lineIndent The indent of the call's first line.
-     * @param int $trailing The number of characters straight after the call on its last line.
-     * @return ?int The argument's index, or null if the call is chopped down.
+     * @return bool True if it hugs its argument.
      */
-    private function findHuggedArgument(ExpressionNode $node, int $column, int $lineIndent, int $trailing): ?int
+    private function hugsItsArgument(File $phpcsFile, ExpressionNode $node, int $column, int $lineIndent): bool
     {
-        // Chopped down, each argument on its own line, with a comma after it.
-        $argumentIndent = $lineIndent + LayoutHelper::INDENT;
-        $spanning = [];
-        foreach ($node->children as $index => $child) {
-            if ($argumentIndent + $child->flatLength + 1 > $this->maxLineLength) {
-                $spanning[] = $index;
-            }
+        // Chopped down: on a line of its own, with a comma after it.
+        $child = $node->children[0] ?? null;
+        if (
+            $node->isArray || $child === null || count($node->children) > 1
+            || ($lineIndent + LayoutHelper::INDENT + $child->flatLength + 1) <= $this->maxLineLength
+        ) {
+            return false;
         }
 
-        if (count($spanning) !== 1) {
-            return null;
-        }
+        // A string can be split anywhere, so it always has room.
+        $isString = $this->reflowStringExpressions
+            && (self::isConcatenation($phpcsFile, $child) || $this->isStringLiteral($phpcsFile, $child));
+        $isHuggable = $isString || match ($child->kind) {
+            ExpressionNode::BODY => $child->isMatch,
+            ExpressionNode::LEVEL => $phpcsFile->getTokens()[$child->operators[0]]['code'] !== T_FN_ARROW,
+            ExpressionNode::CALL, ExpressionNode::GROUP, ExpressionNode::TERNARY, ExpressionNode::CHAIN => true,
+            default => false,
+        };
+        $lead = $isString ? 0 : $child->leadLength();
 
-        // A closure, an array, or a call hugging an argument of its own. A `match` or anonymous class is never hugged.
-        $hugged = $spanning[0];
-        $child = $node->children[$hugged];
-        $isHuggable = $child->kind === ExpressionNode::BODY
-            ? $child->isClosure
-            : $child->kind === ExpressionNode::CALL && ($child->isArray || $this->hugsAnArgument($child, $lineIndent));
-        if (!$isHuggable) {
-            return null;
-        }
-
-        // The arguments before it fit on the first line, up to the hugged one's opening bracket or brace, and those
-        // after it fit on the last line, after its closing one.
-        $before = $column + $node->calleeLength() + 1 + $child->firstLineLength();
-        $after = $lineIndent + 1;
-        foreach ($node->children as $index => $other) {
-            if ($index < $hugged) {
-                $before += $other->flatLength + 2;
-            } elseif ($index > $hugged) {
-                $after += 2 + $other->flatLength;
-            }
-        }
-
-        return $before <= $this->maxLineLength && ($after + 1 + $trailing) <= $this->maxLineLength ? $hugged : null;
-    }
-
-    /**
-     * Check whether a call, hugged into another, hugs one of its own arguments, so it spans lines however it's laid
-     * out.
-     *
-     * @param ExpressionNode $node The call.
-     * @param int $lineIndent The indent of the line it starts on.
-     * @return bool True if it does.
-     */
-    private function hugsAnArgument(ExpressionNode $node, int $lineIndent): bool
-    {
-        return !$node->isArray && $this->findHuggedArgument($node, 0, $lineIndent, 0) !== null;
+        return $isHuggable && ($column + $node->calleeLength() + 1 + $lead) <= $this->maxLineLength;
     }
 
     /**

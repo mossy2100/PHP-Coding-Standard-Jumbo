@@ -566,15 +566,15 @@ class RulesetComparisonUnitTest extends TestCase
     }
 
     /**
-     * Test that a `match` as a call's argument is chopped down, never hugged, as a hugged `match` is barely readable,
-     * whether it's written hugged or on one line, and that phpcbf finishes.
+     * Test that a `match` that's a call's only argument is hugged, whether written chopped down or on one line, and
+     * that phpcbf finishes.
      */
-    public function testMatchArgumentIsChoppedDown(): void
+    public function testOnlyMatchArgumentIsHugged(): void
     {
         $header = "<?php\n\ndeclare(strict_types=1);\n\nnamespace A;\n\n";
         $chopped = "\$d = foo(\n    match (\$x) {\n        1 => 2,\n        default => 3,\n    },\n);\n";
         $hugged = "\$d = foo(match (\$x) {\n    1 => 2,\n    default => 3,\n});\n";
-        foreach ([$hugged, "\$d = foo(match (\$x) { 1 => 2, default => 3 });\n"] as $code) {
+        foreach ([$chopped, "\$d = foo(match (\$x) { 1 => 2, default => 3 });\n"] as $code) {
             $file = $this->copyToTempFile(null, "{$header}{$code}");
 
             try {
@@ -585,7 +585,7 @@ class RulesetComparisonUnitTest extends TestCase
             }
 
             $this->assertStringNotContainsString('FAILED TO FIX', $fixer['output']);
-            $this->assertSame("{$header}{$chopped}", $fixed);
+            $this->assertSame("{$header}{$hugged}", $fixed);
         }
     }
 

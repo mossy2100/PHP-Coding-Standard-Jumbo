@@ -75,9 +75,9 @@ readonly class ExpressionNode
      * @param ?int $closer The position of a group's or call's closing parenthesis, or an array's closing bracket.
      * @param list<int> $separators The positions of a call's or list's commas, one between each pair of children.
      * @param ?int $trailingComma The position of a call's or list's comma after its last child, if it has one.
-     * @param bool $isArray Whether a call is an array's values, which are always split one per line, never hugged.
+     * @param bool $isArray Whether a call is an array's values, which are always split one per line, never hugging.
      * @param int $headLength The length of a body's first line, up to and including its `{`.
-     * @param bool $isClosure Whether a body is a closure's, which can be hugged, unlike a `match` or anonymous class.
+     * @param bool $isMatch Whether a body is a `match`, which can be hugged, unlike a closure or anonymous class.
      * @param array<int, string> $calleeGaps The whitespace before a call's opening bracket that spans lines, by
      * position, with what it becomes on one line, as in `new` then `Foo()`.
      */
@@ -94,7 +94,7 @@ readonly class ExpressionNode
         public ?int $trailingComma = null,
         public bool $isArray = false,
         public int $headLength = 0,
-        public bool $isClosure = false,
+        public bool $isMatch = false,
         public array $calleeGaps = [],
     ) {}
 
@@ -174,12 +174,10 @@ readonly class ExpressionNode
             return self::OTHER;
         }
 
-        $spanning = array_keys(
-            array_filter(
-                $this->children,
-                static fn(self $child): bool => $tokens[$child->start]['line'] !== $tokens[$child->end]['line'],
-            ),
-        );
+        $spanning = array_keys(array_filter(
+            $this->children,
+            static fn(self $child): bool => $tokens[$child->start]['line'] !== $tokens[$child->end]['line'],
+        ));
 
         return match (count($spanning)) {
             0 => self::FLAT,

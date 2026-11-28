@@ -1562,13 +1562,42 @@ can be split anywhere, even inside a group while the operators around the group 
 outermost first, only if still too long:
 
 - **Chopped down,** one argument per line with a trailing comma, if that lets each argument fit on its own line.
-- **Hugged,** if one argument is a closure, or an array too long even on a line of its own: it's split, and the
-  other arguments stay on the call's lines, as in `merge($defaults, [` or `usort($items, function ($a, $b) {`, at any
-  position. Section 4.7 says "A single argument being split across multiple lines (as might be the case with a closure
-  or array) does not constitute splitting the argument list itself." A call whose own argument is hugged can be hugged
-  the same way, as in `foo(bar([`.
-- **Otherwise chopped down,** including a call with two closures, or a `match` or anonymous class argument, which is
-  never hugged, as a hugged `match` is barely readable. An array's values always go one per line.
+- **Hugged,** if the call has only one argument, too long even on a line of its own, and it's an array, a call, a
+  `match`, an operator expression, a ternary, a chain, or a string when `reflowStringExpressions` is on. The argument
+  starts on the call's line and is split by its own rules, its new lines indented once, and the closing bracket follows
+  its last line. A hugged call splits its own arguments the same way, so it may be chopped down or hug one of its own.
+  Section 4.7 says "A single argument being split across multiple lines (as might be the case with a closure or array)
+  does not constitute splitting the argument list itself." Hugging an argument among others, or a closure, makes the
+  call harder to read, so PERCS31 hugs only these.
+- **Otherwise chopped down,** including any call with two or more arguments, and a closure, arrow function or anonymous
+  class, which is never hugged. An array's values always go one per line.
+
+For example, with each call too long for its line, and each hugged argument too long for a line of its own:
+
+```php
+$customer = Customer::create([
+    'name' => 'Alice',
+    'nationality' => 'Spanish',
+]);
+
+$y = sin(cos(sqrt(
+    $x + $a + $b ** 4 + sin(M_PI / 4),
+)));
+
+$x = sqr($a + $b + $containerSize * $miscVariable * $monkeysPerRoom
+    - sqrt($buffaloAvgMass));
+
+$size = sqr(match ($age) {
+    10, 11 => 123,
+    default => 789,
+});
+
+$names = $users->map(
+    function (User $user) {
+        return $user->name;
+    },
+);
+```
 
 An expression's last operand that's a call or array too long even on a line of its own stays after its operator, as in
 `$ok = $value !== null && isStatement(`, and is split there, as a pair's value stays after `key =>`: breaking before
@@ -1582,7 +1611,7 @@ brackets split over lines are joined, and so is a destructuring list, unless it 
 
 **A chain** with two or more `->` or `?->`, as in `$query->where($a)->get()`, that's too long for its line puts each
 arrow at the start of a line of its own, property accesses included, indented once past the line with the object, as
-PER's own example does. Each link is then laid out in its own line's room, so a link's call can hug a closure. A `::`
+PER's own example does. Each link is then laid out in its own line's room, so a link's call can hug its argument. A `::`
 never starts a line, so a static call stays with the object, as in `Foo::create()`. A single arrow is part of a call,
 as in `$this->process(`, so only its arguments are split. A chain that's an expression's last operand doesn't stay
 after its operator when it's too long for its own line: the operator starts a line first.

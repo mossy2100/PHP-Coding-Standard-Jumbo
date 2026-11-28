@@ -311,6 +311,8 @@ structure's condition or an array's one value.
 **Decision:** The exemption covers argument lists only: a call's, an attribute's, an anonymous class's, and those of
 `clone()`, `exit()` and `die()`. Anywhere else, a list or condition that spans lines is split, wherever the line breaks
 fall.
+PERCS31 allows any one argument to span lines this way, though its fix for a call over the line length hugs only some
+(see [A Call Over the Line Length](#a-call-over-the-line-length)).
 
 ```php
 // An argument list: not split, so the closure may start on the call's line.
@@ -1826,14 +1828,41 @@ characters." Neither says that a call on one line too long for that limit must b
 
 **Decision:** A call on one line that takes its line over 120 characters is a warning, as the limit is soft (see
 [Line Length](#line-length)). The fix works outermost first: an expression around the call is split at its operators
-first, and the call only if it's still too long. Then its argument list is split as section 4.7 describes, one
-argument per line, if that lets each argument fit. Otherwise, when one argument is an array too long even on a line of
-its own, the array is split and the other arguments stay on the call's lines, as section 4.7 says "A single argument
-being split across multiple lines (as might be the case with a closure or array) does not constitute splitting the
-argument list itself." An argument still too long for the limit is then split by its own rules, such as an
+first, and the call only if it's still too long. Then its argument list is split as section 4.7 describes, one argument
+per line, if that lets each argument fit. Otherwise, a call with only one argument, too long even on a line of its own,
+hugs it: the argument starts on the call's line and is split by its own rules, its new lines indented once, and the
+closing parenthesis follows its last line. That argument can be an array, a call, a `match`, an operator expression, a
+ternary, a chain or a string. A closure, arrow function or anonymous class is never hugged, and nor is an argument with
+others. An argument still too long for the limit on its own line is split by its own rules there, such as an
 expression's or a string's.
 
-**Why:** Splitting the list is the way the spec gives to bring a call within the limit.
+```php
+// One argument, too long for a line of its own: hugged.
+$customer = Customer::create([
+    'name' => 'Alice',
+    'nationality' => 'Spanish',
+]);
+
+$x = sqr($a + $b + $containerSize * $miscVariable * $monkeysPerRoom
+    - sqrt($buffaloAvgMass));
+
+// A closure, or an argument among others: chopped down.
+$names = $users->map(
+    function (User $user) {
+        return $user->name;
+    },
+);
+```
+
+**Why:** Splitting the list is the way the spec gives to bring a call within the limit. Hugging goes beyond what the
+spec asks for, but stays within it, as section 4.7 says "A single argument being split across multiple lines (as might
+be the case with a closure or array) does not constitute splitting the argument list itself." The exemption allows any
+argument to be hugged, but one split over lines among others is hard to follow, and so is a closure whose body starts on
+the call's line. So the fix hugs only a lone argument that isn't a closure, and chops down the rest, which the spec
+always allows.
+
+PERCS31 leaves a call already split another way alone, such as a hugged closure. [Jumbo](Jumbo.md) reports it, as an
+extra rule, and lays it out as above.
 
 ---
 
